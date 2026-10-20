@@ -155,12 +155,20 @@ final class Sawa_Lens_AI {
 		}
 		$code = wp_remote_retrieve_response_code( $res );
 		$j    = json_decode( wp_remote_retrieve_body( $res ), true );
-		if ( 200 !== $code || empty( $j['content'][0]['text'] ) ) {
-			$msg = $j['error']['message'] ?? ( 'HTTP ' . $code );
+		// The answer can hold several blocks (e.g. thinking first): join the text ones.
+		$text = '';
+		foreach ( (array) ( $j['content'] ?? array() ) as $block ) {
+			if ( 'text' === ( $block['type'] ?? '' ) && isset( $block['text'] ) ) {
+				$text .= $block['text'];
+			}
+		}
+		if ( 200 !== $code || '' === trim( $text ) ) {
+			$types = implode( ',', array_map( function ( $b ) { return $b['type'] ?? '?'; }, (array) ( $j['content'] ?? array() ) ) );
+			$msg   = $j['error']['message'] ?? ( 'HTTP ' . $code . ' · blocks: ' . ( $types ? $types : 'none' ) . ' · stop: ' . ( $j['stop_reason'] ?? '?' ) );
 			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · ' . mb_substr( $msg, 0, 300 ), false );
 			return new WP_Error( 'ai', 'خدمة الشرح غير متاحة الآن. حاول بعد قليل.', array( 'status' => 502 ) );
 		}
-		$text = trim( $j['content'][0]['text'] );
+		$text = trim( $text );
 		$text = preg_replace( '/^```(?:json)?\s*|\s*```$/', '', $text );
 		$out  = json_decode( $text, true );
 		if ( ! is_array( $out ) && preg_match( '/\{.*\}/s', $text, $m ) ) {
