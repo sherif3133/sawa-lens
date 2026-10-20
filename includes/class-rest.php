@@ -169,7 +169,7 @@ final class Sawa_Lens_Rest {
 	}
 
 	public static function explain( WP_REST_Request $r ) {
-		$res = Sawa_Lens_AI::explain( get_current_user_id(), $r->get_param( 'word' ), $r->get_param( 'sentence' ) );
+		$res = Sawa_Lens_AI::explain( get_current_user_id(), $r->get_param( 'word' ), $r->get_param( 'sentence' ), (string) $r->get_param( 'lang' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 

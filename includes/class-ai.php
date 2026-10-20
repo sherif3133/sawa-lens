@@ -29,13 +29,14 @@ final class Sawa_Lens_AI {
 	}
 
 	/** Explains a word as used in a sentence: Arabic meaning, sentence translation, short note. */
-	public static function explain( $uid, $word, $sentence ) {
+	public static function explain( $uid, $word, $sentence, $lang = 'ar' ) {
+		$lang     = 'en' === $lang ? 'en' : 'ar';
 		$word     = mb_substr( trim( wp_strip_all_tags( (string) $word ) ), 0, 60 );
 		$sentence = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $sentence ) ) ), 0, 600 );
 		if ( '' === $word ) {
 			return new WP_Error( 'empty', 'لا توجد كلمة.' );
 		}
-		$key = hash( 'sha256', 'explain|v1|' . strtolower( $word ) . '|' . $sentence );
+		$key = hash( 'sha256', 'explain|v1|' . ( 'en' === $lang ? 'en|' : '' ) . strtolower( $word ) . '|' . $sentence );
 		$hit = self::cached( $key );
 		if ( $hit ) {
 			return $hit;
@@ -50,6 +51,14 @@ final class Sawa_Lens_AI {
 			. '"sentence" (a natural Arabic translation of the whole sentence), '
 			. '"note" (one short Arabic sentence about usage only if useful: phrasal verb, idiom, collocation, false friend, or informal register; otherwise empty string). '
 			. 'Never invent context that is not in the sentence.';
+		if ( 'en' === $lang ) {
+			$system = 'You help Arabic-speaking learners of English (A2–B2) understand English in English. Use simple, clear English (B1 level). '
+				. 'Return ONLY a JSON object, no prose, with keys: '
+				. '"meaning" (a short, simple English definition of the word or phrase exactly as used in this sentence, max 15 words), '
+				. '"sentence" (the whole sentence said again in simpler English), '
+				. '"note" (one short sentence about usage only if useful: phrasal verb, idiom, collocation, register; otherwise empty string). '
+				. 'Never invent context that is not in the sentence.';
+		}
 		$user   = "Word: {$word}\nSentence: {$sentence}";
 		$out    = self::call( $system, $user, 1200 );
 		if ( is_wp_error( $out ) ) {
