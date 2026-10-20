@@ -51,7 +51,7 @@ final class Sawa_Lens_AI {
 			. '"note" (one short Arabic sentence about usage only if useful: phrasal verb, idiom, collocation, false friend, or informal register; otherwise empty string). '
 			. 'Never invent context that is not in the sentence.';
 		$user   = "Word: {$word}\nSentence: {$sentence}";
-		$out    = self::call( $system, $user, 400 );
+		$out    = self::call( $system, $user, 1200 );
 		if ( is_wp_error( $out ) ) {
 			return $out;
 		}
@@ -82,7 +82,7 @@ final class Sawa_Lens_AI {
 		$out = self::call(
 			'Translate the English text into natural Modern Standard Arabic for a learner. Return ONLY a JSON object: {"sentence": "..."}.',
 			$sentence,
-			500
+			1500
 		);
 		if ( is_wp_error( $out ) ) {
 			return $out;
@@ -175,6 +175,7 @@ final class Sawa_Lens_AI {
 			$out = json_decode( $m[0], true );
 		}
 		if ( ! is_array( $out ) ) {
+			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · not JSON (stop: ' . ( $j['stop_reason'] ?? '?' ) . '): ' . mb_substr( $text, 0, 300 ), false );
 			return new WP_Error( 'ai', 'وصل الشرح بشكل غير صحيح. حاول مرة أخرى.', array( 'status' => 502 ) );
 		}
 		$usage = (array) get_option( 'sawa_lens_usage', array() );
