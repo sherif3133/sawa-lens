@@ -12,6 +12,7 @@ final class Sawa_Lens_Admin {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_post_sawa_lens_save', array( __CLASS__, 'save' ) );
+		add_action( 'admin_post_sawa_lens_revoke', array( __CLASS__, 'revoke' ) );
 	}
 
 	public static function menu() {
@@ -35,6 +36,17 @@ final class Sawa_Lens_Admin {
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
 		update_option( Sawa_Lens_AI::OPT, $s, false );
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&saved=1' ) );
+		exit;
+	}
+
+	/** Signs a browser out of Language Lens (its token stops working at once). */
+	public static function revoke() {
+		if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'sawa_lens_revoke' ) ) {
+			wp_die( 'Not allowed.' );
+		}
+		global $wpdb;
+		$wpdb->delete( Sawa_Lens_Store::t( 'tokens' ), array( 'id' => isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) ); // phpcs:ignore
+		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&revoked=1#devices' ) );
 		exit;
 	}
 
@@ -84,6 +96,29 @@ final class Sawa_Lens_Admin {
 			</form>
 			<?php if ( $err ) : ?>
 				<p><strong>Last AI error:</strong> <?php echo esc_html( $err ); ?></p>
+			<?php endif; ?>
+			<h2 id="devices">Connected browsers</h2>
+			<?php if ( isset( $_GET['revoked'] ) ) : // phpcs:ignore ?>
+				<div class="notice notice-success"><p>Signed out.</p></div>
+			<?php endif; ?>
+			<?php $rows = $wpdb->get_results( 'SELECT id, user_id, label, created_at, last_used FROM ' . Sawa_Lens_Store::t( 'tokens' ) . ' ORDER BY COALESCE(last_used, created_at) DESC LIMIT 200' ); // phpcs:ignore ?>
+			<?php if ( ! $rows ) : ?>
+				<p>No browsers connected yet.</p>
+			<?php else : ?>
+				<table class="widefat striped" style="max-width:900px">
+					<thead><tr><th>Learner</th><th>Browser</th><th>Connected</th><th>Last used</th><th></th></tr></thead>
+					<tbody>
+					<?php foreach ( $rows as $r ) : $u = get_userdata( $r->user_id ); ?>
+						<tr>
+							<td><?php echo esc_html( $u ? $u->display_name : '#' . $r->user_id ); ?></td>
+							<td><?php echo esc_html( preg_match( '~(Edg|Chrome|Firefox|Safari)/[0-9]+~', $r->label, $m ) ? str_replace( 'Edg', 'Edge', $m[0] ) : ( $r->label ? mb_substr( $r->label, 0, 40 ) : '—' ) ); ?></td>
+							<td><?php echo esc_html( mysql2date( 'M j, Y', $r->created_at ) ); ?></td>
+							<td><?php echo esc_html( $r->last_used ? human_time_diff( strtotime( $r->last_used ), current_time( 'timestamp' ) ) . ' ago' : 'never' ); ?></td>
+							<td><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0"><input type="hidden" name="action" value="sawa_lens_revoke"><input type="hidden" name="id" value="<?php echo esc_attr( $r->id ); ?>"><?php wp_nonce_field( 'sawa_lens_revoke' ); ?><button class="button-link-delete" type="submit">Remove</button></form></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
 			<?php endif; ?>
 			<?php if ( $usage ) : ?>
 				<h2>AI usage</h2>
