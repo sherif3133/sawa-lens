@@ -13,6 +13,7 @@ final class Sawa_Lens_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_post_sawa_lens_save', array( __CLASS__, 'save' ) );
 		add_action( 'admin_post_sawa_lens_revoke', array( __CLASS__, 'revoke' ) );
+		add_action( 'admin_post_sawa_lens_test', array( __CLASS__, 'test' ) );
 	}
 
 	public static function menu() {
@@ -36,6 +37,17 @@ final class Sawa_Lens_Admin {
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
 		update_option( Sawa_Lens_AI::OPT, $s, false );
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&saved=1' ) );
+		exit;
+	}
+
+	/** Runs one explanation with a fresh example so the key, model and network are all checked. */
+	public static function test() {
+		if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'sawa_lens_test' ) ) {
+			wp_die( 'Not allowed.' );
+		}
+		$res = Sawa_Lens_AI::explain( get_current_user_id(), 'run', 'She runs a small bakery near the station (' . wp_date( 'H:i:s' ) . ').' );
+		set_transient( 'sawa_lens_test_' . get_current_user_id(), is_wp_error( $res ) ? array( 'error' => $res->get_error_message(), 'detail' => get_option( 'sawa_lens_last_ai_error', '' ) ) : $res, 300 );
+		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&tested=1' ) );
 		exit;
 	}
 
@@ -94,6 +106,24 @@ final class Sawa_Lens_Admin {
 				</table>
 				<?php submit_button(); ?>
 			</form>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="sawa_lens_test">
+				<?php wp_nonce_field( 'sawa_lens_test' ); ?>
+				<p><button class="button" type="submit" <?php disabled( ! $s['api_key'] ); ?>>Test explanation</button> <span class="description">Explains "run" in "She runs a small bakery…" (one small paid call).</span></p>
+			</form>
+			<?php
+			$t = isset( $_GET['tested'] ) ? get_transient( 'sawa_lens_test_' . get_current_user_id() ) : null; // phpcs:ignore
+			if ( $t ) :
+				?>
+				<div class="notice <?php echo isset( $t['error'] ) ? 'notice-error' : 'notice-success'; ?>" style="max-width:700px">
+					<?php if ( isset( $t['error'] ) ) : ?>
+						<p><strong>Test failed:</strong> <?php echo esc_html( $t['error'] ); ?></p><p><?php echo esc_html( $t['detail'] ); ?></p>
+					<?php else : ?>
+						<p><strong>Working.</strong></p>
+						<p dir="rtl" style="font-size:15px">المعنى: <?php echo esc_html( $t['meaning'] ); ?><br>الجملة: <?php echo esc_html( $t['sentence'] ); ?><?php echo $t['note'] ? '<br>ملاحظة: ' . esc_html( $t['note'] ) : ''; ?></p>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
 			<?php if ( $err ) : ?>
 				<p><strong>Last AI error:</strong> <?php echo esc_html( $err ); ?></p>
 			<?php endif; ?>
