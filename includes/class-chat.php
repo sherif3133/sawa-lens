@@ -16,6 +16,8 @@ final class Sawa_Lens_Chat {
 		add_filter( 'sawa_tracker_transcribe', array( __CLASS__, 'transcribe' ), 10, 3 );
 		add_filter( 'sawa_tracker_feedback', array( __CLASS__, 'feedback' ), 10, 5 );
 		add_filter( 'sawa_tracker_translate', array( __CLASS__, 'translate' ), 10, 3 );
+		add_filter( 'sawa_tracker_battle_ready', function () { return array_sum( (array) ( Sawa_Lens_Placement::counts()['mc'] ?? array() ) ) >= 10; } );
+		add_filter( 'sawa_tracker_battle_questions', array( __CLASS__, 'battle_questions' ), 10, 3 );
 	}
 
 	public static function features( $f, $uid ) {
@@ -25,6 +27,20 @@ final class Sawa_Lens_Chat {
 			'feedback'   => Sawa_Lens_AI::ready() && Sawa_Lens_Auth::allowed( $uid ),
 			'translate'  => Sawa_Lens_AI::ready() && Sawa_Lens_Auth::allowed( $uid ),
 		);
+	}
+
+	/** Raid battles: grammar questions from the level test's bank, around the student's level. */
+	public static function battle_questions( $qs, $uid, $n ) {
+		global $wpdb;
+		$pl  = get_user_meta( $uid, 'sawa_lens_placement', true );
+		$lv  = is_array( $pl ) ? (int) $pl['levelNum'] : max( 2, Sawa_Lens_Store::level( $uid ) );
+		$b   = Sawa_Lens_Placement::level_b( $lv );
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'pt_items' ) . " WHERE type = 'mc' AND active = 1 AND b BETWEEN %f AND %f ORDER BY RAND() LIMIT %d", $b - 1.2, $b + 0.6, (int) $n ), ARRAY_A ); // phpcs:ignore
+		foreach ( (array) $rows as $r ) {
+			$q    = json_decode( $r['body'], true );
+			$qs[] = array( 'q' => $q['q'], 'options' => $q['options'], 'answer' => (int) $q['answer'] );
+		}
+		return $qs;
 	}
 
 	public static function translate( $default, $text, $uid ) {

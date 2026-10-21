@@ -623,7 +623,7 @@
 			var next = p.items.findIndex(function (x) { return !x.done; });
 			var box = $app.querySelector('#plan'); if (!box) return;
 			var stage = STAGES[S.stage - 1], step = stage.steps.filter(function (x) { return !x.optional && !x.done(S.J); })[0];
-			box.innerHTML = '<div class="row-between"><h3>' + (p.perfect ? 'Perfect day 🎉' : 'Your plan for today') + '</h3><span class="pill' + (p.perfect ? ' mastered' : '') + '">' + (p.perfect ? '+50 XP today' : '+5 XP each · +30 for all') + '</span></div><ol class="plan">' + p.items.map(function (x, i) {
+			box.innerHTML = '<div class="row-between"><h3>' + (p.perfect ? 'Perfect day 🎉' : 'Your plan for today') + '</h3><span class="pill' + (p.perfect ? ' mastered' : '') + '">' + (p.perfect ? '+50 XP · +40 🪙 today' : '+5 XP & 5 🪙 each · bonus for all') + '</span></div><ol class="plan">' + p.items.map(function (x, i) {
 				return '<li class="' + (x.done ? 'ok' : i === next ? 'next' : '') + '"><span class="g-check">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + esc(x.t) + '</b><span class="small muted">' + esc(x.sub) + '</span></div>' + (!x.done ? '<button class="btn sm' + (i === next ? '' : ' ghost') + '" data-go="' + esc(x.go) + '">' + ({ review: 'Start', scan: 'Scan', chat: 'Chat', log: 'Log' }[x.go] || 'Go') + '</button>' : '') + '</li>';
 			}).join('') + '</ol>'
 				+ (p.minutes ? '<p class="small muted">⏱ ' + p.minutes + ' min counted automatically today — no need to log it.</p>' : '')

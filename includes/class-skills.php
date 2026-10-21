@@ -62,6 +62,11 @@ final class Sawa_Lens_Skills {
 		return class_exists( 'Sawa_Tracker_XP' ) ? Sawa_Tracker_XP::award( $uid, $n, $reason, $capped ) : 0;
 	}
 
+	/** Raid coins in the tracker (earned by learning, used as loot). */
+	public static function coins( $uid, $n ) {
+		return class_exists( 'Sawa_Tracker_Raids' ) ? Sawa_Tracker_Raids::add_coins( $uid, $n ) : 0;
+	}
+
 	/** Correct uses seen in free writing / chat: { skill: n }. */
 	public static function record_uses( $uid, $good ) {
 		$raw = self::raw( $uid );
@@ -190,6 +195,7 @@ final class Sawa_Lens_Skills {
 				$ever               = true;
 				$dirty              = true;
 				self::xp( $uid, 100, 'mastered:' . $id, false );
+				self::coins( $uid, 50 );
 				if ( class_exists( 'Sawa_Tracker_Game' ) ) {
 					Sawa_Tracker_Game::event( $uid, 'mastered', null, array( 'name' => $k['name'] ) );
 				}

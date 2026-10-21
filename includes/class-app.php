@@ -520,12 +520,14 @@ self.addEventListener('fetch', function () {});
 			if ( $it['done'] && empty( $paid['items'][ $it['k'] ] ) ) {
 				$paid['items'][ $it['k'] ] = 1;
 				$gained += Sawa_Lens_Skills::xp( $uid, 5, 'plan', false );
+				Sawa_Lens_Skills::coins( $uid, 5 );
 			}
 		}
 		$all = ! array_filter( $items, function ( $it ) { return ! $it['done']; } );
 		if ( $all && ! $paid['bonus'] ) {
 			$paid['bonus'] = true;
 			$gained       += Sawa_Lens_Skills::xp( $uid, 30, 'plan', false );
+			Sawa_Lens_Skills::coins( $uid, 20 );
 		}
 		update_user_meta( $uid, 'sawa_lens_plan', $paid );
 		return self::out(

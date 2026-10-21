@@ -256,6 +256,7 @@ final class Sawa_Lens_Lessons {
 			}
 			if ( $ok ) {
 				Sawa_Lens_Skills::xp( $uid, 5, 'quiz' );
+				Sawa_Lens_Skills::coins( $uid, 2 );
 			}
 			Sawa_Lens_Activity::add( $uid, 'quiz' );
 		}
