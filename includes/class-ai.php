@@ -674,6 +674,11 @@ final class Sawa_Lens_AI {
 		return $found;
 	}
 
+	/** A practice set only if it was already made (never calls the AI). */
+	public static function cached_set( $id, $variant ) {
+		return self::cached( hash( 'sha256', 'set|v1|' . $id . '|' . ( (int) $variant % 6 ) ) );
+	}
+
 	private static function cached( $key ) {
 		global $wpdb;
 		$body = $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'ai' ) . ' WHERE hash = %s', $key ) ); // phpcs:ignore

@@ -33,6 +33,7 @@ final class Sawa_Lens_Activity {
 		if ( ! $uid || ! class_exists( 'Sawa_Tracker_Game' ) || ! Sawa_Tracker_Game::is_member( $uid ) ) {
 			return 0;
 		}
+		do_action( 'sawa_lens_activity', $uid, $kind ? $kind : 'use', $times );
 		if ( isset( self::RULES[ $kind ] ) ) {
 			$activity = self::RULES[ $kind ][0];
 			$minutes  = self::RULES[ $kind ][1] * max( 0, (float) $times );

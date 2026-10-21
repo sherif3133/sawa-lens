@@ -214,6 +214,7 @@ final class Sawa_Lens_Skills {
 				if ( class_exists( 'Sawa_Tracker_Game' ) ) {
 					Sawa_Tracker_Game::event( $uid, 'mastered', null, array( 'name' => $k['name'] ) );
 				}
+				do_action( 'sawa_lens_mastered', $uid, $id );
 			}
 			$passed = $mastered || ( $items >= 8 && $acc >= 0.8 );
 			$state[ $id ] = array( 'passed' => $passed || $ever );

@@ -521,6 +521,7 @@ self.addEventListener('fetch', function () {});
 				$paid['items'][ $it['k'] ] = 1;
 				$gained += Sawa_Lens_Skills::xp( $uid, 5, 'plan', false );
 				Sawa_Lens_Skills::coins( $uid, 5 );
+				do_action( 'sawa_lens_plan_step', $uid, $it['k'] );
 			}
 		}
 		$all = ! array_filter( $items, function ( $it ) { return ! $it['done']; } );
@@ -531,6 +532,7 @@ self.addEventListener('fetch', function () {});
 			if ( class_exists( 'Sawa_Tracker_RPG' ) ) {
 				Sawa_Tracker_RPG::add_elixirs( $uid, 1 );
 			}
+			do_action( 'sawa_lens_plan_step', $uid, 'perfect' );
 		}
 		update_user_meta( $uid, 'sawa_lens_plan', $paid );
 		return self::out(

@@ -542,7 +542,7 @@
 				{ k: 'saved', t: 'Save 3 sentences or phrases you like', ar: 'احفظ ٣ جمل أو عبارات', how: 'On YouTube: in the transcript panel, or select words → "Save sentence" / "Save expression". They appear in Library.', done: function (j) { return j.saved >= 3; }, count: function (j) { return Math.min(3, j.saved) + '/3'; } }
 			] },
 		{ n: 3, title: 'Write and fix your grammar', ar: 'اكتب وصحّح القواعد', tabs: ['write', 'skills', 'community'],
-			intro: 'Write a few sentences about your day. You get every correction, and your mistakes decide which grammar points open in your skill tree.',
+			intro: 'Write a few sentences about your day. You get every correction, and your mistakes decide which grammar points open in your skill tree. Community opens too, with the Silk Road game: its monsters attack with your own words, saved sentences and mistakes, so every fight is a review.',
 			steps: [
 				{ k: 'writings', t: 'Check your writing twice', ar: 'صحّح كتابتك مرتين', how: 'Open Write, write 3–5 sentences, tap "Check my writing".', done: function (j) { return j.writings >= 2; }, count: function (j) { return Math.min(2, j.writings) + '/2'; }, go: 'write' },
 				{ k: 'sets', t: 'Do one practice set in your skill tree', ar: 'تمرين واحد في شجرة المهارات', how: 'Open Skills → "Work on next" → Start practice. Explanations open as you unlock each point.', done: function (j) { return j.sets >= 1; }, go: 'skills' }
@@ -1239,6 +1239,7 @@
 		document.addEventListener('sawa-tracker', function (e) {
 			var d = e.detail || {};
 			if (d.unread != null) { S.unread = d.unread; paintNav(); }
+			if (d.go) { go(d.go); return; } // a Silk Road quest step: take the student to where they learn it
 			if (d.gate) { S.gate = d.gate; if (S.view !== 'today') go('today'); else showTrk('today'); }
 			if (d.ready) { var wasGate = S.gate; S.gate = null; S.trk = d.data; if (wasGate || S.view === 'today') go(S.view === 'today' ? 'today' : S.view); }
 			// The tracker switched itself (e.g. a reply notification opened a chat): follow it.
