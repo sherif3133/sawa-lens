@@ -64,7 +64,19 @@ final class Sawa_Lens_Skills {
 
 	/** Raid coins in the tracker (earned by learning, used as loot). */
 	public static function coins( $uid, $n ) {
-		return class_exists( 'Sawa_Tracker_Raids' ) ? Sawa_Tracker_Raids::add_coins( $uid, $n ) : 0;
+		return class_exists( 'Sawa_Tracker_Raids' ) ? Sawa_Tracker_Raids::add_coins( $uid, $n, 'learn' ) : 0;
+	}
+
+	/** Mastered points per track (grammar / pron / tone), counting points mastered at least once. */
+	public static function mastery_counts( $uid ) {
+		$out = array( 'grammar' => 0, 'pron' => 0, 'tone' => 0 );
+		foreach ( self::raw( $uid ) as $id => $s ) {
+			$k = self::get( $id );
+			if ( $k && ! empty( $s['ever'] ) ) {
+				$out[ $k['track'] ]++;
+			}
+		}
+		return $out;
 	}
 
 	/** Correct uses seen in free writing / chat: { skill: n }. */
@@ -196,6 +208,9 @@ final class Sawa_Lens_Skills {
 				$dirty              = true;
 				self::xp( $uid, 100, 'mastered:' . $id, false );
 				self::coins( $uid, 50 );
+				if ( class_exists( 'Sawa_Tracker_RPG' ) ) {
+					Sawa_Tracker_RPG::add_elixirs( $uid, 2 );
+				}
 				if ( class_exists( 'Sawa_Tracker_Game' ) ) {
 					Sawa_Tracker_Game::event( $uid, 'mastered', null, array( 'name' => $k['name'] ) );
 				}

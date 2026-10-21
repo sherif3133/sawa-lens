@@ -528,6 +528,9 @@ self.addEventListener('fetch', function () {});
 			$paid['bonus'] = true;
 			$gained       += Sawa_Lens_Skills::xp( $uid, 30, 'plan', false );
 			Sawa_Lens_Skills::coins( $uid, 20 );
+			if ( class_exists( 'Sawa_Tracker_RPG' ) ) {
+				Sawa_Tracker_RPG::add_elixirs( $uid, 1 );
+			}
 		}
 		update_user_meta( $uid, 'sawa_lens_plan', $paid );
 		return self::out(

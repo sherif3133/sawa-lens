@@ -18,6 +18,7 @@ final class Sawa_Lens_Chat {
 		add_filter( 'sawa_tracker_translate', array( __CLASS__, 'translate' ), 10, 3 );
 		add_filter( 'sawa_tracker_battle_ready', function () { return array_sum( (array) ( Sawa_Lens_Placement::counts()['mc'] ?? array() ) ) >= 10; } );
 		add_filter( 'sawa_tracker_battle_questions', array( __CLASS__, 'battle_questions' ), 10, 3 );
+		add_filter( 'sawa_tracker_mastery', function ( $m, $uid ) { return Sawa_Lens_Skills::mastery_counts( $uid ); }, 10, 2 );
 	}
 
 	public static function features( $f, $uid ) {
