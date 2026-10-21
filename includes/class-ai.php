@@ -239,7 +239,9 @@ final class Sawa_Lens_AI {
 				'body'    => wp_json_encode(
 					array(
 						'model'      => $s['model'],
-						'max_tokens' => $max_tokens,
+						'max_tokens' => max( 1500, (int) $max_tokens ),
+						// Short JSON answers: no thinking (Claude Haiku 5.5 thinks by default; 'disabled' is allowed at its default effort).
+						'thinking'   => array( 'type' => 'disabled' ),
 						'system'     => $system,
 						'messages'   => array(
 							array(
