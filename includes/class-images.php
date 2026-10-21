@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Sawa_Lens_Images {
 
+	// v2 cache: Commons added.
 	private static function clean( $word ) {
 		return mb_substr( strtolower( trim( preg_replace( '/[^\p{L}\p{N}\' -]+/u', '', (string) $word ) ) ), 0, 60 );
 	}
@@ -29,7 +30,7 @@ final class Sawa_Lens_Images {
 		if ( '' === $word ) {
 			return array( 'images' => array(), 'ai' => '' );
 		}
-		$key = 'sawa_lens_img_' . md5( $word );
+		$key = 'sawa_lens_img2_' . md5( $word );
 		$hit = get_transient( $key );
 		if ( ! is_array( $hit ) ) {
 			$hit = array();
@@ -40,7 +41,22 @@ final class Sawa_Lens_Images {
 					$hit[] = array( 'thumb' => $p['thumbnail']['source'], 'url' => $p['thumbnail']['source'], 'credit' => 'Wikipedia', 'link' => 'https://en.wikipedia.org/wiki/' . rawurlencode( str_replace( ' ', '_', $p['title'] ) ), 'source' => 'wikipedia' );
 				}
 			}
-			// 2. Openverse: openly licensed photos and illustrations.
+			// 2. Wikimedia Commons search: free photos and drawings.
+			$cm = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'generator' => 'search', 'gsrsearch' => 'filetype:bitmap ' . $word, 'gsrnamespace' => 6, 'gsrlimit' => 6, 'prop' => 'imageinfo', 'iiprop' => 'url|extmetadata', 'iiurlwidth' => 320 ), 'https://commons.wikimedia.org/w/api.php' ) );
+			$pages = (array) ( $cm['query']['pages'] ?? array() );
+			usort( $pages, function ( $a, $b ) { return ( $a['index'] ?? 0 ) <=> ( $b['index'] ?? 0 ); } );
+			foreach ( $pages as $p ) {
+				if ( count( $hit ) >= 4 ) {
+					break;
+				}
+				$ii = $p['imageinfo'][0] ?? null;
+				if ( ! $ii || empty( $ii['thumburl'] ) ) {
+					continue;
+				}
+				$artist = trim( wp_strip_all_tags( (string) ( $ii['extmetadata']['Artist']['value'] ?? '' ) ) );
+				$hit[]  = array( 'thumb' => $ii['thumburl'], 'url' => $ii['thumburl'], 'credit' => mb_substr( ( $artist ? $artist . ' · ' : '' ) . 'Wikimedia Commons', 0, 80 ), 'link' => (string) ( $ii['descriptionurl'] ?? '' ), 'source' => 'commons' );
+			}
+			// 3. Openverse: openly licensed photos and illustrations.
 			$ov = self::get_json( add_query_arg( array( 'q' => $word, 'page_size' => 8, 'mature' => 'false' ), 'https://api.openverse.org/v1/images/' ) );
 			foreach ( (array) ( $ov['results'] ?? array() ) as $r ) {
 				if ( count( $hit ) >= 4 ) {
