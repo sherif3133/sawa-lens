@@ -530,7 +530,7 @@
 			intro: 'Learn from YouTube videos you like. Language Lens shows meanings and colours words for your level.',
 			steps: [
 				{ k: 'extension', t: 'Connect Language Lens in Chrome', ar: 'ثبّت الإضافة وسجّل الدخول', how: 'On a computer: install Language Lens, click its icon, then "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['Install Language Lens', j.store] : null; } },
-				{ k: 'vocabTest', t: 'Take the 3-minute vocabulary test', ar: 'اختبار المفردات (٣ دقائق)', how: 'Click the Language Lens icon → "Take the 3-minute vocabulary test". It sets which words get coloured for you.', done: function (j) { return j.vocabTest; } },
+				{ k: 'vocabTest', t: 'Take the English level test (about 25 minutes)', ar: 'اختبار تحديد المستوى', how: 'It finds your level (A1–C2) and vocabulary size, so the app and Language Lens fit you.', done: function (j) { return j.vocabTest; }, link: function () { return ['Take the level test', '/placement/']; } },
 				{ k: 'learning', t: 'Watch a video and mark 5 words as Learning', ar: 'علّم ٥ كلمات «أتعلمها»', how: 'Open any YouTube video with English captions. Hover a coloured word → "Learning". Green = worth learning now.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; } }
 			] },
 		{ n: 2, title: 'Review a little every day', ar: 'راجع قليلًا كل يوم', tabs: ['review', 'library'],
@@ -659,12 +659,12 @@
 	/** Me: your stuff — library, progress, the guide, the extension — then your tracker stats. */
 	function meHub() {
 		var j = S.J || {};
-		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'Progress', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
+		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'Progress', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
 		shell('<section class="stack"><h1>Me</h1></section><div class="hub">' + tiles.map(function (x) {
 			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
 		}).join('') + '</div>'
 			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>');
-		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
+		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { if (b.dataset.t === 'placement') location.href = '/placement/'; else go(b.dataset.t); }; });
 	}
 
 	/* ── Write · Speak · Scan ─────────────────────────── */

@@ -404,6 +404,7 @@ final class Sawa_Lens_App {
 				'store'     => (string) Sawa_Lens_AI::settings()['store_url'],
 				'tracker'   => home_url( '/tracker/' ),
 				'guide'     => home_url( '/guide/' ),
+				'placement' => ( $pl = get_user_meta( $uid, 'sawa_lens_placement', true ) ) && is_array( $pl ) ? array( 'level' => $pl['level'], 'score' => $pl['score'] ) : null,
 			)
 		);
 	}

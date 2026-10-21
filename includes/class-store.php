@@ -128,6 +128,7 @@ final class Sawa_Lens_Store {
 		);
 		Sawa_Lens_Review::install( $c );
 		Sawa_Lens_Lessons::install( $c );
+		Sawa_Lens_Placement::install( $c );
 		update_option( 'sawa_lens_db', SAWA_LENS_DB );
 	}
 

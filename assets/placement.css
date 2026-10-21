@@ -1,0 +1,31 @@
+/* Placement test (uses the app's tokens from app.css) */
+.pt { padding-bottom: 48px; }
+.pt-hero h1 { font-size: 30px; }
+.lead { font-size: 18px; color: var(--ink); }
+.pt-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: p; }
+.pt-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; gap: 8px; align-items: baseline; counter-increment: p; }
+.pt-list li::before { content: counter(p); font-weight: 800; color: var(--muted); }
+.pt-list span { margin-left: auto; color: var(--muted); font-size: 13px; }
+.pt-parts { display: flex; gap: 4px; margin-bottom: 14px; }
+.pt-parts span { flex: 1; font-size: 11px; text-align: center; padding: 6px 2px; border-radius: 6px; background: var(--soft); color: var(--muted); font-weight: 600; }
+.pt-parts .cur { background: var(--fg); color: #fff; }
+.pt-parts .done { background: var(--green-soft); color: var(--green); }
+.pt-kicker { font-size: 13px; font-weight: 600; color: var(--muted); }
+.pt-word { font-family: var(--display); font-weight: 800; font-size: 40px; text-align: center; color: var(--fg); padding: 26px 0; }
+.pt-yn { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pt-yn .btn { min-height: 64px; font-size: 18px; }
+.opt.ar { text-align: right; direction: rtl; }
+.ctest { font-size: 18px; line-height: 2.4; color: var(--fg); }
+.ct { white-space: nowrap; }
+.ct input { font: inherit; min-width: 0; max-width: none; box-sizing: content-box; border: 0; border-bottom: 2px solid var(--fg); background: var(--soft); border-radius: 4px 4px 0 0; padding: 0 2px; margin: 0 1px; width: auto; }
+.ct input:focus { outline: none; background: var(--amber-soft); }
+.pt-res .pt-level { font-family: var(--display); font-weight: 800; font-size: 88px; line-height: 1; color: var(--fg); }
+.pt-score { font-size: 18px; color: var(--muted); }
+.pt-score b { font-family: var(--display); font-size: 34px; color: var(--fg); }
+.pt-scale { position: relative; padding-top: 14px; }
+.pt-track { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.pt-track span { text-align: center; font-size: 12px; font-weight: 700; padding: 8px 0; background: var(--soft); color: var(--muted); border-radius: 6px; }
+.pt-track span.on { background: var(--fg); color: #fff; }
+.pt-scale i { position: absolute; top: 0; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid var(--red); transform: translateX(-7px); }
+.pt-skill { display: grid; gap: 6px; }
+.ct input { height: 1.5em; vertical-align: baseline; min-height: 0; line-height: 1.5; }

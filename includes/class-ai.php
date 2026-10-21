@@ -393,6 +393,67 @@ final class Sawa_Lens_AI {
 		return $qs;
 	}
 
+	/** Placement test writing: a CEFR level for a short text, with a one-line reason. */
+	public static function grade_writing( $uid, $text, $prompt ) {
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$out = self::call(
+			'You are a certified CEFR examiner. Rate this short placement-test text by an English learner on the CEFR scale (A1, A2, B1, B2, C1, C2), '
+			. 'using range and accuracy of grammar and vocabulary, coherence, and task completion, as in the CEFR written production descriptors. Be strict and consistent; a few errors are normal at B1. '
+			. 'Return ONLY a JSON object: {"level":"A1|A2|B1|B2|C1|C2","good":"one short sentence on what was done well","next":"one short sentence on the most important thing to improve"}.',
+			"Task: {$prompt}\n\nText:\n" . mb_substr( $text, 0, 3000 ),
+			3000
+		);
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$lv = strtoupper( (string) ( $out['level'] ?? '' ) );
+		if ( ! in_array( $lv, array( 'A1', 'A2', 'B1', 'B2', 'C1', 'C2' ), true ) ) {
+			return new WP_Error( 'ai', 'No level.' );
+		}
+		return array( 'level' => $lv, 'good' => mb_substr( (string) ( $out['good'] ?? '' ), 0, 200 ), 'next' => mb_substr( (string) ( $out['next'] ?? '' ), 0, 200 ) );
+	}
+
+	/**
+	 * New placement-test items for a CEFR level (1–6): grammar questions ("mc"), C-test texts ("ctest")
+	 * or dictation sentences ("dictation"). They're saved as active items; review them in the admin page.
+	 */
+	public static function placement_items( $uid, $type, $level, $n ) {
+		$lv  = Sawa_Lens_Placement::LEVELS[ $level ];
+		$ask = array(
+			'mc'        => "Write {$n} grammar and usage multiple-choice questions at exactly CEFR {$lv} (use the English Grammar Profile for what is typical at {$lv}). Each: one sentence with ___ for the gap, 4 options, exactly one correct; wrong options are typical learner errors. Cover different points. "
+				. 'JSON: {"items":[{"q":"…","options":["…","…","…","…"],"answer":index,"point":"grammar point"}]}',
+			'ctest'     => "Write {$n} short texts (70–90 words each) at exactly CEFR {$lv} reading level, on different everyday or general topics, for a C-test. Natural, well-formed English with simple punctuation. "
+				. 'JSON: {"items":[{"title":"…","text":"…"}]}',
+			'dictation' => "Write {$n} sentences for a listen-and-type test at exactly CEFR {$lv}: " . ( $level <= 2 ? '5–8 words, common words' : ( $level <= 4 ? '8–13 words' : '12–18 words, natural connected speech' ) ) . '. No names, no numbers, no abbreviations. '
+				. 'JSON: {"items":[{"text":"…"}]}',
+		);
+		if ( ! isset( $ask[ $type ] ) ) {
+			return new WP_Error( 'type', 'Unknown item type.' );
+		}
+		$out = self::call( 'You write items for an English placement test (like EF SET or the Duolingo English Test). Items must be accurate, unambiguous and exactly at the requested CEFR level. Return ONLY the JSON object, no markdown.', $ask[ $type ], 12000, 120 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$k = 0;
+		foreach ( (array) ( $out['items'] ?? array() ) as $it ) {
+			if ( ! is_array( $it ) ) {
+				continue;
+			}
+			if ( 'mc' === $type && ( empty( $it['q'] ) || count( (array) ( $it['options'] ?? array() ) ) !== 4 || ! isset( $it['answer'] ) ) ) {
+				continue;
+			}
+			if ( 'mc' !== $type && empty( $it['text'] ) ) {
+				continue;
+			}
+			Sawa_Lens_Placement::add_item( $type, $level, 'mc' === $type ? array( 'q' => (string) $it['q'], 'options' => array_map( 'strval', $it['options'] ), 'answer' => (int) $it['answer'], 'point' => (string) ( $it['point'] ?? '' ) ) : array( 'title' => (string) ( $it['title'] ?? '' ), 'text' => (string) $it['text'] ) );
+			$k++;
+		}
+		return $k;
+	}
+
 	/** Read-aloud sentences for a pronunciation point: 8 short sentences full of that sound. Shared and cached. */
 	public static function readaloud( $uid, $id, $variant = 0 ) {
 		$k = Sawa_Lens_Skills::get( $id );
