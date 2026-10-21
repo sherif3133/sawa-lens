@@ -58,6 +58,11 @@ final class Sawa_Lens_Admin {
 			$snd = Sawa_Lens_AI::sound( get_current_user_id(), 'What do you want to do about it? (' . wp_date( 'H:i:s' ) . ')' );
 			$res['sound'] = is_wp_error( $snd ) ? array( 'error' => $snd->get_error_message() ) : $snd;
 		}
+		if ( ! is_wp_error( $res ) && '' !== Sawa_Lens_AI::settings()['stt_key'] ) {
+			// Speech-to-text: a short recorded sample ("Yesterday I go to the market with my brother.").
+			$stt          = Sawa_Lens_AI::transcribe( get_current_user_id(), SAWA_LENS_DIR . 'assets/stt-test.wav' );
+			$res['voice'] = is_wp_error( $stt ) ? array( 'error' => $stt->get_error_message() . ' ' . get_option( 'sawa_lens_last_ai_error', '' ) ) : array( 'text' => $stt );
+		}
 		set_transient( 'sawa_lens_test_' . get_current_user_id(), is_wp_error( $res ) ? array( 'error' => $res->get_error_message(), 'detail' => get_option( 'sawa_lens_last_ai_error', '' ) ) : $res, 300 );
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&tested=1' ) );
 		exit;
@@ -155,6 +160,11 @@ final class Sawa_Lens_Admin {
 									<?php endforeach; ?>
 								</ul>
 							<?php endif; ?>
+						<?php endif; ?>
+						<?php if ( ! empty( $t['voice'] ) ) : ?>
+							<p><strong>Speech-to-text:</strong>
+								<?php echo isset( $t['voice']['error'] ) ? 'failed – ' . esc_html( $t['voice']['error'] ) : 'sample "Yesterday I go to the market with my brother." → "' . esc_html( $t['voice']['text'] ) . '"'; ?>
+							</p>
 						<?php endif; ?>
 					<?php endif; ?>
 				</div>

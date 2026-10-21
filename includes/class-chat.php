@@ -15,6 +15,7 @@ final class Sawa_Lens_Chat {
 		add_filter( 'sawa_tracker_chat_ai', array( __CLASS__, 'features' ), 10, 2 );
 		add_filter( 'sawa_tracker_transcribe', array( __CLASS__, 'transcribe' ), 10, 3 );
 		add_filter( 'sawa_tracker_feedback', array( __CLASS__, 'feedback' ), 10, 5 );
+		add_filter( 'sawa_tracker_translate', array( __CLASS__, 'translate' ), 10, 3 );
 	}
 
 	public static function features( $f, $uid ) {
@@ -22,7 +23,15 @@ final class Sawa_Lens_Chat {
 		return array(
 			'transcribe' => '' !== $s['stt_key'],
 			'feedback'   => Sawa_Lens_AI::ready() && Sawa_Lens_Auth::allowed( $uid ),
+			'translate'  => Sawa_Lens_AI::ready() && Sawa_Lens_Auth::allowed( $uid ),
 		);
+	}
+
+	public static function translate( $default, $text, $uid ) {
+		if ( ! Sawa_Lens_AI::ready() || ! Sawa_Lens_Auth::allowed( $uid ) ) {
+			return $default;
+		}
+		return Sawa_Lens_AI::chat_translate( $uid, $text );
 	}
 
 	public static function transcribe( $default, $path, $uid ) {

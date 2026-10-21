@@ -303,6 +303,47 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
+	 * A chat message written in Arabic (Egyptian, MSA, Gulf, Levantine, Maghrebi…) → natural English in the same tone,
+	 * plus a few useful phrases from it, so translating also teaches.
+	 */
+	public static function chat_translate( $uid, $text ) {
+		$text = mb_substr( trim( (string) $text ), 0, 1000 );
+		$key  = hash( 'sha256', 'chattr|v1|' . $text );
+		$hit  = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$system = 'You translate chat messages written by Arabic-speaking English learners (any dialect: Egyptian, MSA, Gulf, Levantine, Iraqi, Maghrebi, or Arabizi/Franco like "ana 3ayez") into natural English for a friendly study-group chat. '
+			. 'Keep the meaning, tone and register (casual stays casual, polite stays polite), keep names, emojis and any English words already in the message. Use simple, natural English (A2–B1) that a native speaker would really write in a chat; do not add anything. '
+			. 'Return ONLY a JSON object, no markdown: {"english": "the translation", "phrases": [up to 3 objects {"en": "a useful word or phrase from your translation", "ar": "its meaning in short Arabic"}]}. '
+			. 'Pick phrases that are worth learning (phrasal verbs, chunks, polite forms), not single easy words.';
+		$out = self::call( $system, "Message:
+" . $text, 2000 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$phrases = array();
+		foreach ( array_slice( (array) ( $out['phrases'] ?? array() ), 0, 3 ) as $p ) {
+			if ( is_array( $p ) && ! empty( $p['en'] ) ) {
+				$phrases[] = array( 'en' => mb_substr( (string) $p['en'], 0, 80 ), 'ar' => mb_substr( (string) ( $p['ar'] ?? '' ), 0, 120 ) );
+			}
+		}
+		$res = array(
+			'english' => mb_substr( trim( (string) ( $out['english'] ?? '' ) ), 0, 1000 ),
+			'phrases' => $phrases,
+		);
+		if ( '' === $res['english'] ) {
+			return new WP_Error( 'ai', 'الترجمة مرجعتش. جرب تاني.' );
+		}
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/**
 	 * Voice message → text with OpenAI's transcription API (Claude doesn't take audio input).
 	 * The prompt asks for a verbatim transcript, so learners' grammar mistakes stay in.
 	 */
