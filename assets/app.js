@@ -1207,18 +1207,23 @@
 	function bindPics(root) {
 		root.querySelectorAll('[data-pics]').forEach(function (box) {
 			var w = box.dataset.pics;
-			box.innerHTML = '<button class="link small">🖼 Show pictures</button>';
+			box.innerHTML = '<button class="link small">🖼 Show a picture</button>';
 			box.querySelector('button').onclick = function () {
 				box.innerHTML = '<span class="small muted">Loading pictures…</span>';
-				api('image?word=' + encodeURIComponent(w)).then(function (r) {
+				var pos = (meanings(w)[0] || {}).pos || '';
+				api('image?word=' + encodeURIComponent(w) + (pos ? '&pos=' + encodeURIComponent(pos) : '')).then(function (r) {
+					var drawing = false;
+					var draw = function () { drawing = true; paint(); api('image/ai', { body: { word: w, sentence: box.dataset.sent || '' } }).then(function (x) { r.ai = x.url; drawing = false; paint(); }, function (e) { drawing = false; box.innerHTML = '<span class="small err">' + esc(e.message) + '</span>'; }); };
 					var paint = function () {
-						box.innerHTML = (r.ai ? '<img class="ai" src="' + esc(r.ai) + '" alt="">' : '') + r.images.slice(0, 3).map(function (p) { return '<a href="' + esc(p.link) + '" target="_blank" rel="noopener" title="' + esc(p.credit) + '"><img src="' + esc(p.thumb) + '" alt="" loading="lazy"></a>'; }).join('')
-							+ (!r.ai && r.canAi ? '<button class="btn ghost sm" data-aip>✨ AI picture</button>' : '') + (!r.images.length && !r.ai ? '<span class="small muted">No photos for this word.</span>' : '');
-						box.querySelectorAll('img').forEach(function (im) { im.onerror = function () { (im.parentNode.tagName === 'A' ? im.parentNode : im).remove(); }; });
+						// One big picture: the one made for this word, else the photo (nouns only).
+						var p = r.images[0];
+						box.innerHTML = r.ai ? '<img class="big" src="' + esc(r.ai) + '" alt="">'
+							: p ? '<a href="' + esc(p.link) + '" target="_blank" rel="noopener" title="' + esc(p.credit) + '"><img class="big" src="' + esc(p.url || p.thumb) + '" alt=""></a>' + (r.canAi ? '<button class="link small" data-aip>Not right? Draw one</button>' : '')
+							: drawing ? '<span class="small muted">Drawing a picture for this word… (about 15 seconds)</span>' : '<span class="small muted">No picture for this word yet.</span>';
 						var b = box.querySelector('[data-aip]');
-						if (b) b.onclick = function () { b.textContent = 'Drawing…'; b.disabled = true; api('image/ai', { body: { word: w, sentence: box.dataset.sent || '' } }).then(function (x) { r.ai = x.url; paint(); }, function (e) { b.textContent = e.message; }); };
+						if (b) b.onclick = draw;
 					};
-					paint();
+					if (!r.ai && !r.images.length && r.canAi) draw(); else paint();
 				}, function (e) { box.innerHTML = '<span class="small err">' + esc(e.message) + '</span>'; });
 			};
 		});

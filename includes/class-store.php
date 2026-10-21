@@ -208,6 +208,9 @@ final class Sawa_Lens_Store {
 				$data['known_on'] = null; // un-marked the same day: don't count it
 			}
 			$wpdb->replace( $t, $data ); // phpcs:ignore
+			if ( 'learning' === $status && ( ! $row || 'learning' !== $row['status'] ) && class_exists( 'Sawa_Lens_Images' ) ) {
+				Sawa_Lens_Images::queue( $lemma, $data['ctx'] ); // its picture is drawn in the background
+			}
 			++$n;
 		}
 		return $n;

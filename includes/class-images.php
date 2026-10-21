@@ -11,6 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Sawa_Lens_Images {
 
+	public static function init() {
+		add_action( 'sawa_lens_draw', array( __CLASS__, 'draw_queue' ) );
+	}
+
 	// v2 cache: Commons added.
 	private static function clean( $word ) {
 		return mb_substr( strtolower( trim( preg_replace( '/[^\p{L}\p{N}\' -]+/u', '', (string) $word ) ) ), 0, 60 );
@@ -25,40 +29,86 @@ final class Sawa_Lens_Images {
 	}
 
 	/**
-	 * One picture for the word, fast: [{thumb, url, credit, link, source}], plus an AI picture if one was made.
-	 * Wikipedia's main picture first; Wikimedia Commons only when Wikipedia has none. Cached for everyone.
+	 * One picture for the word, fast: {images: [{thumb, url, credit, link, source}], ai}.
+	 * Photos only for things you can photograph: the word must be a noun ($pos, when the caller knows it) and
+	 * Wikipedia's article must be about exactly that word (not a brand, band, film or place). Tests over 60 words
+	 * showed this is right for most concrete nouns; for verbs, adjectives and abstract words the photos were wrong,
+	 * so those get an AI picture instead (drawn ahead of time for Learning words, see queue()).
 	 */
-	public static function lookup( $word ) {
+	public static function lookup( $word, $pos = '' ) {
 		$word = self::clean( $word );
 		if ( '' === $word ) {
 			return array( 'images' => array(), 'ai' => '' );
 		}
-		$key = 'sawa_lens_img3_' . md5( $word );
+		$ai = (string) get_option( 'sawa_lens_aiimg_' . md5( $word ), '' );
+		if ( '' !== $pos && 'noun' !== $pos ) {
+			return array( 'images' => array(), 'ai' => $ai );
+		}
+		$key = 'sawa_lens_img4_' . md5( $word );
 		$hit = get_transient( $key );
 		if ( ! is_array( $hit ) ) {
 			$hit = array();
-			$wp  = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'prop' => 'pageimages|description', 'piprop' => 'thumbnail', 'pithumbsize' => 400, 'redirects' => 1, 'titles' => ucfirst( $word ) ), 'https://en.wikipedia.org/w/api.php' ) );
+			$wp  = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'prop' => 'pageimages|description', 'piprop' => 'thumbnail', 'pithumbsize' => 640, 'redirects' => 1, 'titles' => ucfirst( $word ) ), 'https://en.wikipedia.org/w/api.php' ) );
 			foreach ( (array) ( $wp['query']['pages'] ?? array() ) as $p ) {
-				if ( ! $hit && ! empty( $p['thumbnail']['source'] ) && false === stripos( (string) ( $p['description'] ?? '' ), 'topics referred to' ) ) {
+				$title = strtolower( (string) ( $p['title'] ?? '' ) );
+				$desc  = (string) ( $p['description'] ?? '' );
+				$same  = in_array( $title, array( $word, $word . 's', $word . 'es' ), true ) || $title === preg_replace( '/s$/', '', $word );
+				$off   = preg_match( '/topics referred to|company|chain|brand|band|album|song|film|movie|television|series|novel|book|magazine|software|browser|website|video game|surname|given name|city|town|village|county|river|island|footballer|politician|singer|actor|musician|organization|party|newspaper|programming|record label/i', $desc ) || preg_match( '/^(ability|state|feeling|concept|quality|condition|act of|process)|material/i', $desc ); // ideas and materials: a drawn picture explains them better
+				if ( ! $hit && $same && ! $off && ! empty( $p['thumbnail']['source'] ) ) {
 					$hit[] = array( 'thumb' => $p['thumbnail']['source'], 'url' => $p['thumbnail']['source'], 'credit' => 'Wikipedia', 'link' => 'https://en.wikipedia.org/wiki/' . rawurlencode( str_replace( ' ', '_', $p['title'] ) ), 'source' => 'wikipedia' );
 				}
 			}
-			if ( ! $hit ) {
-				$cm    = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'generator' => 'search', 'gsrsearch' => 'filetype:bitmap ' . $word, 'gsrnamespace' => 6, 'gsrlimit' => 3, 'prop' => 'imageinfo', 'iiprop' => 'url|extmetadata', 'iiurlwidth' => 320 ), 'https://commons.wikimedia.org/w/api.php' ) );
-				$pages = (array) ( $cm['query']['pages'] ?? array() );
-				usort( $pages, function ( $a, $b ) { return ( $a['index'] ?? 0 ) <=> ( $b['index'] ?? 0 ); } );
-				foreach ( $pages as $p ) {
-					$ii = $p['imageinfo'][0] ?? null;
-					if ( $hit || ! $ii || empty( $ii['thumburl'] ) ) {
-						continue;
-					}
-					$artist = trim( wp_strip_all_tags( (string) ( $ii['extmetadata']['Artist']['value'] ?? '' ) ) );
-					$hit[]  = array( 'thumb' => $ii['thumburl'], 'url' => $ii['thumburl'], 'credit' => mb_substr( ( $artist ? $artist . ' · ' : '' ) . 'Wikimedia Commons', 0, 80 ), 'link' => (string) ( $ii['descriptionurl'] ?? '' ), 'source' => 'commons' );
-				}
-			}
-			set_transient( $key, $hit, $hit ? 30 * DAY_IN_SECONDS : DAY_IN_SECONDS );
+			set_transient( $key, $hit, $hit ? 30 * DAY_IN_SECONDS : 7 * DAY_IN_SECONDS );
 		}
-		return array( 'images' => $hit, 'ai' => (string) get_option( 'sawa_lens_aiimg_' . md5( $word ), '' ) );
+		return array( 'images' => $hit, 'ai' => $ai );
+	}
+
+	/** AI pictures drawn ahead of time each day, for the whole site (each costs about one US cent, once per word). */
+	const DAILY = 60;
+
+	/** A word was marked Learning: draw its picture in the background so it's ready when the learner reviews it. */
+	public static function queue( $word, $sentence = '' ) {
+		$word = self::clean( $word );
+		if ( '' === $word || '' !== (string) get_option( 'sawa_lens_aiimg_' . md5( $word ), '' ) || '' === Sawa_Lens_AI::settings()['stt_key'] ) {
+			return;
+		}
+		$q = (array) get_option( 'sawa_lens_img_queue', array() );
+		if ( isset( $q[ $word ] ) || count( $q ) >= 500 ) {
+			return;
+		}
+		$q[ $word ] = mb_substr( (string) $sentence, 0, 200 );
+		update_option( 'sawa_lens_img_queue', $q, false );
+		if ( ! wp_next_scheduled( 'sawa_lens_draw' ) ) {
+			wp_schedule_single_event( time() + 60, 'sawa_lens_draw' );
+		}
+	}
+
+	/** Cron: draw a few queued pictures, then come back for the rest (within the daily limit). */
+	public static function draw_queue() {
+		$q    = (array) get_option( 'sawa_lens_img_queue', array() );
+		$dk   = 'sawa_lens_img_auto_' . wp_date( 'Ymd' );
+		$done = (int) get_transient( $dk );
+		$n    = 0;
+		foreach ( $q as $word => $sentence ) {
+			if ( $n >= 4 || $done >= self::DAILY ) {
+				break;
+			}
+			unset( $q[ $word ] );
+			update_option( 'sawa_lens_img_queue', $q, false );
+			if ( '' !== (string) get_option( 'sawa_lens_aiimg_' . md5( $word ), '' ) ) {
+				continue;
+			}
+			$r = self::draw( $word, $sentence );
+			++$n;
+			++$done;
+			set_transient( $dk, $done, DAY_IN_SECONDS );
+			if ( is_wp_error( $r ) ) {
+				break; // try the rest later
+			}
+		}
+		if ( $q ) {
+			wp_schedule_single_event( time() + ( $done >= self::DAILY ? HOUR_IN_SECONDS * 6 : 120 ), 'sawa_lens_draw' );
+		}
 	}
 
 	/** An AI picture that explains the word (OpenAI image model), saved in uploads and reused by everyone. */
@@ -80,6 +130,13 @@ final class Sawa_Lens_Images {
 			return new WP_Error( 'limit', 'You made 10 AI pictures today. More tomorrow!', array( 'status' => 429 ) );
 		}
 		set_transient( $k, $n + 1, DAY_IN_SECONDS );
+		return self::draw( $word, $sentence );
+	}
+
+	/** Draw and save the picture (no limits: callers check them). */
+	private static function draw( $word, $sentence = '' ) {
+		$s   = Sawa_Lens_AI::settings();
+		$opt = 'sawa_lens_aiimg_' . md5( $word );
 		$prompt = 'A simple, clear, friendly flat illustration that shows the meaning of the English word "' . $word . '"'
 			. ( '' !== $sentence ? ' as used in this sentence: "' . mb_substr( wp_strip_all_tags( $sentence ), 0, 200 ) . '"' : '' )
 			. '. Made for a language learner to remember the word. One clear scene, bright colours, plain background. No text, no letters, no words in the image.';

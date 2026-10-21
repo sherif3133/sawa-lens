@@ -291,3 +291,7 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
 .scan-text p.reading { background: rgba(255, 214, 102, .35); border-radius: 6px; }
 .savebox textarea { width: 100%; font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--line, #ddd); }
 .scan-text { user-select: text; -webkit-user-select: text; }
+
+/* One big picture for a word (review, scan, library). */
+.pics img.big{display:block;width:100%;max-width:420px;height:240px;object-fit:contain;background:#F3F1EE;border-radius:12px;margin:8px auto 4px}
+.pics{text-align:center}

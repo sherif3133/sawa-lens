@@ -117,7 +117,7 @@ final class Sawa_Lens_Rest {
 	}
 
 	public static function image( WP_REST_Request $r ) {
-		return self::out( Sawa_Lens_Images::lookup( (string) $r->get_param( 'word' ) ) + array( 'canAi' => '' !== Sawa_Lens_AI::settings()['stt_key'] ) );
+		return self::out( Sawa_Lens_Images::lookup( (string) $r->get_param( 'word' ), sanitize_key( (string) $r->get_param( 'pos' ) ) ) + array( 'canAi' => '' !== Sawa_Lens_AI::settings()['stt_key'] ) );
 	}
 
 	public static function image_ai( WP_REST_Request $r ) {
