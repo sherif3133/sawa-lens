@@ -58,6 +58,9 @@ final class Sawa_Lens_Rest {
 		$r( '/translate', 'POST', array( __CLASS__, 'translate' ) );
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
+		$r( '/video/(?P<vid>[\w-]{11})', 'GET', array( __CLASS__, 'video' ) );
+		$r( '/lesson/(?P<id>\d+)/answer', 'POST', array( __CLASS__, 'lesson_answer' ) );
+		$r( '/lessons/draft', 'POST', array( __CLASS__, 'lesson_draft' ) );
 		// For the tracker page (normal WordPress login + nonce, not a device token).
 		register_rest_route(
 			self::NS,
@@ -105,8 +108,36 @@ final class Sawa_Lens_Rest {
 				'tracker'  => self::tracker_url(),
 				'app'      => Sawa_Lens_App::url(),
 				'progress' => Sawa_Lens_Store::progress( $uid, 14 ),
+				'admin'    => user_can( $uid, 'manage_options' ),
 			)
 		);
+	}
+
+	/** The published quiz for a YouTube video (or null), with this student's earlier answers. */
+	public static function video( WP_REST_Request $r ) {
+		$l = Sawa_Lens_Lessons::by_video( (string) $r['vid'] );
+		return self::out( array( 'lesson' => $l ? Sawa_Lens_Lessons::for_student( $l, get_current_user_id() ) : null ) );
+	}
+
+	public static function lesson_answer( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Lessons::answer( get_current_user_id(), (int) $r['id'], sanitize_key( (string) $r->get_param( 'qid' ) ), $r->get_param( 'a' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** Admin only: a draft quiz from the captions the extension already has. */
+	public static function lesson_draft( WP_REST_Request $r ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error( 'forbidden', 'Only Sherif can make quizzes.', array( 'status' => 403 ) );
+		}
+		$vid = (string) $r->get_param( 'videoId' );
+		if ( ! preg_match( '/^[\w-]{11}$/', $vid ) ) {
+			return new WP_Error( 'video', 'No video.', array( 'status' => 400 ) );
+		}
+		$lines = Sawa_Lens_Lessons::clean_lines( (array) $r->get_param( 'lines' ) );
+		global $wpdb;
+		$id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . Sawa_Lens_Store::t( 'lessons' ) . ' WHERE video_id = %s ORDER BY id DESC LIMIT 1', $vid ) ); // phpcs:ignore
+		$id = Sawa_Lens_Lessons::save( $id, array( 'videoId' => $vid, 'title' => (string) $r->get_param( 'title' ), 'transcript' => $lines ) );
+		return self::out( array( 'id' => $id, 'edit' => admin_url( 'admin.php?page=sawa-lens-quizzes&edit=' . $id ) ) );
 	}
 
 	private static function tracker_url() {

@@ -343,6 +343,56 @@ final class Sawa_Lens_AI {
 		return $res;
 	}
 
+	/**
+	 * Quiz questions for a video lesson. $lines: [[seconds, text], …]; $words: key words to teach (may be empty:
+	 * then the AI picks useful B1–B2 words). Each question sits right after the line where its word is said.
+	 */
+	public static function lesson_questions( $uid, $lines, $words, $count = 8 ) {
+		if ( ! $lines ) {
+			return new WP_Error( 'transcript', 'This lesson has no transcript yet.' );
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$text = '';
+		foreach ( $lines as $i => $l ) {
+			$text .= '[' . $i . '] ' . gmdate( $l[0] >= 3600 ? 'G:i:s' : 'i:s', (int) $l[0] ) . ' ' . $l[1] . "\n";
+			if ( strlen( $text ) > 400000 ) {
+				break;
+			}
+		}
+		$count  = max( 3, min( 20, (int) $count ) );
+		$system = 'You make EdPuzzle-style comprehension and vocabulary questions for Arabic-speaking learners of English (A2–B1) watching a video. '
+			. 'The video pauses right after a line, then shows your question. '
+			. ( $words ? 'Key words the teacher wants taught: ' . implode( ', ', $words ) . '. Make one question for each key word that appears in the transcript (use the line where it is said), then fill up with comprehension questions. ' : 'Choose the most useful B1–B2 words and phrases in the transcript to teach, and mix in comprehension questions. ' )
+			. "Write exactly {$count} questions spread across the video, in time order. Types: "
+			. '"mc" (multiple choice: 3–4 short options, one correct, wrong options plausible), '
+			. '"blank" (fill in the blank: quote the sentence from the line with the key word replaced by ____; answer is that exact word as said), '
+			. '"tf" (true/false statement about what was just said; answer 0 = True, 1 = False). '
+			. 'Use simple English. "why" explains the answer in one short simple-English sentence; "why_ar" says it in short Modern Standard Arabic. '
+			. 'Return ONLY a JSON object: {"questions":[{"line": the [number] of the line just before the pause, "type":"mc|blank|tf", "q":"question", "options":["…"] (empty for blank), "answer": index for mc/tf or the word for blank, "word":"the key word it teaches, base form, or empty", "why":"…", "why_ar":"…"}]}.';
+		$out = self::call( $system, "Transcript:\n" . $text, 12000, 120 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$qs = array();
+		foreach ( (array) ( $out['questions'] ?? array() ) as $q ) {
+			if ( ! is_array( $q ) ) {
+				continue;
+			}
+			$i = max( 0, min( count( $lines ) - 1, (int) ( $q['line'] ?? 0 ) ) );
+			// Pause when the next line starts (the sentence has just been said).
+			$q['t'] = isset( $lines[ $i + 1 ] ) ? $lines[ $i + 1 ][0] : $lines[ $i ][0] + 4;
+			$qs[]   = $q;
+		}
+		$qs = Sawa_Lens_Lessons::clean_questions( $qs );
+		if ( ! $qs ) {
+			return new WP_Error( 'ai', 'The questions came back empty. Try again.' );
+		}
+		return $qs;
+	}
+
 	/** Read-aloud sentences for a pronunciation point: 8 short sentences full of that sound. Shared and cached. */
 	public static function readaloud( $uid, $id, $variant = 0 ) {
 		$k = Sawa_Lens_Skills::get( $id );

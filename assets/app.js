@@ -48,13 +48,14 @@
 		write: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
 		progress: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 5-6"/></svg>',
 		review: '<svg viewBox="0 0 24 24"><rect x="4" y="6" width="14" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v11"/></svg>',
-		library: '<svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM10 4h4v16h-4z"/><path d="M15.5 5l3.8-1 3 15.5-3.8 1z"/></svg>'
+		library: '<svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM10 4h4v16h-4z"/><path d="M15.5 5l3.8-1 3 15.5-3.8 1z"/></svg>',
+		watch: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>'
 	};
 
 	function shell(inner) {
 		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><a class="small muted" href="' + esc(B.tracker) + '">Tracker</a></header>' +
 			'<main class="stack">' + inner + '</main>' +
-			'<nav class="nav">' + [['skills', 'Skills'], ['review', 'Review'], ['write', 'Write'], ['library', 'Library'], ['progress', 'Progress']].map(function (v) {
+			'<nav class="nav">' + [['skills', 'Skills'], ['review', 'Review'], ['watch', 'Watch'], ['write', 'Write'], ['library', 'Library'], ['progress', 'Progress']].map(function (v) {
 				return '<button data-nav="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + ICONS[v[0]] + v[1] + (v[0] === 'review' && S.due ? '<i class="badge">' + S.due + '</i>' : '') + '</button>';
 			}).join('') + '</nav>';
 		$app.querySelectorAll('[data-nav]').forEach(function (b) { b.onclick = function () { go(b.dataset.nav); }; });
@@ -62,6 +63,7 @@
 	}
 
 	function go(view, arg) {
+		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
 		S.view = view;
 		if (view === 'skills') return skills();
 		if (view === 'skill') return skill(arg);
@@ -70,6 +72,7 @@
 		if (view === 'progress') return progress();
 		if (view === 'review') return review();
 		if (view === 'library') return library();
+		if (view === 'watch') return watch(arg);
 	}
 
 	function loadTree() {
@@ -680,6 +683,105 @@
 		el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	}
 
+	/* ── Watch: video quizzes (EdPuzzle-style) ────────── */
+	var W = null, ytP = null;
+	function ytApi() {
+		if (window.YT && window.YT.Player) return Promise.resolve(window.YT);
+		if (!ytP) ytP = new Promise(function (res) {
+			window.onYouTubeIframeAPIReady = function () { res(window.YT); };
+			var sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(sc);
+		});
+		return ytP;
+	}
+	function fmtT(t) { t = Math.floor(t); return Math.floor(t / 60) + ':' + ('0' + t % 60).slice(-2); }
+	function watch(id) {
+		if (id) return watchLesson(id);
+		shell('<section class="stack"><h1>Watch</h1><p class="muted">Videos from Sherif with questions inside. The video stops and asks you about the words you need — like a teacher next to you.</p></section><p class="loading">Loading…</p>');
+		api('videos').then(function (d) {
+			shell('<section class="stack"><h1>Watch</h1><p class="muted">Videos from Sherif with questions inside. The video stops and asks you about the words you need. Missed words go to your review cards.</p></section>'
+				+ (d.lessons.length ? '<ul class="vids">' + d.lessons.map(function (l) {
+					var done = l.answered >= l.total && l.total;
+					return '<li><button class="vid" data-l="' + l.id + '"><img src="https://i.ytimg.com/vi/' + esc(l.videoId) + '/mqdefault.jpg" alt="" loading="lazy"><span class="vid-main"><b>' + esc(l.title || 'Video lesson') + '</b>'
+						+ '<span class="small muted">' + l.total + ' questions' + (l.answered ? ' · ' + l.correct + '/' + l.total + ' right' : '') + '</span>'
+						+ (l.words.length ? '<span class="small muted">' + esc(l.words.slice(0, 6).join(' · ')) + '</span>' : '') + '</span>' + (done ? '<span class="pill mastered">Done</span>' : l.answered ? '<span class="pill open">Continue</span>' : '') + '</button></li>';
+				}).join('') + '</ul>' : '<p class="card muted">No video lessons yet. They\'ll appear here when Sherif publishes one.</p>')
+				+ '<p class="small muted">Tip: on a computer, Language Lens asks the same questions right on YouTube.</p>');
+			$app.querySelectorAll('[data-l]').forEach(function (b) { b.onclick = function () { go('watch', +b.dataset.l); }; });
+		}, fail);
+	}
+	function watchLesson(id) {
+		shell('<button class="back" id="back">← Videos</button><p class="loading">Loading the video…</p>');
+		$app.querySelector('#back').onclick = function () { go('watch'); };
+		Promise.all([api('video?id=' + id), ytApi()]).then(function (res) {
+			var L = res[0];
+			W = { L: L, idx: 0, asking: null, timer: null, player: null };
+			shell('<button class="back" id="back">← Videos</button><h2>' + esc(L.title || 'Video lesson') + '</h2>'
+				+ '<div class="player"><div id="yt"></div></div>'
+				+ '<div class="qmarks" id="qm"></div><section id="qbox" class="stack"></section>');
+			$app.querySelector('#back').onclick = function () { go('watch'); };
+			paintMarks();
+			W.player = new YT.Player('yt', {
+				videoId: L.videoId,
+				playerVars: { playsinline: 1, rel: 0, modestbranding: 1, cc_load_policy: 1, cc_lang_pref: 'en' },
+				events: { onReady: function () { W.timer = setInterval(checkQ, 250); } }
+			});
+		}, fail);
+	}
+	function paintMarks() {
+		var el = $app.querySelector('#qm'); if (!el) return;
+		el.innerHTML = W.L.questions.map(function (q, i) {
+			var a = W.L.answers[q.id];
+			return '<button class="qm ' + (a ? (a.ok ? 'ok' : 'no') : '') + '" data-qi="' + i + '" title="' + fmtT(q.t) + '">' + (i + 1) + '</button>';
+		}).join('') + '<span class="small muted">' + Object.keys(W.L.answers).filter(function (k) { return W.L.answers[k].ok; }).length + '/' + W.L.questions.length + ' right</span>';
+		el.querySelectorAll('[data-qi]').forEach(function (b) { b.onclick = function () { var q = W.L.questions[+b.dataset.qi]; W.player.seekTo(Math.max(0, q.t - 10), true); W.player.playVideo(); }; });
+	}
+	/** Pause at the next unanswered question once its time has passed. */
+	function checkQ() {
+		if (!W || !W.player || !W.player.getCurrentTime || W.asking) return;
+		var t = W.player.getCurrentTime();
+		for (var i = 0; i < W.L.questions.length; i++) {
+			var q = W.L.questions[i];
+			if (!W.L.answers[q.id] && t >= q.t && t < q.t + 6) { W.player.pauseVideo(); ask(q); return; }
+		}
+		if (W.player.getPlayerState && W.player.getPlayerState() === 0) finishLesson();
+	}
+	function ask(q) {
+		W.asking = q;
+		var box = $app.querySelector('#qbox'), i = W.L.questions.indexOf(q);
+		var body = q.type === 'blank'
+			? '<input class="inp" id="qa" autocomplete="off" autocapitalize="off" placeholder="Type the missing word"><button class="btn block" id="qsend">Check</button>'
+			: '<div class="opts">' + q.options.map(function (o, k) { return '<button class="opt" data-k="' + k + '">' + esc(o) + '</button>'; }).join('') + '</div>';
+		box.innerHTML = '<div class="card stack qcard"><p class="small muted">Question ' + (i + 1) + ' of ' + W.L.questions.length + ' · ' + fmtT(q.t) + (q.word ? ' · <b>' + esc(q.word) + '</b>' : '') + '</p><p class="q">' + esc(q.q).replace(/_{3,}/g, '<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>') + '</p>' + body
+			+ '<div id="qfb"></div><button class="link small" id="rewatch">↺ Watch that part again</button></div>';
+		box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		$app.querySelector('#rewatch').onclick = function () { W.asking = null; box.innerHTML = ''; W.player.seekTo(Math.max(0, q.t - 12), true); W.player.playVideo(); };
+		var send = function (a, btn) {
+			api('video/answer', { body: { id: W.L.id, qid: q.id, a: a } }).then(function (r) {
+				W.L.answers[q.id] = { a: a, ok: r.ok };
+				if (q.type !== 'blank') {
+					box.querySelectorAll('.opt').forEach(function (o) { o.disabled = true; });
+					if (btn) btn.classList.add(r.ok ? 'right' : 'wrong');
+					var right = box.querySelector('.opt[data-k="' + r.answer + '"]'); if (right) right.classList.add('right');
+				} else { box.querySelector('#qa').disabled = true; }
+				box.querySelector('#qfb').innerHTML = '<div class="fb ' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? 'Correct ✓ +5 XP' : 'Not quite' + (q.type === 'blank' ? ' — it\'s “' + esc(r.answer) + '”' : '')) + '</b>'
+					+ (r.why ? '<p>' + esc(r.why) + '</p>' : '') + (r.why_ar ? '<p class="ar">' + esc(r.why_ar) + '</p>' : '') + (!r.ok && q.word ? '<p class="small muted">“' + esc(q.word) + '” was added to your review cards.</p>' : '') + '</div>'
+					+ '<button class="btn block" id="qgo">Continue the video ▶</button>';
+				paintMarks();
+				$app.querySelector('#qgo').onclick = function () { W.asking = null; box.innerHTML = ''; W.player.playVideo(); };
+			}, function (e) { toast(e.message); });
+		};
+		box.querySelectorAll('.opt').forEach(function (b) { b.onclick = function () { send(+b.dataset.k, b); }; });
+		var qs = box.querySelector('#qsend');
+		if (qs) { var inp = box.querySelector('#qa'); inp.focus(); inp.onkeydown = function (e) { if (e.key === 'Enter') qs.click(); }; qs.onclick = function () { if (inp.value.trim()) { qs.remove(); send(inp.value.trim()); } }; }
+	}
+	function finishLesson() {
+		if (W.finished) return;
+		W.finished = true;
+		var ok = Object.keys(W.L.answers).filter(function (k) { return W.L.answers[k].ok; }).length;
+		$app.querySelector('#qbox').innerHTML = '<div class="card stack center-text"><h2>' + ok + ' / ' + W.L.questions.length + '</h2><p class="muted">Video finished. Words you missed are now in your review cards.</p><button class="btn" id="rv">Review now</button></div>';
+		$app.querySelector('#rv').onclick = function () { go('review'); };
+	}
+
 	/* ── Dictionary (shared with the extension) ───────── */
 	var LEX = null, lexP = null;
 	function lex() {
@@ -891,5 +993,5 @@
 	}
 
 	api('review/settings', { body: {} }).then(function (st) { S.due = st.due; var n = document.querySelector('[data-nav="review"]'); if (n && st.due) n.insertAdjacentHTML('beforeend', '<i class="badge">' + st.due + '</i>'); }).catch(function () {});
-	go(location.hash === '#review' ? 'review' : location.hash === '#library' ? 'library' : 'skills');
+	go(location.hash === '#review' ? 'review' : location.hash === '#library' ? 'library' : location.hash === '#watch' ? 'watch' : 'skills');
 })();

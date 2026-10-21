@@ -117,6 +117,9 @@ final class Sawa_Lens_App {
 		$r( 'scan', 'POST', array( __CLASS__, 'scan' ) );
 		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
 		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
+		$r( 'videos', 'GET', array( __CLASS__, 'videos' ) );
+		$r( 'video', 'GET', array( __CLASS__, 'video' ) );
+		$r( 'video/answer', 'POST', array( __CLASS__, 'video_answer' ) );
 	}
 
 	private static function out( $data ) {
@@ -329,6 +332,23 @@ final class Sawa_Lens_App {
 		}
 		$wpdb->update( $t, array( 'ar' => $res['sentence'], 'change_id' => Sawa_Lens_Store::next_change() ), array( 'id' => $row['id'] ) ); // phpcs:ignore
 		return self::out( array( 'ar' => $res['sentence'] ) );
+	}
+
+	public static function videos() {
+		return self::out( array( 'lessons' => Sawa_Lens_Lessons::list_for( get_current_user_id() ) ) );
+	}
+
+	public static function video( WP_REST_Request $r ) {
+		$l = Sawa_Lens_Lessons::get( (int) $r->get_param( 'id' ) );
+		if ( ! $l || ! $l['published'] ) {
+			return new WP_Error( 'lesson', 'This quiz is not available.', array( 'status' => 404 ) );
+		}
+		return self::out( Sawa_Lens_Lessons::for_student( $l, get_current_user_id() ) );
+	}
+
+	public static function video_answer( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Lessons::answer( get_current_user_id(), (int) $r->get_param( 'id' ), sanitize_key( (string) $r->get_param( 'qid' ) ), $r->get_param( 'a' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
 	/** Save a sentence or phrase from the web app (scan, review…): same as saving it in the extension. */

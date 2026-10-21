@@ -220,3 +220,17 @@ select { font: inherit; border: 1px solid var(--line); border-radius: 8px; paddi
 .wcard { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgb(0 0 0 / .08); }
 .wcard .ar { text-align: right; font-size: 18px; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Watch (video quizzes) */
+.nav button { padding-left: 2px; padding-right: 2px; font-size: 12px; }
+.vids { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.vid { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
+.vid img { width: 128px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; flex: none; }
+.vid-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.player { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
+.player iframe, .player #yt { position: absolute; inset: 0; width: 100%; height: 100%; }
+.qmarks { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.qm { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-weight: 700; font-size: 13px; }
+.qm.ok { background: var(--green); border-color: var(--green); color: #fff; }
+.qm.no { background: var(--red); border-color: var(--red); color: #fff; }
+.qcard { border-color: var(--fg); }
