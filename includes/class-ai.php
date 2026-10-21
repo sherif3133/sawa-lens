@@ -150,6 +150,49 @@ final class Sawa_Lens_AI {
 		return $res;
 	}
 
+	/**
+	 * The last complete {…} object in a reply. The model sometimes writes an answer, then a corrected one:
+	 * the last valid object is the one it meant.
+	 */
+	private static function last_json_object( $text ) {
+		$found = null;
+		$len   = strlen( $text );
+		for ( $i = 0; $i < $len; $i++ ) {
+			if ( '{' !== $text[ $i ] ) {
+				continue;
+			}
+			$depth = 0;
+			$in    = false;
+			for ( $k = $i; $k < $len; $k++ ) {
+				$c = $text[ $k ];
+				if ( $in ) {
+					if ( '\\' === $c ) {
+						$k++;
+					} elseif ( '"' === $c ) {
+						$in = false;
+					}
+					continue;
+				}
+				if ( '"' === $c ) {
+					$in = true;
+				} elseif ( '{' === $c ) {
+					$depth++;
+				} elseif ( '}' === $c ) {
+					$depth--;
+					if ( 0 === $depth ) {
+						$obj = json_decode( substr( $text, $i, $k - $i + 1 ), true );
+						if ( is_array( $obj ) ) {
+							$found = $obj;
+							$i     = $k;
+						}
+						break;
+					}
+				}
+			}
+		}
+		return $found;
+	}
+
 	private static function cached( $key ) {
 		global $wpdb;
 		$body = $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'ai' ) . ' WHERE hash = %s', $key ) ); // phpcs:ignore
@@ -229,8 +272,8 @@ final class Sawa_Lens_AI {
 		$text = trim( $text );
 		$text = preg_replace( '/^```(?:json)?\s*|\s*```$/', '', $text );
 		$out  = json_decode( $text, true );
-		if ( ! is_array( $out ) && preg_match( '/\{.*\}/s', $text, $m ) ) {
-			$out = json_decode( $m[0], true );
+		if ( ! is_array( $out ) ) {
+			$out = self::last_json_object( $text );
 		}
 		if ( ! is_array( $out ) ) {
 			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · not JSON (stop: ' . ( $j['stop_reason'] ?? '?' ) . '): ' . mb_substr( $text, 0, 300 ), false );
