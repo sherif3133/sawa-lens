@@ -46,6 +46,10 @@ final class Sawa_Lens_Placement_Web {
 			return;
 		}
 		nocache_headers();
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		header( 'X-LiteSpeed-Cache-Control: no-cache' );
 		$uid  = get_current_user_id();
 		$prev = $uid ? get_user_meta( $uid, 'sawa_lens_placement', true ) : null;
 		$boot = array(

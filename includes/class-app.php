@@ -48,6 +48,11 @@ final class Sawa_Lens_App {
 			self::pwa_file( (string) get_query_var( 'sawa_lens_app' ) );
 		}
 		nocache_headers();
+		// Personal pages: never from a page cache (LiteSpeed and others).
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		header( 'X-LiteSpeed-Cache-Control: no-cache' );
 		// The old Language Lens address now opens the one app (the #part of the link is kept by the browser).
 		if ( '1' === (string) get_query_var( 'sawa_lens_app' ) && class_exists( 'Sawa_Tracker_Front' ) ) {
 			wp_safe_redirect( home_url( '/app/' ), 302 );
