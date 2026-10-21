@@ -28,9 +28,14 @@ final class Sawa_Lens_App {
 		add_rewrite_rule( '^app/?$', 'index.php?sawa_lens_app=2', 'top' );
 		add_rewrite_rule( '^app/manifest.json$', 'index.php?sawa_lens_app=5', 'top' );
 		add_rewrite_rule( '^app/sw.js$', 'index.php?sawa_lens_app=4', 'top' );
-		if ( get_option( 'sawa_lens_rw' ) !== SAWA_LENS_VER ) {
-			flush_rewrite_rules( false );
-			update_option( 'sawa_lens_rw', SAWA_LENS_VER );
+		// Flush only when one of our addresses (/app, /lens, /placement…) is missing from the saved rules.
+		global $wp_rewrite;
+		$saved = (array) get_option( 'rewrite_rules', array() );
+		foreach ( array_keys( (array) $wp_rewrite->extra_rules_top ) as $k ) {
+			if ( preg_match( '#^\^(app|lens|placement)#', $k ) && ! isset( $saved[ $k ] ) ) {
+				flush_rewrite_rules( false );
+				break;
+			}
 		}
 	}
 
@@ -107,7 +112,8 @@ final class Sawa_Lens_App {
 <script>window.SAWA_LENS = <?php echo wp_json_encode( $boot ); ?>;</script>
 <script src="<?php echo esc_url( SAWA_LENS_URL . 'assets/app.js?v=' . $v ); ?>"></script>
 <?php if ( $app_mode ) : ?>
-<script src="<?php echo esc_url( SAWA_TR_URL . 'assets/app.js?ver=' . SAWA_TR_VER ); ?>"></script>
+<?php // The app's menus are English: use the tracker's English build when it's there. ?>
+<script src="<?php echo esc_url( SAWA_TR_URL . ( file_exists( SAWA_TR_DIR . 'assets/app-en.js' ) ? 'assets/app-en.js' : 'assets/app.js' ) . '?ver=' . SAWA_TR_VER ); ?>"></script>
 <?php endif; ?>
 </body>
 </html>
