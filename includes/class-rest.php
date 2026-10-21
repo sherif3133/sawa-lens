@@ -103,6 +103,7 @@ final class Sawa_Lens_Rest {
 				'avatar'   => get_avatar_url( $uid, array( 'size' => 96 ) ),
 				'ai'       => Sawa_Lens_AI::ready(),
 				'tracker'  => self::tracker_url(),
+				'app'      => Sawa_Lens_App::url(),
 				'progress' => Sawa_Lens_Store::progress( $uid, 14 ),
 			)
 		);

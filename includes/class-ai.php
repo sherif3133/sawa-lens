@@ -151,6 +151,151 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
+	 * A practice set for one skill-tree point. Sets are shared by every learner and cached
+	 * (variant 0–5), so each one is paid for once.
+	 */
+	public static function practice_set( $uid, $id, $variant ) {
+		$k = Sawa_Lens_Skills::get( $id );
+		if ( ! $k ) {
+			return new WP_Error( 'skill', 'Unknown skill.', array( 'status' => 404 ) );
+		}
+		$variant = (int) $variant % 6;
+		$key     = hash( 'sha256', 'set|v1|' . $id . '|' . $variant );
+		$hit     = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$topics = array( 'daily life and family', 'school, university and work', 'food, shopping and travel', 'friends, phone and social media', 'sport, health and free time', 'city life, weather and news' );
+		$common = 'You write practice exercises for Arabic-speaking learners of English (A2–B1, mostly from Egypt and other Arab countries). '
+			. 'Use simple A2–B1 vocabulary and everyday situations about ' . $topics[ $variant ] . '. Names and places can be Arab or international. '
+			. "Point: {$k['name']}. Rule: {$k['rule']} Typical errors of Arab learners: {$k['errors']}. "
+			. 'Each "why" is one short, simple English sentence (max 20 words) explaining the rule for that item; "why_ar" says the same in short Modern Standard Arabic. '
+			. 'Return ONLY a JSON object {"items":[…]} with no markdown. ';
+		if ( 'pron' === $k['track'] ) {
+			$system = $common . 'Make exactly 10 items: '
+				. '6 listening items {"type":"hear","say":"the word or short phrase the app will speak with text-to-speech","options":["2 or 3 choices: the target and minimal-pair or wrong-form alternatives, written as plain English words or simple respellings"],"answer":index of the correct option,"why":…,"why_ar":…}; '
+				. '4 rule items {"type":"choose","q":"a question about the sound rule, e.g. How does -ed sound in \'walked\'? or Which syllable is stressed in \'hotel\'?","options":["2–4 short choices"],"answer":index,"why":…,"why_ar":…}. '
+				. 'For hear items the options must be real, distinct and pronounced differently by a US voice (e.g. park / bark, think / sink, ship / sheep). Vary the answer position.';
+		} else {
+			$system = $common . 'Make exactly 10 items, in this order: '
+				. '2 noticing items {"type":"spot","text":"2–3 short connected sentences that use the point correctly 2–4 times","targets":["the exact words in the text that show the point, copied exactly, each 1–4 words, in order of appearance"],"why":…,"why_ar":…}; '
+				. '5 choice items {"type":"choose","q":"one sentence with ___ for the gap","options":["3 choices, one correct, the others typical Arab-learner errors"],"answer":index,"why":…,"why_ar":…}; '
+				. '3 correction items {"type":"fix","q":"one sentence with exactly ONE typical Arab-learner error of this point","answer":["the corrected sentence","other fully acceptable corrections, if any"],"why":…,"why_ar":…}. '
+				. 'Vary the answer position. Every item must test THIS point only, and every correct answer must be clearly right.';
+		}
+		$out = self::call( $system, 'Write the set now.', 8000, 90 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$items = array();
+		foreach ( array_slice( (array) ( $out['items'] ?? array() ), 0, 12 ) as $it ) {
+			if ( ! is_array( $it ) || ! in_array( $it['type'] ?? '', array( 'spot', 'choose', 'fix', 'hear' ), true ) ) {
+				continue;
+			}
+			$clean = array(
+				'type'   => $it['type'],
+				'why'    => mb_substr( (string) ( $it['why'] ?? '' ), 0, 300 ),
+				'why_ar' => mb_substr( (string) ( $it['why_ar'] ?? '' ), 0, 400 ),
+			);
+			if ( 'spot' === $it['type'] ) {
+				$clean['text']    = mb_substr( (string) ( $it['text'] ?? '' ), 0, 600 );
+				$clean['targets'] = array_values( array_filter( array_map( 'strval', array_slice( (array) ( $it['targets'] ?? array() ), 0, 8 ) ) ) );
+				if ( ! $clean['targets'] ) {
+					continue;
+				}
+			} elseif ( 'fix' === $it['type'] ) {
+				$clean['q']      = mb_substr( (string) ( $it['q'] ?? '' ), 0, 300 );
+				$clean['answer'] = array_values( array_filter( array_map( 'strval', array_slice( (array) ( $it['answer'] ?? array() ), 0, 5 ) ) ) );
+				if ( ! $clean['answer'] ) {
+					continue;
+				}
+			} else {
+				$clean['q']       = mb_substr( (string) ( $it['q'] ?? '' ), 0, 300 );
+				$clean['say']     = mb_substr( (string) ( $it['say'] ?? '' ), 0, 80 );
+				$clean['options'] = array_values( array_map( 'strval', array_slice( (array) ( $it['options'] ?? array() ), 0, 4 ) ) );
+				$clean['answer']  = (int) ( $it['answer'] ?? 0 );
+				if ( count( $clean['options'] ) < 2 || $clean['answer'] < 0 || $clean['answer'] >= count( $clean['options'] ) ) {
+					continue;
+				}
+			}
+			$items[] = $clean;
+		}
+		if ( count( $items ) < 5 ) {
+			return new WP_Error( 'ai', 'The exercises came back incomplete. Try again.', array( 'status' => 502 ) );
+		}
+		$res = array( 'items' => $items );
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/**
+	 * Checks a learner's writing: every clear error with its skill-tree point, plus correct uses of points,
+	 * so the tree can open, reopen or close points from real writing.
+	 */
+	public static function check_writing( $uid, $text ) {
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$ids = array();
+		foreach ( Sawa_Lens_Skills::all() as $id => $k ) {
+			if ( $k['write'] ) {
+				$ids[] = $id . ' = ' . $k['name'] . ' (' . $k['errors'] . ')';
+			}
+		}
+		$system = 'You are a kind, careful English writing tutor for Arabic-speaking learners (A2–B1). Check the learner\'s text. '
+			. 'Find only CLEAR errors: grammar, spelling, capitals, punctuation, apostrophes, word choice that is wrong (not just less elegant), and tone that would sound rude or strange to an English speaker '
+			. '(bare orders used as requests, whole sentences in capitals, slang in a formal message). Do not rewrite style. Do not flag Arabic names or words in quotes. Max 20 errors. '
+			. "Skill ids (use one per error, or \"other\"):\n" . implode( "\n", $ids ) . "\n"
+			. 'Return ONLY a JSON object, no markdown: '
+			. '{"errors":[{"wrong":"the shortest exact span copied from the learner\'s text that contains the error","right":"what should replace that span","skill":"skill id or other","why":"one short simple-English sentence (max 18 words)","why_ar":"the same in short Modern Standard Arabic","sentence":"the learner\'s whole original sentence","fixed":"that sentence fully corrected"}], '
+			. '"good":{"skill id": number of times the learner used this point CORRECTLY in an obligatory context}, '
+			. '"corrected":"the whole text corrected with minimal changes", '
+			. '"praise":"one short specific sentence about something they did well", '
+			. '"tip":"the one most useful thing to work on next, one short sentence"}. '
+			. 'List errors in the order they appear. If the text has no errors, return an empty errors array.';
+		$out = self::call( $system, "Learner's text:\n" . $text, 9000, 90 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$known  = Sawa_Lens_Skills::all();
+		$errors = array();
+		foreach ( array_slice( (array) ( $out['errors'] ?? array() ), 0, 25 ) as $e ) {
+			if ( ! is_array( $e ) || '' === trim( (string) ( $e['wrong'] ?? '' ) ) ) {
+				continue;
+			}
+			$skill    = sanitize_key( (string) ( $e['skill'] ?? 'other' ) );
+			$errors[] = array(
+				'wrong'    => mb_substr( (string) $e['wrong'], 0, 200 ),
+				'right'    => mb_substr( (string) ( $e['right'] ?? '' ), 0, 200 ),
+				'skill'    => isset( $known[ $skill ] ) ? $skill : 'other',
+				'why'      => mb_substr( (string) ( $e['why'] ?? '' ), 0, 300 ),
+				'why_ar'   => mb_substr( (string) ( $e['why_ar'] ?? '' ), 0, 400 ),
+				'sentence' => mb_substr( (string) ( $e['sentence'] ?? '' ), 0, 600 ),
+				'fixed'    => mb_substr( (string) ( $e['fixed'] ?? '' ), 0, 600 ),
+			);
+		}
+		$good = array();
+		foreach ( (array) ( $out['good'] ?? array() ) as $id => $n ) {
+			$id = sanitize_key( (string) $id );
+			if ( isset( $known[ $id ] ) && (int) $n > 0 ) {
+				$good[ $id ] = min( 20, (int) $n );
+			}
+		}
+		return array(
+			'errors'    => $errors,
+			'good'      => $good,
+			'corrected' => mb_substr( (string) ( $out['corrected'] ?? '' ), 0, 6000 ),
+			'praise'    => mb_substr( (string) ( $out['praise'] ?? '' ), 0, 300 ),
+			'tip'       => mb_substr( (string) ( $out['tip'] ?? '' ), 0, 300 ),
+		);
+	}
+
+	/**
 	 * Messages API body. Thinking stays on (it keeps translations and pronunciation notes accurate) but at
 	 * low effort, so it's brief; max_tokens leaves room for the thinking plus the short JSON answer.
 	 * Low effort is accepted by Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 alike.
@@ -242,7 +387,7 @@ final class Sawa_Lens_AI {
 		return true;
 	}
 
-	private static function call( $system, $user, $max_tokens ) {
+	private static function call( $system, $user, $max_tokens, $timeout = 45 ) {
 		$s = self::settings();
 		if ( '' === $s['api_key'] ) {
 			return new WP_Error( 'off', 'AI explanations are not switched on yet.', array( 'status' => 503 ) );
@@ -250,7 +395,7 @@ final class Sawa_Lens_AI {
 		$res = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
 			array(
-				'timeout' => 45,
+				'timeout' => $timeout,
 				'headers' => array(
 					'x-api-key'         => $s['api_key'],
 					'anthropic-version' => '2023-06-01',

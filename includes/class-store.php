@@ -81,9 +81,44 @@ final class Sawa_Lens_Store {
 		dbDelta(
 			'CREATE TABLE ' . self::t( 'ai' ) . " (
 			hash char(64) NOT NULL,
-			body text NOT NULL,
+			body mediumtext NOT NULL,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (hash)
+			) $c;"
+		);
+		// Writing checked by the writing checker (and later chat messages): one row per check.
+		dbDelta(
+			'CREATE TABLE ' . self::t( 'writing' ) . " (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			source varchar(10) NOT NULL DEFAULT 'write',
+			body text NOT NULL,
+			result mediumtext NOT NULL,
+			words int(10) unsigned NOT NULL DEFAULT 0,
+			errors smallint(5) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY user_time (user_id,created_at)
+			) $c;"
+		);
+		// Every error found, with its skill-tree point: drives the tree and the "are errors going down" trends.
+		dbDelta(
+			'CREATE TABLE ' . self::t( 'errors' ) . " (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			skill varchar(20) NOT NULL DEFAULT 'other',
+			source varchar(10) NOT NULL DEFAULT 'write',
+			writing_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			wrong varchar(200) NOT NULL DEFAULT '',
+			fix varchar(200) NOT NULL DEFAULT '',
+			why varchar(300) NOT NULL DEFAULT '',
+			why_ar varchar(400) NOT NULL DEFAULT '',
+			sentence varchar(600) NOT NULL DEFAULT '',
+			fixed varchar(600) NOT NULL DEFAULT '',
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY user_skill (user_id,skill),
+			KEY user_time (user_id,created_at)
 			) $c;"
 		);
 		update_option( 'sawa_lens_db', SAWA_LENS_DB );

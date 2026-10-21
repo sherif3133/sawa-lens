@@ -66,7 +66,7 @@ final class Sawa_Lens_Auth {
 		exit;
 	}
 
-	private static function page( $title, $text ) {
+	public static function page( $title, $text ) {
 		status_header( 403 );
 		echo '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . esc_html( $title ) . '</title>'
 			. '<body style="font:18px/1.7 system-ui,sans-serif;background:#F6F5F3;color:#0F0F10;display:grid;place-items:center;min-height:100vh;margin:0;padding:24px">'
