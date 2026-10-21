@@ -126,7 +126,8 @@ final class Sawa_Lens_AI {
 			. '"ipa": a broad American IPA transcription of the connected speech; '
 			. '"features": an array (max 5) of objects {"where": the exact words from the text, "feature": short name (linking, flap t, weak form, elision, assimilation, contraction, -ed ending, stress, intonation), "why": one short simple-English sentence explaining the rule, e.g. "When a word ends in a consonant and the next starts with a vowel, we join them."}. '
 			. 'Only include features that really happen in this text. Plain JSON, no markdown.';
-		$out    = self::call( $system, $text, 1200 );
+		$out    = self::call( $system, "Text to analyse:
+" . $text, 1200 );
 		if ( is_wp_error( $out ) ) {
 			return $out;
 		}
