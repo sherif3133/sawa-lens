@@ -90,7 +90,7 @@
 		}
 		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><a class="small muted" href="' + esc(B.tracker) + '">Tracker</a></header>' +
 			'<main class="stack">' + inner + '</main>' +
-			'<nav class="nav">' + [['start', 'Start'], ['review', 'Review'], ['watch', 'Watch'], ['write', 'Write'], ['skills', 'Skills'], ['library', 'Library'], ['progress', 'Progress']].filter(function (v) { return unlocked(v[0]); }).map(function (v) {
+			'<nav class="nav">' + [['start', 'Start'], ['review', 'Review'], ['read', 'Read'], ['write', 'Write'], ['skills', 'Skills'], ['library', 'Library'], ['progress', 'Progress']].filter(function (v) { return unlocked(v[0]); }).map(function (v) {
 				return '<button data-nav="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + ICONS[v[0]] + v[1] + (v[0] === 'review' && S.due ? '<i class="badge">' + S.due + '</i>' : '') + '</button>';
 			}).join('') + '</nav>';
 		$app.querySelectorAll('[data-nav]').forEach(function (b) { b.onclick = function () { go(b.dataset.nav); }; });
@@ -99,6 +99,7 @@
 
 	function go(view, arg) {
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
+		stopClip(); stopReading();
 		if (B.appMode && S.gate) view = 'today';
 		if (['today', 'learn', 'chat', 'community', 'me'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = B.appMode ? 'learn' : 'start';
 		S.view = view;
@@ -107,6 +108,7 @@
 		if (view === 'learn') return learnHub();
 		if (view === 'me') return meHub();
 		if (view === 'scan') return scanView();
+		if (view === 'read') return readView();
 		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Community</h1></section><div class="card stack"><p><b>Clans, the weekly boss and the leaderboard open at stage 3.</b></p><p class="muted">For now, focus on your daily plan. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
 		if (view === 'chat' || view === 'community') return shell('');
 		if (view === 'start') return guide();
@@ -528,7 +530,7 @@
 
 	/* ── Start here: a guided path that unlocks features step by step ── */
 	var STAGES = [
-		{ n: 1, title: 'Find your level & collect words', ar: 'اعرف مستواك واجمع كلمات', tabs: ['start', 'watch', 'scan'],
+		{ n: 1, title: 'Find your level & collect words', ar: 'اعرف مستواك واجمع كلمات', tabs: ['start', 'read', 'scan'],
 			intro: 'Two small steps. Everything works on your phone.',
 			steps: [
 				{ k: 'vocabTest', t: 'Take the quick level check (about 8 minutes)', ar: 'اختبار سريع لتحديد المستوى', how: 'It finds your level and vocabulary size, so everything fits you. You can take the full test later.', done: function (j) { return j.vocabTest; }, link: function () { return ['Start the level check', '/placement/']; } },
@@ -641,14 +643,14 @@
 	function learnHub() {
 		var tools = [
 			['review', 'Review', 'Your words and sentences come back before you forget them', 2],
-			['watch', 'Watch', 'Videos from Sherif that stop and ask you questions', 1],
-			['scan', 'Scan a page', 'Photo of a book page → tap words for meanings', 1],
+			['read', 'Read a text', 'Paste any English text → tap words, listen to it', 1],
+			['scan', 'Scan a page', 'Photo or screenshot of a page → tap words for meanings', 1],
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
 		];
 		shell('<section class="stack"><h1>Learn</h1></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
-			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
+			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
 		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
@@ -792,14 +794,72 @@
 
 	/** Scan: photo of a book page → text you can tap for meanings, save and learn from. */
 	var SCAN = null;
+	/** Read a text: paste any English text and use it like a scanned page (tap words, save, listen). */
+	function readView() {
+		shell('<section class="stack"><h1>Read a text</h1><p class="muted">Paste any English text — an article, a story, a message, a lesson. Tap a word for its meaning, save it as Learning, save sentences, or listen to the whole text.</p></section>'
+			+ '<textarea id="rtext" rows="7" dir="ltr" maxlength="20000" placeholder="Paste English text here"></textarea><input id="rtitle" dir="auto" maxlength="120" placeholder="Title (optional)">'
+			+ '<button class="btn block" id="rgo">Start reading</button><p class="err" id="er"></p><section id="scan" class="stack"></section>');
+		var ta = $app.querySelector('#rtext'), er = $app.querySelector('#er');
+		ta.oninput = function () { er.textContent = ''; };
+		$app.querySelector('#rgo').onclick = function () {
+			var t = ta.value.trim();
+			if (!t) { er.textContent = 'Paste a text first.'; return; }
+			var ar = (t.match(/[؀-ۿ]/g) || []).length, all = (t.match(/[A-Za-z؀-ۿ]/g) || []).length;
+			if (all && ar / all > 0.3) { er.textContent = 'This looks like Arabic. Paste an English text.'; return; }
+			SCAN = { title: $app.querySelector('#rtitle').value.trim() || 'My text', paragraphs: t.split(/\n\s*\n|\n/).map(function (p) { return p.trim(); }).filter(Boolean).slice(0, 300) };
+			try { localStorage.setItem('lensScan', JSON.stringify(SCAN)); } catch (e) { /* storage blocked */ }
+			paintScan();
+		};
+	}
 	function scanView() {
 		try { SCAN = SCAN || JSON.parse(localStorage.getItem('lensScan') || 'null'); } catch (e) { /* storage blocked */ }
 		shell(modeSeg('scan') + '<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learning, or save the sentence.</p></section>'
-			+ '<label class="btn block" for="cam">📷 Take or choose a photo</label><input id="cam" type="file" accept="image/*" capture="environment" hidden>'
+			+ '<div class="scan-in" id="drop"><div class="ra-btns"><label class="btn" for="cam">📷 Take a photo</label><label class="btn" for="pick">🖼 Upload an image</label><button class="btn ghost" id="pastebtn">📋 Paste a screenshot</button></div>'
+			+ '<p class="small muted">Or press Ctrl+V (⌘V on Mac) to paste a screenshot, or drop an image here.</p></div>'
+			+ '<input id="cam" type="file" accept="image/*" capture="environment" hidden><input id="pick" type="file" accept="image/*" hidden>'
 			+ '<p class="err" id="er"></p><section id="scan" class="stack"></section>');
 		bindModes();
 		$app.querySelector('#cam').onchange = function () { if (this.files[0]) doScan(this.files[0]); };
+		$app.querySelector('#pick').onchange = function () { if (this.files[0]) doScan(this.files[0]); };
+		// Paste a screenshot: the Paste button (asks the browser once), or Ctrl+V anywhere on this screen.
+		$app.querySelector('#pastebtn').onclick = function () {
+			var er = $app.querySelector('#er');
+			if (!navigator.clipboard || !navigator.clipboard.read) { er.textContent = 'Press Ctrl+V (⌘V on Mac) to paste your screenshot.'; return; }
+			navigator.clipboard.read().then(function (items) {
+				for (var i = 0; i < items.length; i++) { var t = items[i].types.filter(function (x) { return /^image\//.test(x); })[0]; if (t) return items[i].getType(t).then(doScan); }
+				er.textContent = 'There is no picture to paste. Take a screenshot first (on Windows: Win+Shift+S), then press Paste.';
+			}, function () { er.textContent = 'Press Ctrl+V (⌘V on Mac) to paste your screenshot.'; });
+		};
+		var drop = $app.querySelector('#drop');
+		drop.ondragover = function (e) { e.preventDefault(); drop.classList.add('over'); };
+		drop.ondragleave = function () { drop.classList.remove('over'); };
+		drop.ondrop = function (e) { e.preventDefault(); drop.classList.remove('over'); var f = e.dataTransfer.files[0]; if (f && /^image\//.test(f.type)) doScan(f); };
 		if (SCAN) paintScan();
+	}
+	document.addEventListener('paste', function (e) {
+		if (S.view !== 'scan' || !e.clipboardData) return;
+		var items = e.clipboardData.items || [];
+		for (var i = 0; i < items.length; i++) if (/^image\//.test(items[i].type)) { var f = items[i].getAsFile(); if (f) { e.preventDefault(); doScan(f); return; } }
+	});
+	/* Listen to the whole text: paragraph by paragraph, the one being read is highlighted. */
+	var READ = null;
+	function stopReading() { if (READ) { READ = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); $app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); }); var b = $app.querySelector('#readall'); if (b) b.textContent = '🔊 Listen to the whole text'; } }
+	function readAll(btn) {
+		if (READ) return stopReading();
+		if (!('speechSynthesis' in window)) return toast('Your browser can\'t play audio.');
+		var paras = SCAN.paragraphs, i = 0, run = READ = {}, vs = speechSynthesis.getVoices();
+		var v = vs.filter(function (x) { return /en[-_]US/i.test(x.lang) && /Google|Samantha|Aria|Jenny|Natural/i.test(x.name); })[0] || vs.filter(function (x) { return /en[-_]US/i.test(x.lang); })[0] || null;
+		btn.textContent = '■ Stop reading';
+		speechSynthesis.cancel();
+		(function next() {
+			if (READ !== run) return;
+			$app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); });
+			if (i >= paras.length) return stopReading();
+			var el = $app.querySelector('.scan-text p[data-p="' + i + '"]'); if (el) { el.classList.add('reading'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+			var u = new SpeechSynthesisUtterance(paras[i]); u.lang = 'en-US'; u.rate = +(($app.querySelector('#readrate') || {}).value || 0.9); if (v) u.voice = v;
+			u.onend = function () { i++; next(); }; u.onerror = function () { stopReading(); };
+			speechSynthesis.speak(u);
+		})();
 	}
 	function doScan(file) {
 		var box = $app.querySelector('#scan'), er = $app.querySelector('#er');
@@ -837,10 +897,11 @@
 		lex().then(function () {
 			if (my !== paintScan.n || !box.isConnected) return;
 			var pi = 0;
-			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + '<div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
+			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + '<div class="ra-btns"><button class="btn" id="readall">🔊 Listen to the whole text</button><label class="small">Speed <select id="readrate"><option value="0.75">Slow</option><option value="0.9" selected>Normal</option><option value="1.05">Fast</option></select></label></div><p class="small muted">Tap a word for its meaning · select words to save a phrase or a sentence</p><div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
 				var idx = pi++;
 				return '<p data-p="' + idx + '">' + esc(p).replace(/[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { return '<span class="sw">' + w + '</span>'; }) + '</p>';
 			}).join('') + '</div><div id="wcard"></div>';
+			box.querySelector('#readall').onclick = function () { readAll(this); };
 			box.querySelectorAll('.sw').forEach(function (sp) {
 				sp.onclick = function () {
 					box.querySelectorAll('.sw.on').forEach(function (x) { x.classList.remove('on'); });
@@ -850,7 +911,50 @@
 					wordCard(word, sentence.trim());
 				};
 			});
+			// Select any part of the text (finger or mouse) to save exactly that part.
+			var txt = box.querySelector('.scan-text');
+			var onSel = function () {
+				setTimeout(function () {
+					var s = window.getSelection(), t = s ? String(s).replace(/\s+/g, ' ').trim() : '';
+					if (t.length < 3 || t.length > 600 || !s.anchorNode || !txt.contains(s.anchorNode)) return;
+					var pEl = (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement).closest('p[data-p]');
+					saveEditor(t, sentenceAround(pEl ? SCAN.paragraphs[+pEl.dataset.p] : t, t));
+				}, 30);
+			};
+			txt.addEventListener('mouseup', onSel);
+			txt.addEventListener('touchend', onSel);
 		});
+	}
+	/** The sentence of the paragraph that holds this piece (or the piece itself when it is longer). */
+	function sentenceAround(para, piece) {
+		var sents = String(para).match(/[^.!?]+[.!?]*/g) || [para];
+		var hit = sents.filter(function (x) { return x.indexOf(piece) >= 0; })[0];
+		return (hit || (piece.length > 60 ? piece : para)).trim();
+	}
+	/** Save a phrase or sentence the student chose and can edit first: only what is in the box is saved. */
+	function saveEditor(text, sentence) {
+		var el = $app.querySelector('#wcard'); if (!el) return;
+		var words = text.split(/\s+/).length, phraseFirst = words <= 6;
+		el.innerHTML = '<section class="card stack savebox"><b>Save to your review cards</b><p class="small muted">Change the words if you like. Only what is in the box is saved.</p>'
+			+ '<textarea id="sv-t" rows="3" dir="ltr" maxlength="600">' + esc(text) + '</textarea>'
+			+ '<div class="ra-btns"><button class="btn' + (phraseFirst ? '' : ' ghost') + '" data-k="phrase">Save as a phrase</button><button class="btn' + (phraseFirst ? ' ghost' : '') + '" data-k="sentence">Save as a sentence</button><button class="link small" id="sv-x">Cancel</button></div>'
+			+ '<p class="small muted" id="sv-ctx">' + (phraseFirst && sentence !== text ? 'A phrase card shows it inside its sentence: “' + esc(sentence.slice(0, 160)) + '”' : '') + '</p><p class="err" id="sv-er"></p></section>';
+		var ta = el.querySelector('#sv-t'), er = el.querySelector('#sv-er');
+		ta.oninput = function () { er.textContent = ''; };
+		el.querySelector('#sv-x').onclick = function () { el.innerHTML = ''; };
+		el.querySelectorAll('[data-k]').forEach(function (b) {
+			b.onclick = function () {
+				var t = ta.value.replace(/\s+/g, ' ').trim(), kind = b.dataset.k;
+				if (t.length < 2) { er.textContent = 'Write the words you want to save.'; return; }
+				var body = kind === 'phrase' ? { text: sentence.indexOf(t) >= 0 ? sentence : t, focus: t, kind: 'phrase', title: SCAN.title || 'Scanned page' } : { text: t, focus: '', kind: 'sentence', title: SCAN.title || 'Scanned page' };
+				el.querySelectorAll('[data-k]').forEach(function (x) { x.disabled = true; });
+				api('library/save', { body: body }).then(function () {
+					el.innerHTML = '<section class="card stack savebox"><b>✓ Saved as a ' + kind + '</b><p class="small" dir="ltr">“' + esc(t) + '”</p><p class="small muted">It is in your review cards and your library now.</p></section>';
+					try { window.getSelection().removeAllRanges(); } catch (e) { /* ignore */ }
+				}, function (e) { er.textContent = e.message; el.querySelectorAll('[data-k]').forEach(function (x) { x.disabled = false; }); });
+			};
+		});
+		el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	}
 	function wordCard(word, sentence) {
 		var lemma = lemmaOf(word), ms = meanings(lemma), el = $app.querySelector('#wcard');
@@ -867,7 +971,7 @@
 			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small ar muted">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
 		};
 		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learning'; b.disabled = true; toast('Added to your review cards'); }, function (e) { toast(e.message); }); };
-		el.querySelector('#savesent').onclick = function () { var b = this; api('library/save', { body: { text: sentence, focus: word, kind: 'sentence', title: SCAN.title || 'Scanned page' } }).then(function () { b.textContent = '✓ Saved'; b.disabled = true; }, function (e) { toast(e.message); }); };
+		el.querySelector('#savesent').onclick = function () { saveEditor(sentence, sentence); };
 		el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	}
 
@@ -1029,7 +1133,7 @@
 			return (ms.length ? '<ul class="rv-m">' + ms.slice(0, 4).map(function (m) {
 				return '<li><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span><p class="ar">' + esc(m.ar) + '</p>' + (m.en ? '<p class="small">' + esc(m.en) + '</p>' : '') + (m.ex ? '<p class="small muted" dir="ltr">“' + esc(m.ex) + '”</p>' : '') + '</li>';
 			}).join('') + '</ul>' : '<div data-ai-word="' + esc(c.lemma) + '"><button class="link">Explain with AI</button></div>')
-				+ '<div class="pics" data-pics="' + esc(c.lemma) + '" data-sent="' + esc(c.text || '') + '"></div>' + momentHtml(c)
+				+ '<div class="pics" data-pics="' + esc(c.lemma) + '" data-sent="' + esc(c.text || '') + '"></div>' + (c._clip ? '' : momentHtml(c))
 				+ '<p class="small"><a href="https://youglish.com/pronounce/' + encodeURIComponent(c.lemma) + '/english" target="_blank" rel="noopener">Hear “' + esc(c.lemma) + '” in other videos ↗</a></p>';
 		}
 		if (c.type === 'mistake') {
@@ -1040,21 +1144,63 @@
 		}
 		var link = srcLink(c);
 		return (c.ar ? '<p class="ar rv-ar">' + esc(c.ar) + '</p>' : '<button class="link" data-tr="' + c.uuid + '">Show the Arabic translation</button><p class="ar rv-ar" data-ar-for="' + c.uuid + '"></p>')
-			+ (c.videoId ? momentHtml(c) : link ? '<p class="small"><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(c.title || 'Source') + '</a></p>' : '');
+			+ (c.videoId ? (c._clip ? '' : momentHtml(c)) : link ? '<p class="small"><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(c.title || 'Source') + '</a></p>' : '');
 	}
-	/** "Play the moment": the video clip where the learner met it (like YouGlish, from their own videos). */
+	/**
+	 * "Play the moment": the clip from the learner's own video where they met the word or sentence, in the
+	 * speaker's real voice. It plays by itself when a card opens (students can switch that off), stops when the
+	 * sentence ends, and can loop (with a pause to repeat it: shadowing) or play slower.
+	 */
+	function clipPref(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v === '1'; } catch (e) { return d; } }
+	function setClipPref(k, v) { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) { /* storage blocked */ } }
+	function clipTimes(c) {
+		var st = Math.max(0, (c.startMs || 0) / 1000 - 0.3);
+		var words = String(c.text || '').split(/\s+/).filter(Boolean).length || 6;
+		var en = c.endMs && c.endMs > c.startMs ? c.endMs / 1000 + 0.4 : st + Math.max(2.5, Math.min(12, words * 0.42 + 1.4));
+		return [Math.round(st * 10) / 10, Math.round(en * 10) / 10];
+	}
 	function momentHtml(c) {
 		if (!c.videoId) return c.url ? '<p class="small muted">From: <a href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(c.title || 'source') + '</a></p>' : '';
-		var st = Math.max(0, Math.floor((c.startMs || 0) / 1000) - 1);
-		return '<div class="moment" data-vid="' + esc(c.videoId) + '" data-st="' + st + '"><button class="btn ghost sm">▶ Play the moment' + (c.title ? ' · ' + esc(c.title.slice(0, 40)) : '') + '</button></div>';
+		var t = clipTimes(c);
+		return '<div class="moment" data-vid="' + esc(c.videoId) + '" data-st="' + t[0] + '" data-en="' + t[1] + '"><div class="clip-box"></div>'
+			+ '<div class="ra-btns clip-bar"><button class="btn ghost sm" data-clip="play">▶ Play the moment</button><button class="btn ghost sm" data-clip="loop" aria-pressed="false">🔁 Loop to shadow</button><button class="btn ghost sm" data-clip="slow" aria-pressed="false">🐢 Slower</button></div>'
+			+ '<label class="small clip-auto"><input type="checkbox" data-clip="auto"' + (clipPref('lensClipAuto', true) ? ' checked' : '') + '> Play the moment by itself on every card</label>'
+			+ (c.title ? '<p class="small muted">' + esc(c.title.slice(0, 60)) + '</p>' : '') + '</div>';
 	}
-	function bindMoments(root) {
+	var CLIP = null;
+	function stopClip() { if (CLIP) { clearInterval(CLIP.tm); clearTimeout(CLIP.lt); try { CLIP.p.destroy(); } catch (e) { /* gone */ } CLIP = null; } }
+	function bindMoments(root, auto) {
 		root.querySelectorAll('.moment').forEach(function (m) {
-			var b = m.querySelector('button'); if (!b) return;
-			b.onclick = function () {
-				var st = +m.dataset.st;
-				m.innerHTML = '<div class="player"><iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(m.dataset.vid) + '?start=' + st + '&end=' + (st + 12) + '&autoplay=1&cc_load_policy=1&rel=0&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen title="Video"></iframe></div>';
-			};
+			var st = +m.dataset.st, en = +m.dataset.en, box = m.querySelector('.clip-box'), loop = false, slow = false;
+			var pb = m.querySelector('[data-clip="play"]'), lb = m.querySelector('[data-clip="loop"]'), sb = m.querySelector('[data-clip="slow"]');
+			function play() {
+				pb.textContent = '↻ Replay';
+				ytApi().then(function (YT) {
+					if (!m.isConnected) return;
+					if (CLIP && CLIP.m === m && CLIP.ready) { CLIP.p.setPlaybackRate(slow ? 0.75 : 1); CLIP.p.seekTo(st, true); CLIP.p.playVideo(); return; }
+					stopClip(); box.innerHTML = '<div></div>'; box.classList.add('on');
+					var c = CLIP = { m: m };
+					c.p = new YT.Player(box.firstChild, {
+						videoId: m.dataset.vid,
+						playerVars: { start: Math.floor(st), autoplay: 1, controls: 1, rel: 0, playsinline: 1, cc_load_policy: 1, modestbranding: 1 },
+						events: { onReady: function (e) { c.ready = true; e.target.setPlaybackRate(slow ? 0.75 : 1); e.target.seekTo(st, true); e.target.playVideo(); } }
+					});
+					c.tm = setInterval(function () {
+						if (!m.isConnected) return stopClip();
+						if (!c.ready || !c.p.getCurrentTime) return;
+						if (c.p.getPlayerState() === 1 && c.p.getCurrentTime() >= en) {
+							c.p.pauseVideo();
+							// Loop: a pause as long as the sentence, so the student can say it, then again.
+							if (loop) { clearTimeout(c.lt); c.lt = setTimeout(function () { if (CLIP === c && loop) { c.p.seekTo(st, true); c.p.playVideo(); } }, (en - st) * 1000 / (slow ? 0.75 : 1) + 700); }
+						}
+					}, 100);
+				});
+			}
+			pb.onclick = play;
+			lb.onclick = function () { loop = !loop; lb.setAttribute('aria-pressed', String(loop)); lb.classList.toggle('on', loop); if (loop) play(); else if (CLIP) clearTimeout(CLIP.lt); };
+			sb.onclick = function () { slow = !slow; sb.setAttribute('aria-pressed', String(slow)); sb.classList.toggle('on', slow); if (CLIP && CLIP.m === m && CLIP.ready) CLIP.p.setPlaybackRate(slow ? 0.75 : 1); };
+			m.querySelector('[data-clip="auto"]').onchange = function () { setClipPref('lensClipAuto', this.checked); };
+			if (auto && clipPref('lensClipAuto', true)) play();
 		});
 	}
 	/** Pictures for a word: photos, or an AI picture for abstract words. */
@@ -1095,13 +1241,16 @@
 			$app.querySelector('#npd').onchange = function () { api('review/settings', { body: { newPerDay: +this.value } }).then(function (x) { R.stats = x; toast('Saved'); review(); }); };
 			return;
 		}
+		stopClip();
 		var c = R.queue[0];
 		R.flipped = false;
+		c._clip = !!c.videoId; // the clip of the moment plays on the front, in the speaker's own voice
 		var tip = '';
 		try { if (!localStorage.getItem('lensRvTip')) tip = '<div class="card small rv-tip"><b>How it works:</b> look at the card, think of the answer, then tap <b>Show answer</b>. Be honest: <b>Again</b> = I forgot · <b>Hard</b> = just about · <b>Good</b> = I knew it · <b>Easy</b> = too easy. The app shows each card again just before you would forget it. <button class="link small" id="rvtip">Got it</button></div>'; } catch (e) { /* storage blocked */ }
-		shell(reviewHead() + tip + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">New</span>' : '') + cardFront(c) + '<div id="back" hidden class="stack rv-back"></div></section>'
+		shell(reviewHead() + tip + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">New</span>' : '') + cardFront(c) + (c._clip ? momentHtml(c) : '') + '<div id="back" hidden class="stack rv-back"></div></section>'
 			+ '<section id="acts"><button class="btn block" id="flip">Show answer</button></section>');
 		bindSay();
+		if (c._clip) bindMoments($app.querySelector('.rv-card'), true);
 		$app.querySelector('#flip').onclick = flip;
 		var tb = $app.querySelector('#rvtip'); if (tb) tb.onclick = function () { try { localStorage.setItem('lensRvTip', '1'); } catch (e) { /* ignore */ } tb.closest('.rv-tip').remove(); };
 	}
@@ -1250,8 +1399,8 @@
 			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
 		});
 		var hv = h0.split('-')[0], ha = h0.split('-')[1];
-		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'watch', 'write', 'skills', 'progress', 'start'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
+		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
 		return;
 	}
-	loadJourney().then(function () { go(['review', 'library', 'watch', 'write', 'skills', 'progress', 'start'].indexOf(h0) >= 0 ? h0 : S.stage < 5 ? 'start' : 'skills'); }, function () { S.stage = 5; go('skills'); });
+	loadJourney().then(function () { go(['review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start'].indexOf(h0) >= 0 ? h0 : S.stage < 5 ? 'start' : 'skills'); }, function () { S.stage = 5; go('skills'); });
 })();

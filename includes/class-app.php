@@ -510,7 +510,7 @@ self.addEventListener('fetch', function () {});
 		} else {
 			$items[] = array( 'k' => 'collect', 'done' => $new_words + $new_sents >= 3, 't' => 'Save 3 new words', 'sub' => 'From a video, a page you scan, or a quiz · they become review cards', 'go' => 'scan' );
 		}
-		$items[] = array( 'k' => 'watch', 'done' => $quizzes > 0 || $new_words + $new_sents > 0, 't' => $lesson ? 'Watch: ' . $lesson['title'] : 'Watch or read something in English', 'sub' => $lesson ? 'Sherif\'s video with questions' : 'Mark new words with Language Lens, or scan a page', 'go' => $lesson ? 'watch-' . $lesson['id'] : 'watch' );
+		$items[] = array( 'k' => 'watch', 'done' => $quizzes > 0 || $new_words + $new_sents > 0, 't' => 'Read something in English and save new words', 'sub' => 'Learn → Read a text (paste any text) or Scan a page · or mark words with Language Lens', 'go' => 'read' );
 		$items[] = array( 'k' => 'use', 'done' => ! empty( $why['chat'] ) || ! empty( $why['voice'] ) || ! empty( $why['write'] ) || ! empty( $why['speak'] ), 't' => 'Write or say something in English', 'sub' => 'A message in the chat, or a few sentences in Write', 'go' => 'chat' );
 		$items[] = array( 'k' => 'log', 'done' => $studied, 't' => $studied ? 'Study day counted' : 'Count today as a study day', 'sub' => 'Anything above counts automatically · or log other study', 'go' => 'log' );
 

@@ -17,63 +17,46 @@ final class Sawa_Lens_Images {
 	}
 
 	private static function get_json( $url ) {
-		$res = wp_remote_get( $url, array( 'timeout' => 12, 'headers' => array( 'User-Agent' => 'SawaEnglish-LanguageLens/1.0 (https://sawaenglish.com)' ) ) );
+		$res = wp_remote_get( $url, array( 'timeout' => 4, 'headers' => array( 'User-Agent' => 'SawaEnglish-LanguageLens/1.0 (https://sawaenglish.com)' ) ) );
 		if ( is_wp_error( $res ) || 200 !== wp_remote_retrieve_response_code( $res ) ) {
 			return null;
 		}
 		return json_decode( wp_remote_retrieve_body( $res ), true );
 	}
 
-	/** Up to 4 pictures: [{thumb, url, credit, link, source}], plus an AI picture if one was made. */
+	/**
+	 * One picture for the word, fast: [{thumb, url, credit, link, source}], plus an AI picture if one was made.
+	 * Wikipedia's main picture first; Wikimedia Commons only when Wikipedia has none. Cached for everyone.
+	 */
 	public static function lookup( $word ) {
 		$word = self::clean( $word );
 		if ( '' === $word ) {
 			return array( 'images' => array(), 'ai' => '' );
 		}
-		$key = 'sawa_lens_img2_' . md5( $word );
+		$key = 'sawa_lens_img3_' . md5( $word );
 		$hit = get_transient( $key );
 		if ( ! is_array( $hit ) ) {
 			$hit = array();
-			// 1. Wikipedia: the article's main picture (skip disambiguation pages).
-			$wp = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'prop' => 'pageimages|description', 'piprop' => 'thumbnail', 'pithumbsize' => 400, 'redirects' => 1, 'titles' => ucfirst( $word ) ), 'https://en.wikipedia.org/w/api.php' ) );
+			$wp  = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'prop' => 'pageimages|description', 'piprop' => 'thumbnail', 'pithumbsize' => 400, 'redirects' => 1, 'titles' => ucfirst( $word ) ), 'https://en.wikipedia.org/w/api.php' ) );
 			foreach ( (array) ( $wp['query']['pages'] ?? array() ) as $p ) {
-				if ( ! empty( $p['thumbnail']['source'] ) && false === stripos( (string) ( $p['description'] ?? '' ), 'topics referred to' ) ) {
+				if ( ! $hit && ! empty( $p['thumbnail']['source'] ) && false === stripos( (string) ( $p['description'] ?? '' ), 'topics referred to' ) ) {
 					$hit[] = array( 'thumb' => $p['thumbnail']['source'], 'url' => $p['thumbnail']['source'], 'credit' => 'Wikipedia', 'link' => 'https://en.wikipedia.org/wiki/' . rawurlencode( str_replace( ' ', '_', $p['title'] ) ), 'source' => 'wikipedia' );
 				}
 			}
-			// 2. Wikimedia Commons search: free photos and drawings.
-			$cm = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'generator' => 'search', 'gsrsearch' => 'filetype:bitmap ' . $word, 'gsrnamespace' => 6, 'gsrlimit' => 6, 'prop' => 'imageinfo', 'iiprop' => 'url|extmetadata', 'iiurlwidth' => 320 ), 'https://commons.wikimedia.org/w/api.php' ) );
-			$pages = (array) ( $cm['query']['pages'] ?? array() );
-			usort( $pages, function ( $a, $b ) { return ( $a['index'] ?? 0 ) <=> ( $b['index'] ?? 0 ); } );
-			foreach ( $pages as $p ) {
-				if ( count( $hit ) >= 4 ) {
-					break;
+			if ( ! $hit ) {
+				$cm    = self::get_json( add_query_arg( array( 'action' => 'query', 'format' => 'json', 'generator' => 'search', 'gsrsearch' => 'filetype:bitmap ' . $word, 'gsrnamespace' => 6, 'gsrlimit' => 3, 'prop' => 'imageinfo', 'iiprop' => 'url|extmetadata', 'iiurlwidth' => 320 ), 'https://commons.wikimedia.org/w/api.php' ) );
+				$pages = (array) ( $cm['query']['pages'] ?? array() );
+				usort( $pages, function ( $a, $b ) { return ( $a['index'] ?? 0 ) <=> ( $b['index'] ?? 0 ); } );
+				foreach ( $pages as $p ) {
+					$ii = $p['imageinfo'][0] ?? null;
+					if ( $hit || ! $ii || empty( $ii['thumburl'] ) ) {
+						continue;
+					}
+					$artist = trim( wp_strip_all_tags( (string) ( $ii['extmetadata']['Artist']['value'] ?? '' ) ) );
+					$hit[]  = array( 'thumb' => $ii['thumburl'], 'url' => $ii['thumburl'], 'credit' => mb_substr( ( $artist ? $artist . ' · ' : '' ) . 'Wikimedia Commons', 0, 80 ), 'link' => (string) ( $ii['descriptionurl'] ?? '' ), 'source' => 'commons' );
 				}
-				$ii = $p['imageinfo'][0] ?? null;
-				if ( ! $ii || empty( $ii['thumburl'] ) ) {
-					continue;
-				}
-				$artist = trim( wp_strip_all_tags( (string) ( $ii['extmetadata']['Artist']['value'] ?? '' ) ) );
-				$hit[]  = array( 'thumb' => $ii['thumburl'], 'url' => $ii['thumburl'], 'credit' => mb_substr( ( $artist ? $artist . ' · ' : '' ) . 'Wikimedia Commons', 0, 80 ), 'link' => (string) ( $ii['descriptionurl'] ?? '' ), 'source' => 'commons' );
 			}
-			// 3. Openverse: openly licensed photos and illustrations.
-			$ov = self::get_json( add_query_arg( array( 'q' => $word, 'page_size' => 8, 'mature' => 'false' ), 'https://api.openverse.org/v1/images/' ) );
-			foreach ( (array) ( $ov['results'] ?? array() ) as $r ) {
-				if ( count( $hit ) >= 4 ) {
-					break;
-				}
-				if ( empty( $r['thumbnail'] ) || empty( $r['url'] ) ) {
-					continue;
-				}
-				$hit[] = array(
-					'thumb'  => $r['thumbnail'],
-					'url'    => $r['url'],
-					'credit' => trim( ( $r['creator'] ?? '' ) . ' · ' . strtoupper( (string) ( $r['license'] ?? '' ) ), ' ·' ),
-					'link'   => (string) ( $r['foreign_landing_url'] ?? $r['url'] ),
-					'source' => 'openverse',
-				);
-			}
-			set_transient( $key, $hit, count( $hit ) >= 2 ? 30 * DAY_IN_SECONDS : DAY_IN_SECONDS );
+			set_transient( $key, $hit, $hit ? 30 * DAY_IN_SECONDS : DAY_IN_SECONDS );
 		}
 		return array( 'images' => $hit, 'ai' => (string) get_option( 'sawa_lens_aiimg_' . md5( $word ), '' ) );
 	}
