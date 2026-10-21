@@ -822,6 +822,8 @@
 		img.onerror = function () { box.innerHTML = ''; er.textContent = 'This photo didn\'t open. Try a JPG or PNG.'; };
 		img.src = u;
 	}
+	/** The Silk Road game (in the tracker) uses the same dictionary, word saving and review cards. */
+	window.SawaLens = { lex: function () { return lex(); }, meanings: function (l) { return meanings(l); }, lemmaOf: function (w) { return lemmaOf(w); }, api: function (p, o) { return api(p, o); } };
 	function lemmaOf(w) {
 		var x = w.toLowerCase().replace(/[’']s$/, '');
 		if (!LEX) return x;

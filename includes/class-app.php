@@ -397,7 +397,11 @@ self.addEventListener('fetch', function () {});
 		if ( ! in_array( $status, array( 'known', 'learning', '' ), true ) ) {
 			return new WP_Error( 'status', 'Bad status.', array( 'status' => 400 ) );
 		}
-		Sawa_Lens_Store::put_words( get_current_user_id(), array( array( 'lemma' => (string) $r->get_param( 'lemma' ), 'status' => $status, 't' => (int) round( microtime( true ) * 1000 ) ) ) );
+		$w = array( 'lemma' => (string) $r->get_param( 'lemma' ), 'status' => $status, 't' => (int) round( microtime( true ) * 1000 ) );
+		if ( '' !== trim( (string) $r->get_param( 'sentence' ) ) ) { // the sentence where the word was met (in the app or the Silk Road game)
+			$w['ctx'] = array( 'sentence' => (string) $r->get_param( 'sentence' ), 'title' => (string) $r->get_param( 'title' ) );
+		}
+		Sawa_Lens_Store::put_words( get_current_user_id(), array( $w ) );
 		return self::out( array( 'ok' => true ) );
 	}
 
