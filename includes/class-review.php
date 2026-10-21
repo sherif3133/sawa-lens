@@ -134,7 +134,16 @@ final class Sawa_Lens_Review {
 		global $wpdb;
 		list( $type, $ref ) = explode( ':', $key, 2 ) + array( '', '' );
 		if ( 'w' === $type ) {
-			return array( 'type' => 'word', 'lemma' => $ref );
+			$w = $wpdb->get_row( $wpdb->prepare( 'SELECT ctx, ctx_url, ctx_title, ctx_vid, ctx_ms FROM ' . Sawa_Lens_Store::t( 'words' ) . ' WHERE user_id = %d AND lemma = %s', $uid, $ref ), ARRAY_A ); // phpcs:ignore
+			return array(
+				'type'    => 'word',
+				'lemma'   => $ref,
+				'text'    => $w ? $w['ctx'] : '',
+				'url'     => $w ? $w['ctx_url'] : '',
+				'title'   => $w ? $w['ctx_title'] : '',
+				'videoId' => $w ? $w['ctx_vid'] : '',
+				'startMs' => $w ? (int) $w['ctx_ms'] : 0,
+			);
 		}
 		if ( 's' === $type ) {
 			$s = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND uuid = %s AND deleted = 0', $uid, $ref ), ARRAY_A ); // phpcs:ignore
@@ -270,7 +279,7 @@ final class Sawa_Lens_Review {
 	/** Everything the learner has collected, for the library page. */
 	public static function library( $uid ) {
 		global $wpdb;
-		$words = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT lemma, learning_on FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'learning' ORDER BY learning_on DESC, lemma", $uid ), ARRAY_A ); // phpcs:ignore
+		$words = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT lemma, learning_on, ctx, ctx_vid, ctx_ms, ctx_url, ctx_title FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'learning' ORDER BY learning_on DESC, lemma", $uid ), ARRAY_A ); // phpcs:ignore
 		$known = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'known'", $uid ) ); // phpcs:ignore
 		$recent_known = (array) $wpdb->get_col( $wpdb->prepare( 'SELECT lemma FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'known' AND known_on IS NOT NULL ORDER BY known_on DESC LIMIT 60", $uid ) ); // phpcs:ignore
 		$sents = array_map(
@@ -285,7 +294,7 @@ final class Sawa_Lens_Review {
 			'learning'    => array_map(
 				function ( $w ) use ( $ivl ) {
 					$c = $ivl[ 'w:' . $w['lemma'] ] ?? null;
-					return array( 'lemma' => $w['lemma'], 'since' => $w['learning_on'], 'ivl' => $c ? $c[0] : null, 'due' => $c ? $c[1] : null );
+					return array( 'lemma' => $w['lemma'], 'since' => $w['learning_on'], 'ivl' => $c ? $c[0] : null, 'due' => $c ? $c[1] : null, 'text' => $w['ctx'], 'videoId' => $w['ctx_vid'], 'startMs' => (int) $w['ctx_ms'], 'url' => $w['ctx_url'], 'title' => $w['ctx_title'] );
 				},
 				$words
 			),

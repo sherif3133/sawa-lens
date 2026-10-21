@@ -47,6 +47,11 @@ final class Sawa_Lens_Store {
 			client_ts bigint(20) unsigned NOT NULL DEFAULT 0,
 			known_on date DEFAULT NULL,
 			learning_on date DEFAULT NULL,
+			ctx varchar(600) NOT NULL DEFAULT '',
+			ctx_url varchar(500) NOT NULL DEFAULT '',
+			ctx_title varchar(300) NOT NULL DEFAULT '',
+			ctx_vid varchar(11) NOT NULL DEFAULT '',
+			ctx_ms int(10) unsigned NOT NULL DEFAULT 0,
 			change_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			PRIMARY KEY  (user_id,lemma),
 			KEY user_change (user_id,change_id),
@@ -165,11 +170,14 @@ final class Sawa_Lens_Store {
 			if ( '' === $lemma || null === $status || ! preg_match( "/^[a-z][a-z' .-]*$/", $lemma ) ) {
 				continue;
 			}
-			$row = $wpdb->get_row( $wpdb->prepare( "SELECT status, client_ts, known_on, learning_on FROM $t WHERE user_id = %d AND lemma = %s", $uid, $lemma ), ARRAY_A ); // phpcs:ignore
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT status, client_ts, known_on, learning_on, ctx, ctx_url, ctx_title, ctx_vid, ctx_ms FROM $t WHERE user_id = %d AND lemma = %s", $uid, $lemma ), ARRAY_A ); // phpcs:ignore
 			if ( $row && (int) $row['client_ts'] > $ts ) {
 				continue; // a newer mark already won
 			}
-			if ( $row && $row['status'] === $status ) {
+			// The sentence where the learner met the word (for review cards). The first one is kept.
+			$c       = is_array( $it['ctx'] ?? null ) ? $it['ctx'] : array();
+			$new_ctx = $row && '' !== $row['ctx'] ? null : ( '' !== trim( (string) ( $c['sentence'] ?? '' ) ) ? $c : null );
+			if ( $row && $row['status'] === $status && ! $new_ctx ) {
 				continue;
 			}
 			$data = array(
@@ -182,7 +190,19 @@ final class Sawa_Lens_Store {
 				'known_on'    => 'known' === $status ? ( $row && $row['known_on'] ? $row['known_on'] : ( empty( $it['base'] ) ? $today : null ) ) : ( $row ? $row['known_on'] : null ),
 				'learning_on' => 'learning' === $status ? ( $row && $row['learning_on'] ? $row['learning_on'] : $today ) : ( $row ? $row['learning_on'] : null ),
 				'change_id'   => self::next_change(),
+				'ctx'         => $row ? $row['ctx'] : '',
+				'ctx_url'     => $row ? $row['ctx_url'] : '',
+				'ctx_title'   => $row ? $row['ctx_title'] : '',
+				'ctx_vid'     => $row ? $row['ctx_vid'] : '',
+				'ctx_ms'      => $row ? (int) $row['ctx_ms'] : 0,
 			);
+			if ( $new_ctx ) {
+				$data['ctx']       = mb_substr( sanitize_text_field( (string) $new_ctx['sentence'] ), 0, 600 );
+				$data['ctx_url']   = mb_substr( esc_url_raw( (string) ( $new_ctx['url'] ?? '' ) ), 0, 500 );
+				$data['ctx_title'] = mb_substr( sanitize_text_field( (string) ( $new_ctx['title'] ?? '' ) ), 0, 300 );
+				$data['ctx_vid']   = preg_match( '/^[\w-]{11}$/', (string) ( $new_ctx['videoId'] ?? '' ) ) ? $new_ctx['videoId'] : '';
+				$data['ctx_ms']    = max( 0, (int) ( $new_ctx['startMs'] ?? 0 ) );
+			}
 			if ( 'known' !== $status && $row && $row['known_on'] === $today ) {
 				$data['known_on'] = null; // un-marked the same day: don't count it
 			}

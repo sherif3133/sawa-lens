@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Sawa Lens
  * Description:       Server side of Language Lens – Sawa English: sign-in for the browser extension, sync of known words and saved sentences, AI explanations in Arabic, daily progress for the Sawa Tracker, and the Language Lens web app (skill tree, practice, writing checker) at /lens/.
- * Version:           0.7.0
+ * Version:           0.8.0
  * Requires PHP:      7.4
  * Author:            Sawa English
  * License:           GPL-2.0-or-later
@@ -12,8 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SAWA_LENS_VER', '0.7.0' );
-define( 'SAWA_LENS_DB', 5 );
+define( 'SAWA_LENS_VER', '0.8.0' );
+define( 'SAWA_LENS_DB', 6 );
 define( 'SAWA_LENS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SAWA_LENS_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -23,6 +23,7 @@ require_once SAWA_LENS_DIR . 'includes/class-ai.php';
 require_once SAWA_LENS_DIR . 'includes/class-skills.php';
 require_once SAWA_LENS_DIR . 'includes/class-review.php';
 require_once SAWA_LENS_DIR . 'includes/class-lessons.php';
+require_once SAWA_LENS_DIR . 'includes/class-images.php';
 require_once SAWA_LENS_DIR . 'includes/class-app.php';
 require_once SAWA_LENS_DIR . 'includes/class-chat.php';
 require_once SAWA_LENS_DIR . 'includes/class-rest.php';

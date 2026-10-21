@@ -117,6 +117,9 @@ final class Sawa_Lens_App {
 		$r( 'scan', 'POST', array( __CLASS__, 'scan' ) );
 		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
 		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
+		$r( 'journey', 'GET', array( __CLASS__, 'journey' ) );
+		$r( 'image', 'GET', array( 'Sawa_Lens_Rest', 'image' ) );
+		$r( 'image/ai', 'POST', array( 'Sawa_Lens_Rest', 'image_ai' ) );
 		$r( 'videos', 'GET', array( __CLASS__, 'videos' ) );
 		$r( 'video', 'GET', array( __CLASS__, 'video' ) );
 		$r( 'video/answer', 'POST', array( __CLASS__, 'video_answer' ) );
@@ -332,6 +335,46 @@ final class Sawa_Lens_App {
 		}
 		$wpdb->update( $t, array( 'ar' => $res['sentence'], 'change_id' => Sawa_Lens_Store::next_change() ), array( 'id' => $row['id'] ) ); // phpcs:ignore
 		return self::out( array( 'ar' => $res['sentence'] ) );
+	}
+
+	/**
+	 * The learner's journey: what they've done so far, so the app can unlock features step by step
+	 * instead of showing everything on day one.
+	 */
+	public static function journey() {
+		global $wpdb;
+		$uid = get_current_user_id();
+		$c   = function ( $sql ) use ( $wpdb, $uid ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( $sql, $uid ) ); // phpcs:ignore
+		};
+		$reviews = (array) get_user_meta( $uid, 'sawa_lens_reviews', true );
+		$sets    = 0;
+		foreach ( (array) get_user_meta( $uid, 'sawa_lens_skills', true ) as $s ) {
+			$sets += is_array( $s ) ? (int) ( $s['sets'] ?? 0 ) : 0;
+		}
+		$chat_voice = 0;
+		if ( class_exists( 'Sawa_Tracker_Game' ) ) {
+			$chat_voice = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Tracker_Game::table( 'messages' ) . " WHERE user_id = %d AND audio <> ''", $uid ) ); // phpcs:ignore
+		}
+		return self::out(
+			array(
+				'admin'     => current_user_can( 'manage_options' ),
+				'extension' => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'tokens' ) . ' WHERE user_id = %d' ) > 0,
+				'vocabTest' => is_array( get_user_meta( $uid, 'sawa_lens_vocab', true ) ),
+				// Words ever marked Learning (still learning, or learned since).
+				'learning'  => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . ' WHERE user_id = %d AND learning_on IS NOT NULL' ),
+				'saved'     => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0' ),
+				'reviews'   => array_sum( array_map( 'intval', $reviews ) ),
+				'reviewDays' => count( array_filter( $reviews ) ),
+				'writings'  => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'writing' ) . " WHERE user_id = %d AND source = 'write'" ),
+				'speaks'    => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'writing' ) . " WHERE user_id = %d AND source = 'voice'" ) + $chat_voice,
+				'sets'      => $sets,
+				'quizzes'   => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'lesson_results' ) . ' WHERE user_id = %d' ),
+				'store'     => (string) Sawa_Lens_AI::settings()['store_url'],
+				'tracker'   => home_url( '/tracker/' ),
+				'guide'     => home_url( '/guide/' ),
+			)
+		);
 	}
 
 	public static function videos() {

@@ -61,6 +61,8 @@ final class Sawa_Lens_Rest {
 		$r( '/video/(?P<vid>[\w-]{11})', 'GET', array( __CLASS__, 'video' ) );
 		$r( '/lesson/(?P<id>\d+)/answer', 'POST', array( __CLASS__, 'lesson_answer' ) );
 		$r( '/lessons/draft', 'POST', array( __CLASS__, 'lesson_draft' ) );
+		$r( '/image', 'GET', array( __CLASS__, 'image' ) );
+		$r( '/image/ai', 'POST', array( __CLASS__, 'image_ai' ) );
 		// For the tracker page (normal WordPress login + nonce, not a device token).
 		register_rest_route(
 			self::NS,
@@ -111,6 +113,15 @@ final class Sawa_Lens_Rest {
 				'admin'    => user_can( $uid, 'manage_options' ),
 			)
 		);
+	}
+
+	public static function image( WP_REST_Request $r ) {
+		return self::out( Sawa_Lens_Images::lookup( (string) $r->get_param( 'word' ) ) + array( 'canAi' => '' !== Sawa_Lens_AI::settings()['stt_key'] ) );
+	}
+
+	public static function image_ai( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Images::ai( get_current_user_id(), (string) $r->get_param( 'word' ), (string) $r->get_param( 'sentence' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
 	/** The published quiz for a YouTube video (or null), with this student's earlier answers. */
