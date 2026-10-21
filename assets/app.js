@@ -50,10 +50,44 @@
 		review: '<svg viewBox="0 0 24 24"><rect x="4" y="6" width="14" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v11"/></svg>',
 		library: '<svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM10 4h4v16h-4z"/><path d="M15.5 5l3.8-1 3 15.5-3.8 1z"/></svg>',
 		watch: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/></svg>',
-		start: '<svg viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>'
+		start: '<svg viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>',
+		today: '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+		learn: '<svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10v5c3 2.5 9 2.5 12 0v-5"/></svg>',
+		chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+		community: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.5 3-6 6-6s6 2.5 6 6M14.5 14.5c3 0 6.5 1.5 6.5 5"/></svg>',
+		me: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/></svg>'
 	};
 
+	var APP_TABS = [['today', 'Today'], ['learn', 'Learn'], ['chat', 'Chat'], ['community', 'Community'], ['me', 'Me']];
+	function tabOf(v) {
+		if (['today', 'chat', 'community', 'me'].indexOf(v) >= 0) return v;
+		return ['library', 'progress', 'start'].indexOf(v) >= 0 ? 'me' : 'learn';
+	}
+	function paintNav() {
+		var nav = document.getElementById('nav'); if (!nav) return;
+		var cur = tabOf(S.view);
+		nav.innerHTML = APP_TABS.map(function (t) {
+			var badge = t[0] === 'learn' && S.due ? S.due : t[0] === 'chat' && S.unread ? S.unread : 0;
+			return '<button data-nav="' + t[0] + '"' + (cur === t[0] ? ' aria-current="page"' : '') + '>' + ICONS[t[0]] + t[1] + (badge ? '<i class="badge">' + badge + '</i>' : '') + '</button>';
+		}).join('');
+		nav.querySelectorAll('[data-nav]').forEach(function (b) { b.onclick = function () { go(b.dataset.nav); }; });
+	}
+	/** Tracker parts (Today's stats, Chat, Community, Me) live in #trk under the page. */
+	function showTrk(v) {
+		var t = document.getElementById('trk'); if (!t) return;
+		t.hidden = !v;
+		if (!v) return;
+		(function call(n) { if (window.SawaTracker) window.SawaTracker.show(v); else if (n < 50) setTimeout(function () { call(n + 1); }, 200); })(0);
+	}
 	function shell(inner) {
+		if (B.appMode) {
+			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><button class="link small" data-nav-start>Guide</button></header><main class="stack">' + inner + '</main>';
+			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
+			paintNav();
+			showTrk(['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0 ? S.view : '');
+			window.scrollTo(0, 0);
+			return;
+		}
 		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><a class="small muted" href="' + esc(B.tracker) + '">Tracker</a></header>' +
 			'<main class="stack">' + inner + '</main>' +
 			'<nav class="nav">' + [['start', 'Start'], ['review', 'Review'], ['watch', 'Watch'], ['write', 'Write'], ['skills', 'Skills'], ['library', 'Library'], ['progress', 'Progress']].filter(function (v) { return unlocked(v[0]); }).map(function (v) {
@@ -65,8 +99,14 @@
 
 	function go(view, arg) {
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
-		if (!unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = 'start';
+		if (B.appMode && S.gate) view = 'today';
+		if (['today', 'learn', 'chat', 'community', 'me'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = B.appMode ? 'learn' : 'start';
 		S.view = view;
+		try { if (B.appMode) history.replaceState(null, '', '#' + view + (arg && typeof arg !== 'object' ? '-' + arg : '')); } catch (e) { /* ignore */ }
+		if (view === 'today') return today();
+		if (view === 'learn') return learnHub();
+		if (view === 'me') return meHub();
+		if (view === 'chat' || view === 'community') return shell('');
 		if (view === 'start') return guide();
 		if (view === 'skills') return skills();
 		if (view === 'skill') return skill(arg);
@@ -567,6 +607,64 @@
 		$app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
 		var all = $app.querySelector('#all');
 		if (all) all.onclick = function () { setPref('lensAll', '1'); S.stage = 5; toast('Everything is open'); guide(); };
+	}
+
+	/* ── The one app: Today, Learn and Me ─────────────── */
+	function trkData() { return S.trk || (window.SawaTracker && window.SawaTracker.data()) || null; }
+	/** Today: a short plan with the next step highlighted, then today's stats and quest from the tracker. */
+	function today() {
+		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
+		shell('<section class="stack"><h1>Today</h1></section><section class="card stack" id="plan"><p class="loading">Making your plan…</p></section>');
+		var t = trkData();
+		Promise.all([api('review/settings', { body: {} }).catch(function () { return null; }), api('videos').catch(function () { return { lessons: [] }; }),
+			fetch(B.progress, { credentials: 'same-origin', headers: { 'X-WP-Nonce': B.nonce } }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+			t ? Promise.resolve(t) : (window.SawaTracker ? window.SawaTracker.refresh().catch(function () { return null; }) : Promise.resolve(null))]).then(function (res) {
+			if (S.view !== 'today') return;
+			var st = res[0] || { due: 0, today: 0 }, lessons = res[1].lessons || [], prog = res[2] || {}, tr = res[3];
+			S.due = st.due; paintNav();
+			var why = (tr && tr.xp && tr.xp.why) || {};
+			var lesson = lessons.filter(function (l) { return l.answered < l.total; })[0];
+			var items = [];
+			if (unlocked('review')) items.push({ done: !st.due, t: st.due ? 'Review ' + st.due + ' card' + (st.due > 1 ? 's' : '') : st.today ? 'Cards reviewed ✓' : 'No cards due — nice', sub: '5 minutes', btn: st.due ? ['Start', function () { go('review'); }] : null });
+			items.push({ done: (prog.todayWords || 0) + (prog.todaySentences || 0) > 0, t: lesson ? 'Watch: ' + lesson.title : 'Watch a video and mark new words', sub: lesson ? 'Sherif\'s video with questions' : 'Any YouTube video with Language Lens', btn: lesson ? ['Watch', function () { go('watch', lesson.id); }] : ['Videos', function () { go('watch'); }] });
+			if (unlocked('write')) items.push({ done: !!(why.chat || why.voice || why.write || why.speak), t: 'Write or say a few sentences', sub: 'In Write, or in the chat', btn: ['Write', function () { go('write'); }] });
+			else items.push({ done: !!(why.chat || why.voice), t: 'Say hello in the chat — in English', sub: 'Every English word earns XP', btn: ['Chat', function () { go('chat'); }] });
+			items.push({ done: !!(tr && tr.stats && tr.stats.studiedToday), t: 'Log your study', sub: 'Keeps your streak alive', btn: ['Log', function () { if (window.SawaTracker) window.SawaTracker.act('log'); }] });
+			var next = items.findIndex(function (x) { return !x.done; });
+			var stage = STAGES[S.stage - 1], step = stage.steps.filter(function (x) { return !x.done(S.J); })[0];
+			var box = $app.querySelector('#plan'); if (!box) return;
+			box.innerHTML = '<h3>' + (next < 0 ? 'All done for today 🎉' : 'Your plan for today') + '</h3><ol class="plan">' + items.map(function (x, i) {
+				return '<li class="' + (x.done ? 'ok' : i === next ? 'next' : '') + '"><span class="g-check">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + esc(x.t) + '</b><span class="small muted">' + esc(x.sub) + '</span></div>' + (x.btn && !x.done ? '<button class="btn sm' + (i === next ? '' : ' ghost') + '" data-pi="' + i + '">' + x.btn[0] + '</button>' : '') + '</li>';
+			}).join('') + '</ol>'
+				+ (S.stage < 5 && step ? '<button class="stage-tip" data-start><span class="pill open">Stage ' + S.stage + ' of 5</span> Next: ' + esc(step.t) + ' →</button>' : '');
+			box.querySelectorAll('[data-pi]').forEach(function (b) { b.onclick = items[+b.dataset.pi].btn[1]; });
+			var sg = box.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
+		});
+	}
+	/** Learn: the learning tools, opening one by one with the stages. */
+	function learnHub() {
+		var tools = [
+			['review', 'Review', 'Your words and sentences come back before you forget them', 2],
+			['watch', 'Watch', 'Videos from Sherif that stop and ask you questions', 1],
+			['write', 'Write & speak', 'Write or talk; get every correction', 3],
+			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
+		];
+		shell('<section class="stack"><h1>Learn</h1></section><div class="hub">' + tools.map(function (x) {
+			var open = unlocked(x[0]);
+			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'write' ? 'write' : x[0] === 'skills' ? 'skills' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
+		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
+		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
+		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
+	}
+	/** Me: your stuff — library, progress, the guide, the extension — then your tracker stats. */
+	function meHub() {
+		var j = S.J || {};
+		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'Progress', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
+		shell('<section class="stack"><h1>Me</h1></section><div class="hub">' + tiles.map(function (x) {
+			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
+		}).join('') + '</div>'
+			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>');
+		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 	}
 
 	/* ── Write · Speak · Scan ─────────────────────────── */
@@ -1132,5 +1230,18 @@
 
 	api('review/settings', { body: {} }).then(function (st) { S.due = st.due; var n = document.querySelector('[data-nav="review"]'); if (n && st.due) n.insertAdjacentHTML('beforeend', '<i class="badge">' + st.due + '</i>'); }).catch(function () {});
 	var h0 = location.hash.slice(1);
+	if (B.appMode) {
+		document.addEventListener('sawa-tracker', function (e) {
+			var d = e.detail || {};
+			if (d.unread != null) { S.unread = d.unread; paintNav(); }
+			if (d.gate) { S.gate = d.gate; if (S.view !== 'today') go('today'); else showTrk('today'); }
+			if (d.ready) { var wasGate = S.gate; S.gate = null; S.trk = d.data; if (wasGate || S.view === 'today') go(S.view === 'today' ? 'today' : S.view); }
+			// The tracker switched itself (e.g. a reply notification opened a chat): follow it.
+			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
+		});
+		var hv = h0.split('-')[0], ha = h0.split('-')[1];
+		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'watch', 'write', 'skills', 'progress', 'start'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
+		return;
+	}
 	loadJourney().then(function () { go(['review', 'library', 'watch', 'write', 'skills', 'progress', 'start'].indexOf(h0) >= 0 ? h0 : S.stage < 5 ? 'start' : 'skills'); }, function () { S.stage = 5; go('skills'); });
 })();

@@ -20,11 +20,12 @@ final class Sawa_Lens_App {
 	}
 
 	public static function url() {
-		return home_url( '/lens/' );
+		return home_url( '/app/' );
 	}
 
 	public static function rewrite() {
 		add_rewrite_rule( '^lens/?$', 'index.php?sawa_lens_app=1', 'top' );
+		add_rewrite_rule( '^app/?$', 'index.php?sawa_lens_app=2', 'top' );
 		if ( get_option( 'sawa_lens_rw' ) !== SAWA_LENS_VER ) {
 			flush_rewrite_rules( false );
 			update_option( 'sawa_lens_rw', SAWA_LENS_VER );
@@ -36,6 +37,15 @@ final class Sawa_Lens_App {
 			return;
 		}
 		nocache_headers();
+		// The old Language Lens address now opens the one app (the #part of the link is kept by the browser).
+		if ( '1' === (string) get_query_var( 'sawa_lens_app' ) && class_exists( 'Sawa_Tracker_Front' ) ) {
+			wp_safe_redirect( home_url( '/app/' ), 302 );
+			exit;
+		}
+		$app_mode = '2' === (string) get_query_var( 'sawa_lens_app' ) && class_exists( 'Sawa_Tracker_Front' );
+		if ( $app_mode && ( ! is_user_logged_in() || ! Sawa_Lens_Auth::allowed( get_current_user_id() ) ) ) {
+			self::join_page(); // guests and people waiting for approval get the tracker's own sign-in / join screens
+		}
 		if ( ! is_user_logged_in() ) {
 			auth_redirect();
 		}
@@ -57,7 +67,10 @@ final class Sawa_Lens_App {
 			'tracker' => esc_url_raw( home_url( '/tracker/' ) ),
 			'lessons' => $lessons,
 			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
+			'appMode' => $app_mode,
+			'progress' => esc_url_raw( rest_url( self::NS . '/web/progress' ) ),
 		);
+		$trk = $app_mode ? do_shortcode( '[sawa_tracker embedded="1" view="today"]' ) : '';
 		$v = SAWA_LENS_VER;
 		header( 'Content-Type: text/html; charset=utf-8' );
 		?><!doctype html>
@@ -67,19 +80,37 @@ final class Sawa_Lens_App {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F0F10">
 <meta name="robots" content="noindex">
-<title>Language Lens – Sawa English</title>
+<title><?php echo $app_mode ? 'Sawa English' : 'Language Lens – Sawa English'; ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@600;800&family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap">
 <link rel="stylesheet" href="<?php echo esc_url( SAWA_LENS_URL . 'assets/app.css?v=' . $v ); ?>">
 </head>
 <body>
-<div id="app" class="app"><p class="loading">Loading…</p></div>
+<div id="app" class="app<?php echo $app_mode ? ' one' : ''; ?>"><p class="loading">Loading…</p></div>
+<?php if ( $app_mode ) : ?>
+<div id="trk" class="trk" hidden><?php echo $trk; // phpcs:ignore -- the tracker's own markup ?></div>
+<nav id="nav" class="nav"></nav>
+<?php endif; ?>
 <script>window.SAWA_LENS = <?php echo wp_json_encode( $boot ); ?>;</script>
 <script src="<?php echo esc_url( SAWA_LENS_URL . 'assets/app.js?v=' . $v ); ?>"></script>
+<?php if ( $app_mode ) : ?>
+<script src="<?php echo esc_url( SAWA_TR_URL . 'assets/app.js?ver=' . SAWA_TR_VER ); ?>"></script>
+<?php endif; ?>
 </body>
 </html>
 		<?php
+		exit;
+	}
+
+	/** /app for guests and people not approved yet: the tracker's sign-in, join and waiting screens. */
+	private static function join_page() {
+		$html = do_shortcode( '[sawa_tracker]' );
+		header( 'Content-Type: text/html; charset=utf-8' );
+		echo '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0F0F10"><title>Sawa English</title>'
+			. '<style>body{margin:0;background:#F6F5F3}.sawa-tracker-app{max-width:1100px;margin:0 auto;padding:16px}</style></head><body>'
+			. $html // phpcs:ignore -- the tracker's own markup
+			. '<script src="' . esc_url( SAWA_TR_URL . 'assets/app.js?ver=' . SAWA_TR_VER ) . '"></script></body></html>';
 		exit;
 	}
 

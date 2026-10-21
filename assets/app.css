@@ -235,6 +235,26 @@ select { font: inherit; border: 1px solid var(--line); border-radius: 8px; paddi
 .qm.no { background: var(--red); border-color: var(--red); color: #fff; }
 .qcard { border-color: var(--fg); }
 
+/* The one app (/app): page, tracker parts, 5 tabs */
+.app.one { padding-bottom: 0; min-height: 0; }
+.trk { max-width: 720px; margin: 0 auto; padding: 8px 8px calc(96px + env(safe-area-inset-bottom)); }
+.trk[hidden] { display: none; }
+.app.one + .trk[hidden] + .nav { }
+body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+.hub { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hub-t { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 4px; align-content: start; min-height: 120px; }
+.hub-t b { color: var(--fg); font-size: 16px; display: flex; align-items: center; gap: 6px; }
+.hub-t.locked { opacity: .55; border-style: dashed; }
+.hub-i svg { width: 26px; height: 26px; fill: none; stroke: var(--fg); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.badge.static { position: static; margin: 0; }
+.plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.plan li { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 12px; border: 1px solid var(--line); }
+.plan li > div { flex: 1; display: grid; }
+.plan li.next { border-color: var(--fg); background: var(--soft); }
+.plan li.ok { opacity: .6; }
+.plan li.ok .g-check { background: var(--green); border-color: var(--green); color: #fff; }
+.stage-tip { border: 0; background: none; padding: 0; text-align: left; font: inherit; font-size: 14px; color: var(--ink); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
 /* Start here (guided path) */
 .g-bar { height: 8px; background: var(--soft); border-radius: 999px; overflow: hidden; }
 .g-bar i { display: block; height: 100%; background: var(--green); }
