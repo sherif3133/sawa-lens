@@ -57,6 +57,7 @@ final class Sawa_Lens_Rest {
 		$r( '/explain', 'POST', array( __CLASS__, 'explain' ) );
 		$r( '/translate', 'POST', array( __CLASS__, 'translate' ) );
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
+		$r( '/proof', 'POST', array( __CLASS__, 'proof' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
 		$r( '/video/(?P<vid>[\w-]{11})', 'GET', array( __CLASS__, 'video' ) );
 		$r( '/lesson/(?P<id>\d+)/answer', 'POST', array( __CLASS__, 'lesson_answer' ) );
@@ -234,6 +235,26 @@ final class Sawa_Lens_Rest {
 	public static function explain( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::explain( get_current_user_id(), $r->get_param( 'word' ), $r->get_param( 'sentence' ), (string) $r->get_param( 'lang' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** Proofreading what the learner types on a website: grammar, word choice and tone (spelling is checked in the extension). */
+	public static function proof( WP_REST_Request $r ) {
+		$text = trim( mb_substr( (string) $r->get_param( 'text' ), 0, 2000 ) );
+		if ( mb_strlen( $text ) < 15 || preg_match_all( '/[\x{0600}-\x{06FF}]/u', $text ) > mb_strlen( $text ) * 0.3 ) {
+			return self::out( array( 'errors' => array() ) );
+		}
+		$key = 'sawa_lens_proof_' . md5( $text );
+		$hit = get_transient( $key );
+		if ( is_array( $hit ) ) {
+			return self::out( $hit );
+		}
+		$res = Sawa_Lens_AI::check_writing( get_current_user_id(), $text, 'chat' );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		$out = array( 'errors' => array_map( function ( $e ) { return array_intersect_key( $e, array_flip( array( 'wrong', 'right', 'why', 'why_ar', 'skill' ) ) ); }, $res['errors'] ) );
+		set_transient( $key, $out, DAY_IN_SECONDS );
+		return self::out( $out );
 	}
 
 	public static function sound( WP_REST_Request $r ) {
