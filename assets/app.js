@@ -109,7 +109,7 @@
 		if (view === 'me') return meHub();
 		if (view === 'scan') return scanView();
 		if (view === 'read') return readView();
-		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Community</h1></section><div class="card stack"><p><b>Clans, the weekly boss and the leaderboard open at stage 3.</b></p><p class="muted">For now, focus on your daily plan. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Community</h1></section><div class="card stack"><p><b>🐫 The Silk Road opens at stage 3</b> — a world you walk through with the other students, where monsters attack with the words you save. Clans, the weekly boss and the caravan board open with it.</p><p class="muted">To get there, finish your stages — or check a few sentences you wrote in Learn → Write. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
 		if (view === 'chat' || view === 'community') return shell('');
 		if (view === 'start') return guide();
 		if (view === 'skills') return skills();
