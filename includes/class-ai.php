@@ -151,26 +151,23 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
-	 * Messages API body. Our answers are short JSON, so thinking is switched off where the model allows it:
-	 * Claude Haiku 5.5 thinks by default and accepts {type: disabled} at its default effort; Opus 5.5 and
-	 * Sonnet 5.5 reject "disabled", so for those we leave thinking at its default.
+	 * Messages API body. Thinking stays on (it keeps translations and pronunciation notes accurate) but at
+	 * low effort, so it's brief; max_tokens leaves room for the thinking plus the short JSON answer.
+	 * Low effort is accepted by Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 alike.
 	 */
 	private static function request_body( $model, $system, $user, $max_tokens ) {
-		$body = array(
-			'model'      => $model,
-			'max_tokens' => max( 1500, (int) $max_tokens ),
-			'system'     => $system,
-			'messages'   => array(
+		return array(
+			'model'         => $model,
+			'max_tokens'    => max( 4000, (int) $max_tokens ),
+			'output_config' => array( 'effort' => 'low' ),
+			'system'        => $system,
+			'messages'      => array(
 				array(
 					'role'    => 'user',
 					'content' => $user,
 				),
 			),
 		);
-		if ( 0 === strpos( $model, 'claude-haiku' ) ) {
-			$body['thinking'] = array( 'type' => 'disabled' );
-		}
-		return $body;
 	}
 
 	/**
@@ -253,7 +250,7 @@ final class Sawa_Lens_AI {
 		$res = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
 			array(
-				'timeout' => 25,
+				'timeout' => 45,
 				'headers' => array(
 					'x-api-key'         => $s['api_key'],
 					'anthropic-version' => '2023-06-01',
