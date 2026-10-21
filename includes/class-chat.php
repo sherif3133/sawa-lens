@@ -19,6 +19,7 @@ final class Sawa_Lens_Chat {
 		add_filter( 'sawa_tracker_battle_ready', function () { return array_sum( (array) ( Sawa_Lens_Placement::counts()['mc'] ?? array() ) ) >= 10; } );
 		add_filter( 'sawa_tracker_battle_questions', array( __CLASS__, 'battle_questions' ), 10, 4 );
 		add_filter( 'sawa_tracker_word_count', function ( $n, $uid ) { global $wpdb; return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'learning'", $uid ) ); }, 10, 2 ); // phpcs:ignore
+		add_filter( 'sawa_tracker_words_since', function ( $n, $uid, $from ) { global $wpdb; return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . ' WHERE user_id = %d AND learning_on >= %s', $uid, $from ) ); }, 10, 3 ); // phpcs:ignore
 		add_action( 'sawa_tracker_missed_card', array( __CLASS__, 'missed_card' ), 10, 2 );
 		add_filter( 'sawa_tracker_mastery', function ( $m, $uid ) { return Sawa_Lens_Skills::mastery_counts( $uid ); }, 10, 2 );
 	}
