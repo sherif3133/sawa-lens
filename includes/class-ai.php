@@ -34,7 +34,7 @@ final class Sawa_Lens_AI {
 		$word     = mb_substr( trim( wp_strip_all_tags( (string) $word ) ), 0, 60 );
 		$sentence = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $sentence ) ) ), 0, 600 );
 		if ( '' === $word ) {
-			return new WP_Error( 'empty', 'لا توجد كلمة.' );
+			return new WP_Error( 'empty', 'No word.' );
 		}
 		$key = hash( 'sha256', 'explain|v1|' . ( 'en' === $lang ? 'en|' : '' ) . strtolower( $word ) . '|' . $sentence );
 		$hit = self::cached( $key );
@@ -77,7 +77,7 @@ final class Sawa_Lens_AI {
 	public static function translate( $uid, $sentence ) {
 		$sentence = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $sentence ) ) ), 0, 800 );
 		if ( '' === $sentence ) {
-			return new WP_Error( 'empty', 'لا توجد جملة.' );
+			return new WP_Error( 'empty', 'No sentence.' );
 		}
 		$key = hash( 'sha256', 'translate|v1|' . $sentence );
 		$hit = self::cached( $key );
@@ -97,6 +97,55 @@ final class Sawa_Lens_AI {
 			return $out;
 		}
 		$res = array( 'sentence' => mb_substr( (string) ( $out['sentence'] ?? '' ), 0, 1200 ) );
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/**
+	 * How a phrase or sentence sounds in natural, fast American English, and why:
+	 * linking, flap t, weak forms, elision, assimilation, contractions.
+	 */
+	public static function sound( $uid, $text ) {
+		$text = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $text ) ) ), 0, 400 );
+		if ( '' === $text ) {
+			return new WP_Error( 'empty', 'Nothing to explain.' );
+		}
+		$key = hash( 'sha256', 'sound|v1|' . strtolower( $text ) );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$system = 'You are a pronunciation coach for Arabic-speaking learners of American English (A2–B2). '
+			. 'Show how the text sounds when a native speaker says it naturally and fairly fast. '
+			. 'Return ONLY a JSON object with keys: '
+			. '"soundsLike": a respelling of the whole text as it sounds, Google-style (syllables joined with "·" inside words, words separated by spaces, words that merge are written together, the stressed syllable of important words in CAPITALS), e.g. "wuh·DYUH wan·nuh DOO"; '
+			. '"ipa": a broad American IPA transcription of the connected speech; '
+			. '"features": an array (max 5) of objects {"where": the exact words from the text, "feature": short name (linking, flap t, weak form, elision, assimilation, contraction, -ed ending, stress, intonation), "why": one short simple-English sentence explaining the rule, e.g. "When a word ends in a consonant and the next starts with a vowel, we join them."}. '
+			. 'Only include features that really happen in this text. Plain JSON, no markdown.';
+		$out    = self::call( $system, $text, 1200 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$features = array();
+		foreach ( array_slice( (array) ( $out['features'] ?? array() ), 0, 6 ) as $f ) {
+			if ( ! is_array( $f ) ) {
+				continue;
+			}
+			$features[] = array(
+				'where'   => mb_substr( (string) ( $f['where'] ?? '' ), 0, 80 ),
+				'feature' => mb_substr( (string) ( $f['feature'] ?? '' ), 0, 40 ),
+				'why'     => mb_substr( (string) ( $f['why'] ?? '' ), 0, 240 ),
+			);
+		}
+		$res = array(
+			'soundsLike' => mb_substr( (string) ( $out['soundsLike'] ?? '' ), 0, 600 ),
+			'ipa'        => mb_substr( (string) ( $out['ipa'] ?? '' ), 0, 600 ),
+			'features'   => $features,
+		);
 		self::store( $key, $res );
 		return $res;
 	}
@@ -124,7 +173,7 @@ final class Sawa_Lens_AI {
 		$k = 'sawa_lens_ai_' . $uid . '_' . wp_date( 'Ymd' );
 		$n = (int) get_transient( $k );
 		if ( $n >= (int) self::settings()['daily_limit'] ) {
-			return new WP_Error( 'limit', 'وصلت إلى الحد اليومي للشرح. القاموس ما زال يعمل، ويعود الشرح غدًا.', array( 'status' => 429 ) );
+			return new WP_Error( 'limit', 'You reached today\'s limit for AI explanations. The dictionary still works, and explanations come back tomorrow.', array( 'status' => 429 ) );
 		}
 		set_transient( $k, $n + 1, DAY_IN_SECONDS );
 		return true;
@@ -133,7 +182,7 @@ final class Sawa_Lens_AI {
 	private static function call( $system, $user, $max_tokens ) {
 		$s = self::settings();
 		if ( '' === $s['api_key'] ) {
-			return new WP_Error( 'off', 'الشرح في سياق الجملة غير مفعّل بعد.', array( 'status' => 503 ) );
+			return new WP_Error( 'off', 'AI explanations are not switched on yet.', array( 'status' => 503 ) );
 		}
 		$res = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
@@ -160,7 +209,7 @@ final class Sawa_Lens_AI {
 			)
 		);
 		if ( is_wp_error( $res ) ) {
-			return new WP_Error( 'net', 'تعذّر الوصول إلى خدمة الشرح الآن.', array( 'status' => 502 ) );
+			return new WP_Error( 'net', 'Could not reach the explanation service. Try again in a moment.', array( 'status' => 502 ) );
 		}
 		$code = wp_remote_retrieve_response_code( $res );
 		$j    = json_decode( wp_remote_retrieve_body( $res ), true );
@@ -175,7 +224,7 @@ final class Sawa_Lens_AI {
 			$types = implode( ',', array_map( function ( $b ) { return $b['type'] ?? '?'; }, (array) ( $j['content'] ?? array() ) ) );
 			$msg   = $j['error']['message'] ?? ( 'HTTP ' . $code . ' · blocks: ' . ( $types ? $types : 'none' ) . ' · stop: ' . ( $j['stop_reason'] ?? '?' ) );
 			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · ' . mb_substr( $msg, 0, 300 ), false );
-			return new WP_Error( 'ai', 'خدمة الشرح غير متاحة الآن. حاول بعد قليل.', array( 'status' => 502 ) );
+			return new WP_Error( 'ai', 'The explanation service is busy. Try again in a moment.', array( 'status' => 502 ) );
 		}
 		$text = trim( $text );
 		$text = preg_replace( '/^```(?:json)?\s*|\s*```$/', '', $text );
@@ -185,7 +234,7 @@ final class Sawa_Lens_AI {
 		}
 		if ( ! is_array( $out ) ) {
 			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · not JSON (stop: ' . ( $j['stop_reason'] ?? '?' ) . '): ' . mb_substr( $text, 0, 300 ), false );
-			return new WP_Error( 'ai', 'وصل الشرح بشكل غير صحيح. حاول مرة أخرى.', array( 'status' => 502 ) );
+			return new WP_Error( 'ai', 'The explanation came back incomplete. Try again.', array( 'status' => 502 ) );
 		}
 		$usage = (array) get_option( 'sawa_lens_usage', array() );
 		$month = wp_date( 'Y-m' );

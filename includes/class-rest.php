@@ -56,6 +56,7 @@ final class Sawa_Lens_Rest {
 		$r( '/sync', 'POST', array( __CLASS__, 'sync' ) );
 		$r( '/explain', 'POST', array( __CLASS__, 'explain' ) );
 		$r( '/translate', 'POST', array( __CLASS__, 'translate' ) );
+		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
 		// For the tracker page (normal WordPress login + nonce, not a device token).
 		register_rest_route(
@@ -76,10 +77,10 @@ final class Sawa_Lens_Rest {
 	public static function auth( WP_REST_Request $r ) {
 		$uid = Sawa_Lens_Auth::user_from_request( $r );
 		if ( ! $uid ) {
-			return new WP_Error( 'signed_out', 'سجّل الدخول مرة أخرى من Language Lens.', array( 'status' => 401 ) );
+			return new WP_Error( 'signed_out', 'Please sign in again from Language Lens.', array( 'status' => 401 ) );
 		}
 		if ( ! Sawa_Lens_Auth::allowed( $uid ) ) {
-			return new WP_Error( 'not_member', 'Language Lens لأعضاء سوا انجليش المفعّلين.', array( 'status' => 403 ) );
+			return new WP_Error( 'not_member', 'Language Lens is for approved Sawa English members.', array( 'status' => 403 ) );
 		}
 		wp_set_current_user( $uid );
 		return true;
@@ -138,6 +139,19 @@ final class Sawa_Lens_Rest {
 		}
 		Sawa_Lens_Store::put_words( $uid, $pushW );
 		Sawa_Lens_Store::put_sentences( $uid, $pushS );
+		// Vocabulary test result: the newest one wins.
+		$vocab = $r->get_param( 'vocab' );
+		$saved = get_user_meta( $uid, 'sawa_lens_vocab', true );
+		if ( is_array( $vocab ) && isset( $vocab['estimate'], $vocab['t'] ) && ( ! is_array( $saved ) || (int) $vocab['t'] > (int) ( $saved['t'] ?? 0 ) ) ) {
+			$saved = array(
+				'date'        => sanitize_text_field( (string) ( $vocab['date'] ?? '' ) ),
+				'estimate'    => max( 0, min( 6000, (int) $vocab['estimate'] ) ),
+				'bands'       => array_map( 'floatval', array_slice( (array) ( $vocab['bands'] ?? array() ), 0, 6 ) ),
+				'falseAlarms' => (float) ( $vocab['falseAlarms'] ?? 0 ),
+				't'           => (int) $vocab['t'],
+			);
+			update_user_meta( $uid, 'sawa_lens_vocab', $saved );
+		}
 		$words     = Sawa_Lens_Store::words_since( $uid, $since );
 		$sentences = Sawa_Lens_Store::sentences_since( $uid, $since );
 		$cursor    = $since;
@@ -163,6 +177,7 @@ final class Sawa_Lens_Rest {
 					$words
 				),
 				'sentences' => $sentences,
+				'vocab'     => is_array( $saved ) ? $saved : null,
 				'progress'  => Sawa_Lens_Store::progress( $uid, 14 ),
 			)
 		);
@@ -170,6 +185,11 @@ final class Sawa_Lens_Rest {
 
 	public static function explain( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::explain( get_current_user_id(), $r->get_param( 'word' ), $r->get_param( 'sentence' ), (string) $r->get_param( 'lang' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	public static function sound( WP_REST_Request $r ) {
+		$res = Sawa_Lens_AI::sound( get_current_user_id(), $r->get_param( 'text' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 

@@ -42,14 +42,14 @@ final class Sawa_Lens_Auth {
 		$redirect = isset( $_GET['redirect_uri'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_uri'] ) ) : ''; // phpcs:ignore
 		$state    = isset( $_GET['state'] ) ? preg_replace( '/[^\w-]/', '', wp_unslash( $_GET['state'] ) ) : ''; // phpcs:ignore
 		if ( ! self::redirect_ok( $redirect ) ) {
-			self::page( 'رابط الدخول غير صحيح', 'افتح Language Lens من المتصفح واضغط "ادخل" مرة أخرى.' );
+			self::page( 'This sign-in link is not valid', 'Open Language Lens in your browser and press "Sign in" again.' );
 		}
 		if ( ! is_user_logged_in() ) {
 			auth_redirect();
 		}
 		$uid = get_current_user_id();
 		if ( ! self::allowed( $uid ) ) {
-			self::page( 'Language Lens لأعضاء سوا انجليش', 'حسابك غير مفعّل بعد في متابعة سوا انجليش. بعد موافقة شريف على طلبك، عد وسجّل الدخول مرة أخرى.' );
+			self::page( 'Language Lens is for Sawa English members', 'Your account is not approved in the Sawa English tracker yet. Once Sherif approves your request, come back and sign in again.' );
 		}
 		$token = bin2hex( random_bytes( 32 ) );
 		global $wpdb;
@@ -68,7 +68,7 @@ final class Sawa_Lens_Auth {
 
 	private static function page( $title, $text ) {
 		status_header( 403 );
-		echo '<!doctype html><html dir="rtl" lang="ar"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . esc_html( $title ) . '</title>'
+		echo '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' . esc_html( $title ) . '</title>'
 			. '<body style="font:18px/1.7 system-ui,sans-serif;background:#F6F5F3;color:#0F0F10;display:grid;place-items:center;min-height:100vh;margin:0;padding:24px">'
 			. '<div style="max-width:440px;background:#fff;border:1px solid #E6E3DF;border-radius:14px;padding:28px"><h1 style="font-size:22px;margin:0 0 10px">' . esc_html( $title ) . '</h1><p style="margin:0;color:#4A4847">' . esc_html( $text ) . '</p></div></body></html>';
 		exit;

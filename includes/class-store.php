@@ -141,7 +141,8 @@ final class Sawa_Lens_Store {
 				'status'      => $status,
 				'level'       => max( 0, min( 6, (int) ( $it['level'] ?? 0 ) ) ),
 				'client_ts'   => $ts,
-				'known_on'    => 'known' === $status ? ( $row && $row['known_on'] ? $row['known_on'] : $today ) : ( $row ? $row['known_on'] : null ),
+				// Words known from the placement test ("base") aren't "learned today".
+				'known_on'    => 'known' === $status ? ( $row && $row['known_on'] ? $row['known_on'] : ( empty( $it['base'] ) ? $today : null ) ) : ( $row ? $row['known_on'] : null ),
 				'learning_on' => 'learning' === $status ? ( $row && $row['learning_on'] ? $row['learning_on'] : $today ) : ( $row ? $row['learning_on'] : null ),
 				'change_id'   => self::next_change(),
 			);

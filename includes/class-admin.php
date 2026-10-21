@@ -46,6 +46,11 @@ final class Sawa_Lens_Admin {
 			wp_die( 'Not allowed.' );
 		}
 		$res = Sawa_Lens_AI::explain( get_current_user_id(), 'run', 'She runs a small bakery near the station (' . wp_date( 'H:i:s' ) . ').' );
+		if ( ! is_wp_error( $res ) ) {
+			// Also check "How it sounds" (connected speech).
+			$snd = Sawa_Lens_AI::sound( get_current_user_id(), 'What do you want to do about it? (' . wp_date( 'H:i:s' ) . ')' );
+			$res['sound'] = is_wp_error( $snd ) ? array( 'error' => $snd->get_error_message() ) : $snd;
+		}
 		set_transient( 'sawa_lens_test_' . get_current_user_id(), is_wp_error( $res ) ? array( 'error' => $res->get_error_message(), 'detail' => get_option( 'sawa_lens_last_ai_error', '' ) ) : $res, 300 );
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&tested=1' ) );
 		exit;
@@ -120,7 +125,19 @@ final class Sawa_Lens_Admin {
 						<p><strong>Test failed:</strong> <?php echo esc_html( $t['error'] ); ?></p><p><?php echo esc_html( $t['detail'] ); ?></p>
 					<?php else : ?>
 						<p><strong>Working.</strong></p>
-						<p dir="rtl" style="font-size:15px">المعنى: <?php echo esc_html( $t['meaning'] ); ?><br>الجملة: <?php echo esc_html( $t['sentence'] ); ?><?php echo $t['note'] ? '<br>ملاحظة: ' . esc_html( $t['note'] ) : ''; ?></p>
+						<p dir="rtl" style="font-size:15px"><?php echo esc_html( $t['meaning'] ); ?><br><?php echo esc_html( $t['sentence'] ); ?><?php echo $t['note'] ? '<br>' . esc_html( $t['note'] ) : ''; ?></p>
+						<?php if ( ! empty( $t['sound'] ) ) : ?>
+							<?php if ( isset( $t['sound']['error'] ) ) : ?>
+								<p><strong>How it sounds failed:</strong> <?php echo esc_html( $t['sound']['error'] ); ?> <?php echo esc_html( get_option( 'sawa_lens_last_ai_error', '' ) ); ?></p>
+							<?php else : ?>
+								<p><strong>How it sounds:</strong> "What do you want to do about it?" → <?php echo esc_html( $t['sound']['soundsLike'] ); ?></p>
+								<ul style="list-style:disc;margin-left:20px">
+									<?php foreach ( (array) $t['sound']['features'] as $f ) : ?>
+										<li><b><?php echo esc_html( $f['where'] ); ?></b> · <?php echo esc_html( $f['feature'] ); ?>: <?php echo esc_html( $f['why'] ); ?></li>
+									<?php endforeach; ?>
+								</ul>
+							<?php endif; ?>
+						<?php endif; ?>
 					<?php endif; ?>
 				</div>
 			<?php endif; ?>
