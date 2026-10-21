@@ -69,7 +69,7 @@ final class Sawa_Lens_Chat {
 			}
 		}
 		$pl  = get_user_meta( $uid, 'sawa_lens_placement', true );
-		$lv  = ! empty( $opt['level'] ) ? (int) $opt['level'] : ( is_array( $pl ) ? (int) $pl['levelNum'] : max( 2, Sawa_Lens_Store::level( $uid ) ) );
+		$lv  = ! empty( $opt['level'] ) ? (float) $opt['level'] : ( is_array( $pl ) ? (int) $pl['levelNum'] : max( 2, Sawa_Lens_Store::level( $uid ) ) );
 		$b   = Sawa_Lens_Placement::level_b( $lv );
 		$lo  = ! empty( $opt['level'] ) ? $b - 0.5 : $b - 1.2;
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'pt_items' ) . " WHERE type = 'mc' AND active = 1 AND b BETWEEN %f AND %f ORDER BY RAND() LIMIT %d", $lo, $b + 0.6, $target - count( $qs ) ), ARRAY_A ); // phpcs:ignore
