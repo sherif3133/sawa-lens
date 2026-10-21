@@ -121,6 +121,7 @@ final class Sawa_Lens_Store {
 			KEY user_time (user_id,created_at)
 			) $c;"
 		);
+		Sawa_Lens_Review::install( $c );
 		update_option( 'sawa_lens_db', SAWA_LENS_DB );
 	}
 

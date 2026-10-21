@@ -55,6 +55,7 @@ final class Sawa_Lens_App {
 			'ai'      => Sawa_Lens_AI::ready(),
 			'tracker' => esc_url_raw( home_url( '/tracker/' ) ),
 			'lessons' => $lessons,
+			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
 		);
 		$v = SAWA_LENS_VER;
 		header( 'Content-Type: text/html; charset=utf-8' );
@@ -103,6 +104,14 @@ final class Sawa_Lens_App {
 		$r( 'write', 'POST', array( __CLASS__, 'write' ) );
 		$r( 'history', 'GET', array( __CLASS__, 'history' ) );
 		$r( 'writing', 'GET', array( __CLASS__, 'writing' ) );
+		$r( 'review', 'GET', array( __CLASS__, 'review' ) );
+		$r( 'review', 'POST', array( __CLASS__, 'review_grade' ) );
+		$r( 'review/settings', 'POST', array( __CLASS__, 'review_settings' ) );
+		$r( 'library', 'GET', array( __CLASS__, 'library' ) );
+		$r( 'library/word', 'POST', array( __CLASS__, 'library_word' ) );
+		$r( 'library/sentence', 'POST', array( __CLASS__, 'library_sentence' ) );
+		$r( 'library/translate', 'POST', array( __CLASS__, 'library_translate' ) );
+		$r( 'library/explain', 'POST', array( __CLASS__, 'library_explain' ) );
 	}
 
 	private static function out( $data ) {
@@ -256,6 +265,73 @@ final class Sawa_Lens_App {
 		$out['id']      = $wid;
 		$out['words']   = $words;
 		return self::out( $out );
+	}
+
+	public static function review() {
+		return self::out( Sawa_Lens_Review::due( get_current_user_id() ) );
+	}
+
+	public static function review_grade( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Review::grade( get_current_user_id(), (string) $r->get_param( 'key' ), (int) $r->get_param( 'grade' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	public static function review_settings( WP_REST_Request $r ) {
+		$n = (int) $r->get_param( 'newPerDay' );
+		if ( $n >= 1 && $n <= 100 ) {
+			update_user_meta( get_current_user_id(), 'sawa_lens_new_per_day', $n );
+		}
+		return self::out( Sawa_Lens_Review::stats( get_current_user_id() ) );
+	}
+
+	public static function library() {
+		return self::out( Sawa_Lens_Review::library( get_current_user_id() ) );
+	}
+
+	/** Mark a word known / learning / remove it (syncs to the extension like a mark made there). */
+	public static function library_word( WP_REST_Request $r ) {
+		$status = (string) $r->get_param( 'status' );
+		if ( ! in_array( $status, array( 'known', 'learning', '' ), true ) ) {
+			return new WP_Error( 'status', 'Bad status.', array( 'status' => 400 ) );
+		}
+		Sawa_Lens_Store::put_words( get_current_user_id(), array( array( 'lemma' => (string) $r->get_param( 'lemma' ), 'status' => $status, 't' => (int) round( microtime( true ) * 1000 ) ) ) );
+		return self::out( array( 'ok' => true ) );
+	}
+
+	/** Delete a saved sentence / phrase (syncs to the extension). */
+	public static function library_sentence( WP_REST_Request $r ) {
+		Sawa_Lens_Store::put_sentences( get_current_user_id(), array( array( 'uuid' => (string) $r->get_param( 'uuid' ), 'deleted' => 1, 't' => (int) round( microtime( true ) * 1000 ) ) ) );
+		return self::out( array( 'ok' => true ) );
+	}
+
+	/** Arabic translation of a saved sentence that doesn't have one yet; kept on the sentence. */
+	public static function library_translate( WP_REST_Request $r ) {
+		global $wpdb;
+		$uid = get_current_user_id();
+		$t   = Sawa_Lens_Store::t( 'sentences' );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, body, ar FROM $t WHERE user_id = %d AND uuid = %s AND deleted = 0", $uid, (string) $r->get_param( 'uuid' ) ), ARRAY_A ); // phpcs:ignore
+		if ( ! $row ) {
+			return new WP_Error( 'missing', 'Not found.', array( 'status' => 404 ) );
+		}
+		if ( '' !== $row['ar'] ) {
+			return self::out( array( 'ar' => $row['ar'] ) );
+		}
+		$res = Sawa_Lens_AI::translate( $uid, $row['body'] );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		$wpdb->update( $t, array( 'ar' => $res['sentence'], 'change_id' => Sawa_Lens_Store::next_change() ), array( 'id' => $row['id'] ) ); // phpcs:ignore
+		return self::out( array( 'ar' => $res['sentence'] ) );
+	}
+
+	/** AI meaning for a word or phrase that isn't in the dictionary, using a sentence the learner saved with it. */
+	public static function library_explain( WP_REST_Request $r ) {
+		global $wpdb;
+		$uid  = get_current_user_id();
+		$word = mb_substr( trim( sanitize_text_field( (string) $r->get_param( 'word' ) ) ), 0, 60 );
+		$sent = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0 AND body LIKE %s ORDER BY id DESC LIMIT 1', $uid, '%' . $wpdb->esc_like( $word ) . '%' ) ); // phpcs:ignore
+		$res  = Sawa_Lens_AI::explain( $uid, $word, '' !== $sent ? $sent : $word, 'ar' );
+		return is_wp_error( $res ) ? $res : self::out( $res + array( 'example' => $sent ) );
 	}
 
 	public static function history() {

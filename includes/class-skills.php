@@ -259,6 +259,20 @@ final class Sawa_Lens_Skills {
 		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT wrong, fix, why, why_ar, sentence, fixed, source, created_at FROM $t WHERE user_id = %d AND skill = %s ORDER BY id DESC LIMIT %d", $uid, $id, $limit ), ARRAY_A ); // phpcs:ignore
 	}
 
+	/** Latest mistakes (all points), for the library. */
+	public static function recent_mistakes( $uid, $limit = 100 ) {
+		global $wpdb;
+		$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT id, skill, source, wrong, fix, why, why_ar, sentence, fixed, created_at FROM ' . Sawa_Lens_Store::t( 'errors' ) . ' WHERE user_id = %d ORDER BY id DESC LIMIT %d', $uid, $limit ), ARRAY_A ); // phpcs:ignore
+		foreach ( $rows as &$r ) {
+			$k               = self::get( $r['skill'] );
+			$r['skillName']  = $k ? $k['name'] : 'Other';
+			$r['date']       = mysql2date( 'j M', $r['created_at'] );
+			unset( $r['created_at'] );
+		}
+		unset( $r );
+		return $rows;
+	}
+
 	/**
 	 * Is each error type going down? Errors per 100 words, per skill, for the last 8 weeks
 	 * (writing and chat together), oldest week first.

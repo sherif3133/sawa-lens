@@ -46,14 +46,16 @@
 	var ICONS = {
 		skills: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 8l3.5 7.5M16.5 8L13 15.5"/></svg>',
 		write: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
-		progress: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 5-6"/></svg>'
+		progress: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 5-6"/></svg>',
+		review: '<svg viewBox="0 0 24 24"><rect x="4" y="6" width="14" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v11"/></svg>',
+		library: '<svg viewBox="0 0 24 24"><path d="M5 4h4v16H5zM10 4h4v16h-4z"/><path d="M15.5 5l3.8-1 3 15.5-3.8 1z"/></svg>'
 	};
 
 	function shell(inner) {
 		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><a class="small muted" href="' + esc(B.tracker) + '">Tracker</a></header>' +
 			'<main class="stack">' + inner + '</main>' +
-			'<nav class="nav">' + [['skills', 'Skills'], ['write', 'Write'], ['progress', 'Progress']].map(function (v) {
-				return '<button data-nav="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + ICONS[v[0]] + v[1] + '</button>';
+			'<nav class="nav">' + [['skills', 'Skills'], ['review', 'Review'], ['write', 'Write'], ['library', 'Library'], ['progress', 'Progress']].map(function (v) {
+				return '<button data-nav="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + ICONS[v[0]] + v[1] + (v[0] === 'review' && S.due ? '<i class="badge">' + S.due + '</i>' : '') + '</button>';
 			}).join('') + '</nav>';
 		$app.querySelectorAll('[data-nav]').forEach(function (b) { b.onclick = function () { go(b.dataset.nav); }; });
 		window.scrollTo(0, 0);
@@ -66,6 +68,8 @@
 		if (view === 'practice') return practice(arg);
 		if (view === 'write') return write(arg);
 		if (view === 'progress') return progress();
+		if (view === 'review') return review();
+		if (view === 'library') return library();
 	}
 
 	function loadTree() {
@@ -469,10 +473,216 @@
 		}, fail);
 	}
 
+	/* ── Dictionary (shared with the extension) ───────── */
+	var LEX = null, lexP = null;
+	function lex() {
+		if (LEX) return Promise.resolve(LEX);
+		if (!lexP) lexP = fetch(B.lexicon).then(function (r) { return r.json(); }).then(function (j) { LEX = j; return j; }, function () { lexP = null; return null; });
+		return lexP;
+	}
+	/** [{pos, level, ar, en, ex}] for a lemma. */
+	function meanings(lemma) {
+		if (!LEX) return [];
+		return (LEX.lemmas[lemma] || []).map(function (i) { var e = LEX.entries[i]; return { head: e[0], pos: e[1], level: LEX.levels[e[2] - 1] || '', ar: e[3], en: String(e[4] || '').split(' · ')[0], ex: String(e[5] || '').split(' · ')[0] }; });
+	}
+	function firstAr(lemma) { var m = meanings(lemma); return m.length ? m[0].ar : ''; }
+	var GTAG = { conditional: 'Conditional (if)', passive: 'Passive', 'present-perfect': 'Present perfect', 'past-perfect': 'Past perfect', continuous: 'Continuous', future: 'Future', modal: 'Modal verb', relative: 'Relative clause', reported: 'Reported speech', comparison: 'Comparison', question: 'Question form', phrasal: 'Phrasal verb', idiom: 'Idiom', collocation: 'Collocation', phrase: 'Phrase', other: 'Other' };
+	function srcLink(c) {
+		if (c.videoId) return 'https://www.youtube.com/watch?v=' + c.videoId + (c.startMs ? '&t=' + Math.floor(c.startMs / 1000) + 's' : '');
+		return c.url || '';
+	}
+	function highlight(text, focus) {
+		var t = esc(text);
+		if (!focus) return t;
+		var i = text.toLowerCase().indexOf(String(focus).toLowerCase());
+		return i < 0 ? t : esc(text.slice(0, i)) + '<mark class="fx">' + esc(text.slice(i, i + focus.length)) + '</mark>' + esc(text.slice(i + focus.length));
+	}
+	function unlockedSkill(id) { var n = S.byId && S.byId[id]; return !n || n.status !== 'locked'; }
+
+	/* ── Review cards ─────────────────────────────────── */
+	var R = null;
+	function review() {
+		shell('<section class="stack"><h1>Review</h1><p class="muted">Your words, phrases, sentences and mistakes come back just before you forget them.</p></section><p class="loading">Loading your cards…</p>');
+		Promise.all([api('review'), lex(), S.tree ? null : loadTree().catch(function () {})]).then(function (res) {
+			var d = res[0];
+			R = { queue: d.cards, done: 0, again: 0, stats: d.stats, waiting: d.waiting, flipped: false };
+			S.due = d.stats.due;
+			showCard();
+		}, fail);
+	}
+	function reviewHead() {
+		var st = R.stats;
+		return '<section class="rv-top"><div><b>' + R.queue.length + '</b><span>left</span></div><div><b>' + st.today + '</b><span>reviewed today</span></div><div><b>' + st.streak + '🔥</b><span>day streak</span></div><div><b>' + st.mature + '</b><span>long-term</span></div></section>';
+	}
+	function cardFront(c) {
+		if (c.type === 'word') return '<p class="rv-kind">Word · what does it mean?</p><p class="rv-word" dir="ltr">' + esc(c.lemma) + '</p><button class="say sm" data-say="' + esc(c.lemma) + '" aria-label="Listen">🔊</button>';
+		if (c.type === 'mistake') return '<p class="rv-kind">Your mistake · fix it in your head</p><p class="rv-sent" dir="ltr">' + highlight(c.sentence, c.wrong) + '</p>';
+		var kind = c.type === 'phrase' ? 'Phrase' + (GTAG[c.tag] ? ' · ' + GTAG[c.tag] : '') : c.type === 'grammar' ? 'Grammar · ' + (GTAG[c.tag] || 'example') : 'Sentence';
+		return '<p class="rv-kind">' + esc(kind) + ' · do you understand it?</p>' + (c.type === 'phrase' && c.focus ? '<p class="rv-word" dir="ltr">' + esc(c.focus) + '</p>' : '')
+			+ '<p class="rv-sent" dir="ltr">' + highlight(c.text, c.focus) + '</p><button class="say sm" data-say="' + esc(c.text) + '" aria-label="Listen">🔊</button>';
+	}
+	function cardBack(c) {
+		if (c.type === 'word') {
+			var ms = meanings(c.lemma);
+			return ms.length ? '<ul class="rv-m">' + ms.slice(0, 4).map(function (m) {
+				return '<li><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span><p class="ar">' + esc(m.ar) + '</p>' + (m.en ? '<p class="small">' + esc(m.en) + '</p>' : '') + (m.ex ? '<p class="small muted" dir="ltr">“' + esc(m.ex) + '”</p>' : '') + '</li>';
+			}).join('') + '</ul>' : '<div data-ai-word="' + esc(c.lemma) + '"><button class="link">Explain with AI</button></div>';
+		}
+		if (c.type === 'mistake') {
+			var open = unlockedSkill(c.skill);
+			return '<p class="rv-sent ok" dir="ltr">✓ ' + esc(c.fixed) + '</p>'
+				+ (open ? (c.why ? '<p>' + esc(c.why) + '</p>' : '') + (c.why_ar ? '<p class="ar muted">' + esc(c.why_ar) + '</p>' : '') : '<p class="small muted">🔒 The explanation unlocks with <b>' + esc(c.skillName) + '</b>.</p>')
+				+ (c.skillName ? '<p class="small muted">' + esc(c.skillName) + '</p>' : '');
+		}
+		var link = srcLink(c);
+		return (c.ar ? '<p class="ar rv-ar">' + esc(c.ar) + '</p>' : '<button class="link" data-tr="' + c.uuid + '">Show the Arabic translation</button><p class="ar rv-ar" data-ar-for="' + c.uuid + '"></p>')
+			+ (link ? '<p class="small"><a href="' + esc(link) + '" target="_blank" rel="noopener">' + (c.videoId ? '▶ Watch it in the video' : esc(c.title || 'Source')) + '</a></p>' : '');
+	}
+	function showCard() {
+		if (!R.queue.length) {
+			var st = R.stats;
+			shell(reviewHead() + '<section class="card stack center-text"><h2>All done for today 🎉</h2><p class="muted">' + (R.done ? 'You reviewed ' + R.done + ' cards.' : 'No cards are due.') + (R.waiting ? ' ' + R.waiting + ' new cards are waiting for the next days.' : '') + '</p>'
+				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learning</b>, phrases and sentences you save in Language Lens, and your own mistakes in Write.</p>')
+				+ '<label class="small">New cards per day <select id="npd">' + [5, 10, 15, 20, 30, 50].map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>'
+				+ '<button class="btn ghost" id="lib">Open my library</button></section>');
+			$app.querySelector('#lib').onclick = function () { go('library'); };
+			$app.querySelector('#npd').onchange = function () { api('review/settings', { body: { newPerDay: +this.value } }).then(function (x) { R.stats = x; toast('Saved'); review(); }); };
+			return;
+		}
+		var c = R.queue[0];
+		R.flipped = false;
+		shell(reviewHead() + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">New</span>' : '') + cardFront(c) + '<div id="back" hidden class="stack rv-back"></div></section>'
+			+ '<section id="acts"><button class="btn block" id="flip">Show answer</button></section>');
+		bindSay();
+		$app.querySelector('#flip').onclick = flip;
+	}
+	function flip() {
+		var c = R.queue[0], back = $app.querySelector('#back');
+		R.flipped = true;
+		back.innerHTML = cardBack(c);
+		back.hidden = false;
+		var labels = ['Again', 'Hard', 'Good', 'Easy'];
+		$app.querySelector('#acts').innerHTML = '<div class="grades">' + labels.map(function (l, i) {
+			return '<button class="gb g' + (i + 1) + '" data-g="' + (i + 1) + '"><b>' + l + '</b><span>' + (c.next && c.next[i] ? (c.next[i] === 'again' ? 'now' : c.next[i]) : '') + '</span></button>';
+		}).join('') + '</div>';
+		$app.querySelectorAll('.gb').forEach(function (b) { b.onclick = function () { grade(+b.dataset.g); }; });
+		bindSay();
+		bindExplain(back);
+		var tr = back.querySelector('[data-tr]');
+		if (tr) tr.onclick = function () {
+			tr.textContent = 'Translating…';
+			api('library/translate', { body: { uuid: tr.dataset.tr } }).then(function (x) { c.ar = x.ar; tr.remove(); back.querySelector('[data-ar-for]').textContent = x.ar; }, function (e) { tr.textContent = e.message; });
+		};
+	}
+	function grade(g) {
+		var c = R.queue.shift();
+		R.done++;
+		if (g === 1) { R.queue.push(c); c.new = false; c.next = ['again', '1d', '1d', '4d']; }
+		api('review', { body: { key: c.key, grade: g } }).then(function (x) {
+			R.stats = x.stats; S.due = x.stats.due;
+			if (x.known) toast('🎉 "' + c.lemma + '" moved to your known words');
+		}, function (e) { toast(e.message); });
+		showCard();
+	}
+	/** Words and phrases without a dictionary entry get an AI meaning on request. */
+	function bindExplain(root) {
+		root.querySelectorAll('[data-ai-word]').forEach(function (box) {
+			var b = box.querySelector('button');
+			if (!b) return;
+			b.onclick = function () {
+				b.textContent = 'Explaining…';
+				api('library/explain', { body: { word: box.dataset.aiWord } }).then(function (x) {
+					box.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small ar muted">' + esc(x.note) + '</p>' : '') + (x.example ? '<p class="small muted" dir="ltr">“' + esc(x.example) + '”</p>' : '');
+				}, function (e) { b.textContent = e.message; });
+			};
+		});
+	}
+	function bindSay() { $app.querySelectorAll('[data-say]').forEach(function (b) { b.onclick = function () { speak(b.dataset.say); }; }); }
+	document.addEventListener('keydown', function (e) {
+		if (S.view !== 'review' || !R || !R.queue.length || /input|textarea|select/i.test(e.target.tagName)) return;
+		if (!R.flipped && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); flip(); }
+		else if (R.flipped && /^[1-4]$/.test(e.key)) grade(+e.key);
+	});
+
+	/* ── Library ──────────────────────────────────────── */
+	var L = { tab: 'words', q: '', data: null };
+	function library() {
+		shell('<section class="stack"><h1>My library</h1><p class="muted">Everything you are learning and have saved, in one place.</p></section><p class="loading">Loading…</p>');
+		Promise.all([api('library'), lex()]).then(function (res) { L.data = res[0]; paintLibrary(); }, fail);
+	}
+	function libCounts() {
+		var d = L.data, by = function (k) { return d.sentences.filter(function (x) { return x.kind === k; }).length; };
+		return { words: d.learning.length, phrase: by('phrase'), sentence: by('sentence'), grammar: by('grammar'), mistakes: d.mistakes.length };
+	}
+	function paintLibrary() {
+		var d = L.data, n = libCounts(), q = L.q.toLowerCase();
+		var tabs = [['words', 'Learning words', n.words], ['phrase', 'Phrases', n.phrase], ['sentence', 'Sentences', n.sentence], ['grammar', 'Grammar', n.grammar], ['mistakes', 'My mistakes', n.mistakes]];
+		var match = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
+		var rows = '';
+		if (L.tab === 'words') {
+			rows = d.learning.filter(function (w) { return match(w.lemma) || match(firstAr(w.lemma)); }).map(function (w) {
+				var m = meanings(w.lemma)[0];
+				return '<li class="lib-row"><div class="lib-main"><b dir="ltr">' + esc(w.lemma) + '</b>' + (m && m.level ? ' <span class="pill">' + m.level + '</span>' : '') + (m ? '<p class="ar">' + esc(m.ar) + '</p>' : '<div data-ai-word="' + esc(w.lemma) + '"><button class="link small">Explain with AI</button></div>')
+					+ '<p class="small muted">' + (w.due ? 'Next review: ' + whenDue(w.due) : 'Card starts soon') + '</p></div>'
+					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(w.lemma) + '" title="Listen">🔊</button><button class="btn ghost sm" data-known="' + esc(w.lemma) + '">✓ Known</button><button class="icon" data-rmw="' + esc(w.lemma) + '" title="Remove">✕</button></div></li>';
+			}).join('');
+			rows = '<p class="small muted">' + d.known + ' known words in total' + (d.recentKnown.length ? ' · recently learned: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">No learning words' + (q ? ' match your search.' : ' yet. Mark words as Learning in Language Lens.') + '</li>') + '</ul>';
+		} else if (L.tab === 'mistakes') {
+			var seenM = {};
+			rows = '<ul class="lib">' + (d.mistakes.filter(function (e) { var k = (e.wrong + '|' + e.fix + '|' + e.sentence).toLowerCase(); if (seenM[k]) return false; seenM[k] = 1; return match(e.sentence) || match(e.skillName); }).map(function (e) {
+				return '<li class="lib-row"><div class="lib-main"><p class="fix"><s>' + esc(e.wrong) + '</s> → <b>' + esc(e.fix) + '</b></p><p class="small" dir="ltr">' + esc(e.fixed || e.sentence) + '</p>'
+					+ (unlockedSkill(e.skill) && e.why ? '<p class="small muted">' + esc(e.why) + '</p>' : '') + '<p class="small muted">' + esc(e.skillName) + ' · ' + esc(e.source) + ' · ' + esc(e.date) + '</p></div></li>';
+			}).join('') || '<li class="muted">No mistakes logged yet. Check your writing in Write.</li>') + '</ul>';
+		} else {
+			rows = '<ul class="lib">' + (d.sentences.filter(function (x) { return x.kind === L.tab && (match(x.text) || match(x.focus) || match(x.ar)); }).map(function (x) {
+				var link = srcLink(x);
+				return '<li class="lib-row"><div class="lib-main">' + (x.kind === 'phrase' && x.focus ? '<b dir="ltr">' + esc(x.focus) + '</b>' + (GTAG[x.tag] ? ' <span class="pill">' + esc(GTAG[x.tag]) + '</span>' : '') : '') + (x.kind === 'grammar' && GTAG[x.tag] ? '<span class="pill">' + esc(GTAG[x.tag]) + '</span>' : '')
+					+ '<p dir="ltr">' + highlight(x.text, x.focus) + '</p>' + (x.ar ? '<p class="ar small">' + esc(x.ar) + '</p>' : '<button class="link small" data-tr="' + x.uuid + '">Arabic translation</button>')
+					+ (link ? '<p class="small"><a href="' + esc(link) + '" target="_blank" rel="noopener">' + (x.videoId ? '▶ ' : '') + esc(x.title || 'Source') + '</a></p>' : '') + '</div>'
+					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(x.focus && x.kind === 'phrase' ? x.focus : x.text) + '" title="Listen">🔊</button><button class="icon" data-rms="' + x.uuid + '" title="Delete">✕</button></div></li>';
+			}).join('') || '<li class="muted">Nothing here yet. Save ' + (L.tab === 'phrase' ? 'phrases' : L.tab === 'grammar' ? 'grammar examples' : 'sentences') + ' with Language Lens on YouTube or any website.</li>') + '</ul>';
+		}
+		shell('<section class="stack"><h1>My library</h1></section>'
+			+ '<section class="lib-tabs" role="tablist">' + tabs.map(function (t) { return '<button data-lt="' + t[0] + '" aria-pressed="' + (L.tab === t[0]) + '">' + t[1] + ' <span>' + t[2] + '</span></button>'; }).join('') + '</section>'
+			+ '<input class="inp" id="lq" type="search" placeholder="Search…" value="' + esc(L.q) + '">' + rows);
+		$app.querySelectorAll('[data-lt]').forEach(function (b) { b.onclick = function () { L.tab = b.dataset.lt; paintLibrary(); }; });
+		var lq = $app.querySelector('#lq');
+		lq.oninput = function () { L.q = lq.value; clearTimeout(L.t); L.t = setTimeout(function () { paintLibrary(); var x = $app.querySelector('#lq'); x.focus(); x.setSelectionRange(x.value.length, x.value.length); }, 250); };
+		bindSay();
+		bindExplain($app);
+		$app.querySelectorAll('[data-known]').forEach(function (b) { b.onclick = function () { setWord(b.dataset.known, 'known'); }; });
+		$app.querySelectorAll('[data-rmw]').forEach(function (b) { b.onclick = function () { setWord(b.dataset.rmw, ''); }; });
+		$app.querySelectorAll('[data-rms]').forEach(function (b) {
+			b.onclick = function () {
+				if (!window.confirm('Delete this from your library? Its review card goes too.')) return;
+				api('library/sentence', { body: { uuid: b.dataset.rms } }).then(function () { L.data.sentences = L.data.sentences.filter(function (x) { return x.uuid !== b.dataset.rms; }); paintLibrary(); toast('Deleted'); }, function (e) { toast(e.message); });
+			};
+		});
+		$app.querySelectorAll('[data-tr]').forEach(function (b) {
+			b.onclick = function () {
+				b.textContent = 'Translating…';
+				api('library/translate', { body: { uuid: b.dataset.tr } }).then(function (x) { L.data.sentences.forEach(function (y) { if (y.uuid === b.dataset.tr) y.ar = x.ar; }); paintLibrary(); }, function (e) { b.textContent = e.message; });
+			};
+		});
+	}
+	function whenDue(d) {
+		var days = Math.round((new Date(d + 'T12:00:00') - new Date(new Date().toDateString() + ' 12:00:00')) / 864e5);
+		return days <= 0 ? 'today' : days === 1 ? 'tomorrow' : 'in ' + days + ' days';
+	}
+	function setWord(lemma, status) {
+		api('library/word', { body: { lemma: lemma, status: status } }).then(function () {
+			L.data.learning = L.data.learning.filter(function (w) { return w.lemma !== lemma; });
+			if (status === 'known') { L.data.known++; L.data.recentKnown.unshift(lemma); }
+			paintLibrary();
+			toast(status === 'known' ? '✓ "' + lemma + '" is now a known word' : 'Removed');
+		}, function (e) { toast(e.message); });
+	}
+
 	function fail(e) {
 		shell('<p class="err">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</p><button class="btn ghost" id="re">Reload</button>');
 		$app.querySelector('#re').onclick = function () { location.reload(); };
 	}
 
-	go('skills');
+	api('review/settings', { body: {} }).then(function (st) { S.due = st.due; var n = document.querySelector('[data-nav="review"]'); if (n && st.due) n.insertAdjacentHTML('beforeend', '<i class="badge">' + st.due + '</i>'); }).catch(function () {});
+	go(location.hash === '#review' ? 'review' : location.hash === '#library' ? 'library' : 'skills');
 })();
