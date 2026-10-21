@@ -200,6 +200,7 @@ self.addEventListener('fetch', function () {});
 		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
 		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
 		$r( 'journey', 'GET', array( __CLASS__, 'journey' ) );
+		$r( 'today', 'GET', array( __CLASS__, 'today_plan' ) );
 		$r( 'image', 'GET', array( 'Sawa_Lens_Rest', 'image' ) );
 		$r( 'image/ai', 'POST', array( 'Sawa_Lens_Rest', 'image_ai' ) );
 		$r( 'videos', 'GET', array( __CLASS__, 'videos' ) );
@@ -314,6 +315,7 @@ self.addEventListener('fetch', function () {});
 		}
 		$before = Sawa_Lens_Skills::tree( $uid );
 		Sawa_Lens_Skills::record_practice( $uid, $id, array_map( 'intval', (array) $r->get_param( 'results' ) ), (int) $r->get_param( 'found' ) );
+		Sawa_Lens_Activity::add( $uid, 'practice' );
 		$out            = self::tree_out( $uid );
 		$out['changed'] = self::changes( $before, $out['tree'] );
 		return self::out( $out );
@@ -352,6 +354,7 @@ self.addEventListener('fetch', function () {});
 		Sawa_Lens_Skills::log_errors( $uid, $res['errors'], 'write', $wid );
 		Sawa_Lens_Skills::record_uses( $uid, $res['good'] );
 		$xp             = Sawa_Lens_Skills::xp( $uid, min( 50, intdiv( $words, 2 ) ), 'write' );
+		Sawa_Lens_Activity::add( $uid, '', 1, 'Pronunciation/Grammar', max( 2, $words / 15 ) );
 		$out            = self::tree_out( $uid );
 		$out['xp']      = $xp;
 		$out['changed'] = self::changes( $before, $out['tree'] );
@@ -445,6 +448,7 @@ self.addEventListener('fetch', function () {});
 				'vocabTest' => is_array( get_user_meta( $uid, 'sawa_lens_vocab', true ) ),
 				// Words ever marked Learning (still learning, or learned since).
 				'learning'  => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . ' WHERE user_id = %d AND learning_on IS NOT NULL' ),
+				'known'     => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'known'" ),
 				'saved'     => $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0' ),
 				'reviews'   => array_sum( array_map( 'intval', $reviews ) ),
 				'reviewDays' => count( array_filter( $reviews ) ),
@@ -460,8 +464,85 @@ self.addEventListener('fetch', function () {});
 		);
 	}
 
+	/**
+	 * Today's plan: 4 small steps, worked out on the server. Each step done pays +5 XP once a day,
+	 * and the whole plan pays a +30 XP "perfect day" bonus.
+	 */
+	public static function today_plan() {
+		global $wpdb;
+		$uid   = get_current_user_id();
+		$today = Sawa_Lens_Store::today();
+		$rv    = Sawa_Lens_Review::stats( $uid );
+		$c     = function ( $sql ) use ( $wpdb, $uid, $today ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( $sql, $uid, $today ) ); // phpcs:ignore
+		};
+		$new_words = $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . ' WHERE user_id = %d AND learning_on = %s' );
+		$new_sents = $c( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND created_on = %s AND deleted = 0' );
+		$quizzes   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'lesson_results' ) . ' WHERE user_id = %d AND updated_at >= %s', $uid, $today . ' 00:00:00' ) ); // phpcs:ignore
+		$why       = array();
+		$studied   = false;
+		if ( class_exists( 'Sawa_Tracker_XP' ) ) {
+			$why     = (array) Sawa_Tracker_XP::summary( $uid )['why'];
+			$studied = (bool) Sawa_Tracker_Game::live( $uid )['studiedToday'];
+		}
+		$lesson = null;
+		foreach ( Sawa_Lens_Lessons::list_for( $uid ) as $l ) {
+			if ( $l['answered'] < $l['total'] ) {
+				$lesson = $l;
+				break;
+			}
+		}
+		$items = array();
+		if ( $rv['total'] > 0 ) {
+			$items[] = array( 'k' => 'review', 'done' => 0 === $rv['due'] && $rv['today'] > 0, 't' => $rv['due'] ? 'Review ' . min( 40, $rv['due'] ) . ' card' . ( 1 === $rv['due'] ? '' : 's' ) : ( $rv['today'] ? 'Cards reviewed' : 'No cards due today' ), 'sub' => '5 minutes · the most important step', 'go' => 'review' );
+			if ( 0 === $rv['due'] && 0 === $rv['today'] ) {
+				$items[0]['done'] = true; // nothing to do is fine
+			}
+		} else {
+			$items[] = array( 'k' => 'collect', 'done' => $new_words + $new_sents >= 3, 't' => 'Save 3 new words', 'sub' => 'From a video, a page you scan, or a quiz · they become review cards', 'go' => 'scan' );
+		}
+		$items[] = array( 'k' => 'watch', 'done' => $quizzes > 0 || $new_words + $new_sents > 0, 't' => $lesson ? 'Watch: ' . $lesson['title'] : 'Watch or read something in English', 'sub' => $lesson ? 'Sherif\'s video with questions' : 'Mark new words with Language Lens, or scan a page', 'go' => $lesson ? 'watch-' . $lesson['id'] : 'watch' );
+		$items[] = array( 'k' => 'use', 'done' => ! empty( $why['chat'] ) || ! empty( $why['voice'] ) || ! empty( $why['write'] ) || ! empty( $why['speak'] ), 't' => 'Write or say something in English', 'sub' => 'A message in the chat, or a few sentences in Write', 'go' => 'chat' );
+		$items[] = array( 'k' => 'log', 'done' => $studied, 't' => $studied ? 'Study day counted' : 'Count today as a study day', 'sub' => 'Anything above counts automatically · or log other study', 'go' => 'log' );
+
+		// Rewards, once per day.
+		$paid = get_user_meta( $uid, 'sawa_lens_plan', true );
+		if ( ! is_array( $paid ) || ( $paid['day'] ?? '' ) !== $today ) {
+			$paid = array( 'day' => $today, 'items' => array(), 'bonus' => false );
+		}
+		$gained = 0;
+		foreach ( $items as $it ) {
+			if ( $it['done'] && empty( $paid['items'][ $it['k'] ] ) ) {
+				$paid['items'][ $it['k'] ] = 1;
+				$gained += Sawa_Lens_Skills::xp( $uid, 5, 'plan', false );
+			}
+		}
+		$all = ! array_filter( $items, function ( $it ) { return ! $it['done']; } );
+		if ( $all && ! $paid['bonus'] ) {
+			$paid['bonus'] = true;
+			$gained       += Sawa_Lens_Skills::xp( $uid, 30, 'plan', false );
+		}
+		update_user_meta( $uid, 'sawa_lens_plan', $paid );
+		return self::out(
+			array(
+				'items'   => $items,
+				'perfect' => $all,
+				'gained'  => $gained,
+				'due'     => $rv['due'],
+				'minutes' => Sawa_Lens_Activity::today( $uid ),
+			)
+		);
+	}
+
 	public static function videos() {
-		return self::out( array( 'lessons' => Sawa_Lens_Lessons::list_for( get_current_user_id() ) ) );
+		// Sherif's free YouTube courses (Sawa Site plugin), for when there are no quizzes yet.
+		$free = array();
+		foreach ( get_posts( array( 'post_type' => 'sawa_resource', 'post_status' => 'publish', 'posts_per_page' => 12 ) ) as $p ) {
+			if ( preg_match( '~(?:v=|youtu\.be/)([\w-]{11})~', (string) get_post_meta( $p->ID, '_sr_url', true ), $m ) ) {
+				$free[] = array( 'videoId' => $m[1], 'title' => get_the_title( $p ) );
+			}
+		}
+		return self::out( array( 'lessons' => Sawa_Lens_Lessons::list_for( get_current_user_id() ), 'free' => $free ) );
 	}
 
 	public static function video( WP_REST_Request $r ) {
@@ -499,6 +580,9 @@ self.addEventListener('fetch', function () {});
 	/** Photo of a page → text (Claude vision). Body: { image: base64, mime }. */
 	public static function scan( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::scan( get_current_user_id(), preg_replace( '/\s+/', '', (string) $r->get_param( 'image' ) ), (string) $r->get_param( 'mime' ) );
+		if ( ! is_wp_error( $res ) ) {
+			Sawa_Lens_Activity::add( get_current_user_id(), 'scan' );
+		}
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
@@ -583,6 +667,7 @@ self.addEventListener('fetch', function () {});
 				Sawa_Lens_Skills::record_practice( $uid, $skill, array( $res && array_sum( $res ) / count( $res ) >= 0.8 ? 1 : 0 ), 0 );
 			}
 			$xp = Sawa_Lens_Skills::xp( $uid, 3, 'speak' );
+			Sawa_Lens_Activity::add( $uid, '', 1, 'Pronunciation/Grammar', 1 );
 			return self::out(
 				array(
 					'transcript' => $text,
@@ -611,6 +696,7 @@ self.addEventListener('fetch', function () {});
 		$out['text']    = $text;
 		$out['words']   = $words;
 		$out['xp']      = Sawa_Lens_Skills::xp( $uid, 5 + intdiv( $secs, 10 ), 'voice' );
+		Sawa_Lens_Activity::add( $uid, '', 1, 'Pronunciation/Grammar', max( 1, $secs / 30 ) );
 		return self::out( $out );
 	}
 

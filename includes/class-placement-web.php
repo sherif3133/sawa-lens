@@ -31,8 +31,8 @@ final class Sawa_Lens_Placement_Web {
 		return $r;
 	}
 
-	public static function start() {
-		$res = Sawa_Lens_Placement::start( get_current_user_id() );
+	public static function start( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Placement::start( get_current_user_id(), 'quick' === $r->get_param( 'mode' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 

@@ -192,7 +192,7 @@ final class Sawa_Lens_Placement {
 		return substr( hash( 'sha256', ( $_SERVER['REMOTE_ADDR'] ?? '' ) . wp_salt() ), 0, 16 ); // phpcs:ignore
 	}
 
-	public static function start( $uid ) {
+	public static function start( $uid, $quick = false ) {
 		global $wpdb;
 		$ip = self::ip_hash();
 		if ( ! $uid ) {
@@ -224,6 +224,7 @@ final class Sawa_Lens_Placement {
 			'used'    => array(),
 			'skills'  => array(),
 			'theta'   => 0,
+			'quick'   => (bool) $quick,
 		);
 		$key = wp_generate_password( 32, false );
 		$wpdb->insert( self::t( 'pt_sessions' ), array( 'skey' => $key, 'user_id' => (int) $uid, 'ip_hash' => $ip, 'state' => wp_json_encode( $state ), 'started_at' => current_time( 'mysql' ) ) ); // phpcs:ignore
@@ -249,7 +250,7 @@ final class Sawa_Lens_Placement {
 	private static function step( $s ) {
 		$sec = $s['section'];
 		$n   = array( 'vocab' => 1, 'meaning' => 1, 'grammar' => 2, 'reading' => 3, 'listening' => 4, 'writing' => 5 );
-		$base = array( 'section' => $sec, 'part' => $n[ $sec ] ?? 5, 'parts' => 5 );
+		$base = array( 'section' => $sec, 'part' => $n[ $sec ] ?? 5, 'parts' => 5, 'quick' => ! empty( $s['quick'] ) );
 		if ( 'vocab' === $sec ) {
 			return $base + array( 'words' => array_map( function ( $i ) { return $i['w']; }, $s['vocab'] ) );
 		}
@@ -262,7 +263,7 @@ final class Sawa_Lens_Placement {
 		}
 		$body = $cur['body'];
 		if ( 'grammar' === $sec ) {
-			return $base + array( 'q' => $body['q'], 'options' => $body['options'], 'i' => count( $s['skills']['grammar'] ?? array() ) + 1, 'of' => self::GRAMMAR_N );
+			return $base + array( 'q' => $body['q'], 'options' => $body['options'], 'i' => count( $s['skills']['grammar'] ?? array() ) + 1, 'of' => ! empty( $s['quick'] ) ? 10 : self::GRAMMAR_N );
 		}
 		if ( 'reading' === $sec ) {
 			return $base + array( 'title' => $body['title'] ?? '', 'parts_text' => array_map( function ( $p ) { return isset( $p['keep'] ) ? array( 'keep' => $p['keep'], 'n' => $p['n'] ) : array( 't' => $p['t'] ); }, $body['ctest'] ), 'i' => count( $s['skills']['reading'] ?? array() ) + 1, 'of' => self::READING_N );
@@ -404,6 +405,9 @@ final class Sawa_Lens_Placement {
 			$ok  = (int) $answer === (int) $cur['body']['answer'] ? 1 : 0;
 			self::add( $s, 'grammar', (float) $cur['b'], $ok, 1 );
 			self::log_resp( $row, $cur['id'], $ok, $s['theta'] );
+			if ( ! empty( $s['quick'] ) && count( $s['skills']['grammar'] ) >= 10 ) {
+				return self::finish( $row ); // quick check: vocabulary + 10 grammar questions
+			}
 			if ( count( $s['skills']['grammar'] ) >= self::GRAMMAR_N || ! self::next_item( $s, 'mc' ) ) {
 				$s['section'] = 'reading';
 				if ( ! self::next_item( $s, 'ctest' ) ) {
@@ -518,17 +522,22 @@ final class Sawa_Lens_Placement {
 			'levelNum' => $lv,
 			'score'    => self::score100( $e['theta'] ),
 			'theta'    => round( $e['theta'], 2 ),
-			'margin'   => (int) round( 10 * $e['se'] ),
+			'margin'   => (int) round( 10 * $e['se'] ) + ( ! empty( $s['quick'] ) ? 4 : 0 ),
 			'skills'   => $skills,
 			'vocab'    => (int) ( $s['vocabSize'] ?? 0 ),
 			'date'     => wp_date( 'j F Y' ),
 			'beta'     => self::calibrated_share() < 0.6,
+			'quick'    => ! empty( $s['quick'] ),
 		);
 		$wpdb->update( self::t( 'pt_sessions' ), array( 'state' => wp_json_encode( $s ), 'result' => wp_json_encode( $result ), 'finished_at' => current_time( 'mysql' ) ), array( 'id' => $row['id'] ) ); // phpcs:ignore
 		if ( $row['user_id'] ) {
 			$uid = (int) $row['user_id'];
-			update_user_meta( $uid, 'sawa_lens_level', $lv );
-			update_user_meta( $uid, 'sawa_lens_placement', $result );
+			$prev = get_user_meta( $uid, 'sawa_lens_placement', true );
+			if ( empty( $s['quick'] ) || ! is_array( $prev ) || ! empty( $prev['quick'] ) ) {
+				update_user_meta( $uid, 'sawa_lens_level', $lv );
+				update_user_meta( $uid, 'sawa_lens_placement', $result );
+			}
+			Sawa_Lens_Activity::add( $uid, '', 1, 'Others', ! empty( $s['quick'] ) ? 8 : 20 );
 			$bank  = self::vocab_bank();
 			$bands = array();
 			foreach ( $bank['bands'] as $bi => $b ) {

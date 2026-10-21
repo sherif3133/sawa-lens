@@ -190,6 +190,9 @@ final class Sawa_Lens_Skills {
 				$ever               = true;
 				$dirty              = true;
 				self::xp( $uid, 100, 'mastered:' . $id, false );
+				if ( class_exists( 'Sawa_Tracker_Game' ) ) {
+					Sawa_Tracker_Game::event( $uid, 'mastered', null, array( 'name' => $k['name'] ) );
+				}
 			}
 			$passed = $mastered || ( $items >= 8 && $acc >= 0.8 );
 			$state[ $id ] = array( 'passed' => $passed || $ever );

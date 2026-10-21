@@ -16,7 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Sawa_Lens_Review {
 
-	const NEW_PER_DAY = 20;
+	const NEW_PER_DAY = 10;
+	const SESSION     = 40;
 	const KNOWN_AFTER = 21;
 
 	public static function install( $c ) {
@@ -105,7 +106,7 @@ final class Sawa_Lens_Review {
 	}
 
 	/** Due cards with everything needed to show them. */
-	public static function due( $uid, $limit = 100 ) {
+	public static function due( $uid, $limit = self::SESSION ) {
 		global $wpdb;
 		$waiting = self::sync_cards( $uid );
 		$t       = self::t();
@@ -245,6 +246,7 @@ final class Sawa_Lens_Review {
 			$known = true;
 		}
 		do_action( 'sawa_lens_card_reviewed', $uid, $key, $grade );
+		Sawa_Lens_Activity::add( $uid, 'card' );
 		return array(
 			'ivl'   => $ivl,
 			'known' => $known,

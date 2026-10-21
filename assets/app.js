@@ -84,7 +84,7 @@
 			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><button class="link small" data-nav-start>Guide</button></header><main class="stack">' + inner + '</main>';
 			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
 			paintNav();
-			showTrk(['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0 ? S.view : '');
+			showTrk(['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
 			window.scrollTo(0, 0);
 			return;
 		}
@@ -106,6 +106,8 @@
 		if (view === 'today') return today();
 		if (view === 'learn') return learnHub();
 		if (view === 'me') return meHub();
+		if (view === 'scan') return scanView();
+		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Community</h1></section><div class="card stack"><p><b>Clans, the weekly boss and the leaderboard open at stage 3.</b></p><p class="muted">For now, focus on your daily plan. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
 		if (view === 'chat' || view === 'community') return shell('');
 		if (view === 'start') return guide();
 		if (view === 'skills') return skills();
@@ -526,12 +528,12 @@
 
 	/* ── Start here: a guided path that unlocks features step by step ── */
 	var STAGES = [
-		{ n: 1, title: 'Watch & collect words', ar: 'شاهد واجمع الكلمات', tabs: ['start', 'watch'],
-			intro: 'Learn from YouTube videos you like. Language Lens shows meanings and colours words for your level.',
+		{ n: 1, title: 'Find your level & collect words', ar: 'اعرف مستواك واجمع كلمات', tabs: ['start', 'watch', 'scan'],
+			intro: 'Two small steps. Everything works on your phone.',
 			steps: [
-				{ k: 'extension', t: 'Connect Language Lens in Chrome', ar: 'ثبّت الإضافة وسجّل الدخول', how: 'On a computer: install Language Lens, click its icon, then "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['Install Language Lens', j.store] : null; } },
-				{ k: 'vocabTest', t: 'Take the English level test (about 25 minutes)', ar: 'اختبار تحديد المستوى', how: 'It finds your level (A1–C2) and vocabulary size, so the app and Language Lens fit you.', done: function (j) { return j.vocabTest; }, link: function () { return ['Take the level test', '/placement/']; } },
-				{ k: 'learning', t: 'Watch a video and mark 5 words as Learning', ar: 'علّم ٥ كلمات «أتعلمها»', how: 'Open any YouTube video with English captions. Hover a coloured word → "Learning". Green = worth learning now.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; } }
+				{ k: 'vocabTest', t: 'Take the quick level check (about 8 minutes)', ar: 'اختبار سريع لتحديد المستوى', how: 'It finds your level and vocabulary size, so everything fits you. You can take the full test later.', done: function (j) { return j.vocabTest; }, link: function () { return ['Start the level check', '/placement/']; } },
+				{ k: 'learning', t: 'Save 5 words you want to learn', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'On your phone: Learn → Scan a page, tap a word → "+ Learning". On a computer: Language Lens on YouTube.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
+				{ k: 'extension', optional: true, t: 'On a computer: add Language Lens to Chrome', ar: 'على الكمبيوتر: ثبّت إضافة Language Lens', how: 'Meanings on YouTube and any website. Click its icon → "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['Install Language Lens', j.store] : null; } }
 			] },
 		{ n: 2, title: 'Review a little every day', ar: 'راجع قليلًا كل يوم', tabs: ['review', 'library'],
 			intro: 'Every word and sentence you save becomes a review card. Five minutes a day is enough — the app shows each card just before you forget it.',
@@ -539,7 +541,7 @@
 				{ k: 'reviewDays', t: 'Review your cards on 2 different days', ar: 'راجع البطاقات يومين', how: 'Open Review. Read the card, think of the answer, tap "Show answer", then be honest: Again, Hard, Good or Easy.', done: function (j) { return j.reviewDays >= 2; }, count: function (j) { return Math.min(2, j.reviewDays) + '/2'; }, go: 'review' },
 				{ k: 'saved', t: 'Save 3 sentences or phrases you like', ar: 'احفظ ٣ جمل أو عبارات', how: 'On YouTube: in the transcript panel, or select words → "Save sentence" / "Save expression". They appear in Library.', done: function (j) { return j.saved >= 3; }, count: function (j) { return Math.min(3, j.saved) + '/3'; } }
 			] },
-		{ n: 3, title: 'Write and fix your grammar', ar: 'اكتب وصحّح القواعد', tabs: ['write', 'skills'],
+		{ n: 3, title: 'Write and fix your grammar', ar: 'اكتب وصحّح القواعد', tabs: ['write', 'skills', 'community'],
 			intro: 'Write a few sentences about your day. You get every correction, and your mistakes decide which grammar points open in your skill tree.',
 			steps: [
 				{ k: 'writings', t: 'Check your writing twice', ar: 'صحّح كتابتك مرتين', how: 'Open Write, write 3–5 sentences, tap "Check my writing".', done: function (j) { return j.writings >= 2; }, count: function (j) { return Math.min(2, j.writings) + '/2'; }, go: 'write' },
@@ -550,7 +552,7 @@
 			steps: [
 				{ k: 'speaks', t: 'Speak once (in Write → Speak, or a voice note in the tracker chat)', ar: 'سجّل كلامك مرة', how: 'Write → 🎙 Speak → talk about the idea of the day. Or send a voice note in the tracker chat and tap "رأي في كلامي".', done: function (j) { return j.speaks >= 1; }, go: 'write' }
 			] },
-		{ n: 5, title: 'Everything is open', ar: 'كل الأدوات مفتوحة', tabs: ['scan', 'progress'],
+		{ n: 5, title: 'Everything is open', ar: 'كل الأدوات مفتوحة', tabs: ['progress'],
 			intro: 'You know the routine. Now use the extras when you need them:',
 			tips: [
 				'📷 Scan a page (Write → Scan): photo of a book page → tap words for meanings.',
@@ -563,7 +565,7 @@
 	function stageOf(j) {
 		if (j.admin || pref('lensAll', '0') === '1') return 5;
 		var seq = 5;
-		for (var i = 0; i < 4; i++) if (!STAGES[i].steps.every(function (st) { return st.done(j); })) { seq = i + 1; break; }
+		for (var i = 0; i < 4; i++) if (!STAGES[i].steps.every(function (st) { return st.optional || st.done(j); })) { seq = i + 1; break; }
 		// Students who already use later tools aren't held back by an earlier step they skipped.
 		var seen = j.speaks ? 4 : j.writings || j.sets ? 3 : j.reviews ? 2 : 1;
 		return Math.max(seq, seen);
@@ -593,7 +595,7 @@
 			return '<li class="g-stage now">' + head + '<p>' + esc(st.intro) + '</p>'
 				+ (st.steps.length ? '<ul class="g-steps">' + st.steps.map(function (x) {
 					var ok = x.done(j), lk = x.link ? x.link(j) : null;
-					return '<li class="' + (ok ? 'ok' : '') + '"><span class="g-check">' + (ok ? '✓' : '') + '</span><div><b>' + esc(x.t) + '</b>' + (x.count && !ok ? ' <span class="pill">' + x.count(j) + '</span>' : '')
+					return '<li class="' + (ok ? 'ok' : '') + '"><span class="g-check">' + (ok ? '✓' : '') + '</span><div><b>' + esc(x.t) + '</b>' + (x.optional ? ' <span class="pill">optional</span>' : '') + (x.count && !ok ? ' <span class="pill">' + x.count(j) + '</span>' : '')
 						+ '<p class="ar small muted">' + esc(x.ar) + '</p>' + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">Open ' + x.go.charAt(0).toUpperCase() + x.go.slice(1) + '</button>' : '') + (lk ? '<a class="btn ghost sm" href="' + esc(lk[1]) + '" target="_blank" rel="noopener">' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
 				}).join('') + '</ul>' : '')
 				+ (st.tips ? '<ul class="g-tips">' + st.tips.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '')
@@ -615,43 +617,36 @@
 	function today() {
 		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
 		shell('<section class="stack"><h1>Today</h1></section><section class="card stack" id="plan"><p class="loading">Making your plan…</p></section>');
-		var t = trkData();
-		Promise.all([api('review/settings', { body: {} }).catch(function () { return null; }), api('videos').catch(function () { return { lessons: [] }; }),
-			fetch(B.progress, { credentials: 'same-origin', headers: { 'X-WP-Nonce': B.nonce } }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-			t ? Promise.resolve(t) : (window.SawaTracker ? window.SawaTracker.refresh().catch(function () { return null; }) : Promise.resolve(null))]).then(function (res) {
+		api('today').then(function (p) {
 			if (S.view !== 'today') return;
-			var st = res[0] || { due: 0, today: 0 }, lessons = res[1].lessons || [], prog = res[2] || {}, tr = res[3];
-			S.due = st.due; paintNav();
-			var why = (tr && tr.xp && tr.xp.why) || {};
-			var lesson = lessons.filter(function (l) { return l.answered < l.total; })[0];
-			var items = [];
-			if (unlocked('review')) items.push({ done: !st.due, t: st.due ? 'Review ' + st.due + ' card' + (st.due > 1 ? 's' : '') : st.today ? 'Cards reviewed ✓' : 'No cards due — nice', sub: '5 minutes', btn: st.due ? ['Start', function () { go('review'); }] : null });
-			items.push({ done: (prog.todayWords || 0) + (prog.todaySentences || 0) > 0, t: lesson ? 'Watch: ' + lesson.title : 'Watch a video and mark new words', sub: lesson ? 'Sherif\'s video with questions' : 'Any YouTube video with Language Lens', btn: lesson ? ['Watch', function () { go('watch', lesson.id); }] : ['Videos', function () { go('watch'); }] });
-			if (unlocked('write')) items.push({ done: !!(why.chat || why.voice || why.write || why.speak), t: 'Write or say a few sentences', sub: 'In Write, or in the chat', btn: ['Write', function () { go('write'); }] });
-			else items.push({ done: !!(why.chat || why.voice), t: 'Say hello in the chat — in English', sub: 'Every English word earns XP', btn: ['Chat', function () { go('chat'); }] });
-			items.push({ done: !!(tr && tr.stats && tr.stats.studiedToday), t: 'Log your study', sub: 'Keeps your streak alive', btn: ['Log', function () { if (window.SawaTracker) window.SawaTracker.act('log'); }] });
-			var next = items.findIndex(function (x) { return !x.done; });
-			var stage = STAGES[S.stage - 1], step = stage.steps.filter(function (x) { return !x.done(S.J); })[0];
+			S.due = p.due; paintNav();
+			var next = p.items.findIndex(function (x) { return !x.done; });
 			var box = $app.querySelector('#plan'); if (!box) return;
-			box.innerHTML = '<h3>' + (next < 0 ? 'All done for today 🎉' : 'Your plan for today') + '</h3><ol class="plan">' + items.map(function (x, i) {
-				return '<li class="' + (x.done ? 'ok' : i === next ? 'next' : '') + '"><span class="g-check">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + esc(x.t) + '</b><span class="small muted">' + esc(x.sub) + '</span></div>' + (x.btn && !x.done ? '<button class="btn sm' + (i === next ? '' : ' ghost') + '" data-pi="' + i + '">' + x.btn[0] + '</button>' : '') + '</li>';
+			var stage = STAGES[S.stage - 1], step = stage.steps.filter(function (x) { return !x.optional && !x.done(S.J); })[0];
+			box.innerHTML = '<div class="row-between"><h3>' + (p.perfect ? 'Perfect day 🎉' : 'Your plan for today') + '</h3><span class="pill' + (p.perfect ? ' mastered' : '') + '">' + (p.perfect ? '+50 XP today' : '+5 XP each · +30 for all') + '</span></div><ol class="plan">' + p.items.map(function (x, i) {
+				return '<li class="' + (x.done ? 'ok' : i === next ? 'next' : '') + '"><span class="g-check">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + esc(x.t) + '</b><span class="small muted">' + esc(x.sub) + '</span></div>' + (!x.done ? '<button class="btn sm' + (i === next ? '' : ' ghost') + '" data-go="' + esc(x.go) + '">' + ({ review: 'Start', scan: 'Scan', chat: 'Chat', log: 'Log' }[x.go] || 'Go') + '</button>' : '') + '</li>';
 			}).join('') + '</ol>'
+				+ (p.minutes ? '<p class="small muted">⏱ ' + p.minutes + ' min counted automatically today — no need to log it.</p>' : '')
 				+ (S.stage < 5 && step ? '<button class="stage-tip" data-start><span class="pill open">Stage ' + S.stage + ' of 5</span> Next: ' + esc(step.t) + ' →</button>' : '');
-			box.querySelectorAll('[data-pi]').forEach(function (b) { b.onclick = items[+b.dataset.pi].btn[1]; });
+			if (p.gained) toast('+' + p.gained + ' XP');
+			box.querySelectorAll('[data-go]').forEach(function (b) {
+				b.onclick = function () { var g = b.dataset.go; if (g === 'log') { if (window.SawaTracker) window.SawaTracker.act('log'); } else if (g.indexOf('watch-') === 0) go('watch', +g.slice(6)); else go(g); };
+			});
 			var sg = box.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
-		});
+		}, function () { var box = $app.querySelector('#plan'); if (box) box.innerHTML = '<p class="muted">Your plan couldn\'t load. Pull down to refresh.</p>'; });
 	}
 	/** Learn: the learning tools, opening one by one with the stages. */
 	function learnHub() {
 		var tools = [
 			['review', 'Review', 'Your words and sentences come back before you forget them', 2],
 			['watch', 'Watch', 'Videos from Sherif that stop and ask you questions', 1],
+			['scan', 'Scan a page', 'Photo of a book page → tap words for meanings', 1],
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
 		];
 		shell('<section class="stack"><h1>Learn</h1></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
-			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'write' ? 'write' : x[0] === 'skills' ? 'skills' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
+			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
 		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
@@ -660,7 +655,9 @@
 	function meHub() {
 		var j = S.J || {};
 		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'Progress', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
-		shell('<section class="stack"><h1>Me</h1></section><div class="hub">' + tiles.map(function (x) {
+		var tr = trkData() || {}, st = tr.stats || {}, xp = tr.xp || {};
+		var sum = '<section class="card me-sum"><div><b>' + (j.placement ? esc(j.placement.level) : '–') + '</b><span>' + (j.placement ? 'your level' : '<a href="/placement/">find your level</a>') + '</span></div><div><b>' + (st.streak || 0) + '🔥</b><span>day streak</span></div><div><b>' + (j.known != null ? j.known : j.learning || 0) + '</b><span>' + (j.known != null ? 'words known' : 'words saved') + '</span></div><div><b>' + (xp.total || 0) + '</b><span>XP</span></div></section>';
+		shell('<section class="stack"><h1>Me</h1></section>' + sum + '<div class="hub">' + tiles.map(function (x) {
 			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
 		}).join('') + '</div>'
 			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>');
@@ -891,7 +888,10 @@
 					return '<li><button class="vid" data-l="' + l.id + '"><img src="https://i.ytimg.com/vi/' + esc(l.videoId) + '/mqdefault.jpg" alt="" loading="lazy"><span class="vid-main"><b>' + esc(l.title || 'Video lesson') + '</b>'
 						+ '<span class="small muted">' + l.total + ' questions' + (l.answered ? ' · ' + l.correct + '/' + l.total + ' right' : '') + '</span>'
 						+ (l.words.length ? '<span class="small muted">' + esc(l.words.slice(0, 6).join(' · ')) + '</span>' : '') + '</span>' + (done ? '<span class="pill mastered">Done</span>' : l.answered ? '<span class="pill open">Continue</span>' : '') + '</button></li>';
-				}).join('') + '</ul>' : '<p class="card muted">No video lessons yet. They\'ll appear here when Sherif publishes one.</p>')
+				}).join('') + '</ul>' : '<p class="card muted">No video quizzes yet — they\'ll appear here when Sherif publishes one.</p>')
+				+ (d.free && d.free.length ? '<h2>Sherif\'s free courses</h2><p class="small muted">Watch on YouTube. On a computer, Language Lens adds meanings and saves your words.</p><ul class="vids">' + d.free.map(function (v) {
+					return '<li><a class="vid" href="https://www.youtube.com/watch?v=' + esc(v.videoId) + '" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/' + esc(v.videoId) + '/mqdefault.jpg" alt="" loading="lazy"><span class="vid-main"><b dir="auto">' + esc(v.title) + '</b><span class="small muted">YouTube ↗</span></span></a></li>';
+				}).join('') + '</ul>' : '')
 				+ '<p class="small muted">Tip: on a computer, Language Lens asks the same questions right on YouTube.</p>');
 			$app.querySelectorAll('[data-l]').forEach(function (b) { b.onclick = function () { go('watch', +b.dataset.l); }; });
 		}, fail);
@@ -1082,7 +1082,8 @@
 	function showCard() {
 		if (!R.queue.length) {
 			var st = R.stats;
-			shell(reviewHead() + '<section class="card stack center-text"><h2>All done for today 🎉</h2><p class="muted">' + (R.done ? 'You reviewed ' + R.done + ' cards.' : 'No cards are due.') + (R.waiting ? ' ' + R.waiting + ' new cards are waiting for the next days.' : '') + '</p>'
+			var more = Math.max(0, (st.due || 0) - 0);
+			shell(reviewHead() + '<section class="card stack center-text"><h2>All done for today 🎉</h2><p class="muted">' + (R.done ? 'You reviewed ' + R.done + ' cards.' : 'No cards are due.') + (more ? ' ' + more + ' more can wait for tomorrow — no pressure.' : '') + (R.waiting ? ' ' + R.waiting + ' new cards are waiting for the next days.' : '') + '</p>'
 				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learning</b>, phrases and sentences you save in Language Lens, and your own mistakes in Write.</p>')
 				+ '<label class="small">New cards per day <select id="npd">' + [5, 10, 15, 20, 30, 50].map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>'
 				+ '<button class="btn ghost" id="lib">Open my library</button></section>');
@@ -1092,10 +1093,13 @@
 		}
 		var c = R.queue[0];
 		R.flipped = false;
-		shell(reviewHead() + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">New</span>' : '') + cardFront(c) + '<div id="back" hidden class="stack rv-back"></div></section>'
+		var tip = '';
+		try { if (!localStorage.getItem('lensRvTip')) tip = '<div class="card small rv-tip"><b>How it works:</b> look at the card, think of the answer, then tap <b>Show answer</b>. Be honest: <b>Again</b> = I forgot · <b>Hard</b> = just about · <b>Good</b> = I knew it · <b>Easy</b> = too easy. The app shows each card again just before you would forget it. <button class="link small" id="rvtip">Got it</button></div>'; } catch (e) { /* storage blocked */ }
+		shell(reviewHead() + tip + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">New</span>' : '') + cardFront(c) + '<div id="back" hidden class="stack rv-back"></div></section>'
 			+ '<section id="acts"><button class="btn block" id="flip">Show answer</button></section>');
 		bindSay();
 		$app.querySelector('#flip').onclick = flip;
+		var tb = $app.querySelector('#rvtip'); if (tb) tb.onclick = function () { try { localStorage.setItem('lensRvTip', '1'); } catch (e) { /* ignore */ } tb.closest('.rv-tip').remove(); };
 	}
 	function flip() {
 		var c = R.queue[0], back = $app.querySelector('#back');

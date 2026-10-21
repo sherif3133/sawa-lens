@@ -182,6 +182,11 @@ final class Sawa_Lens_Rest {
 		}
 		Sawa_Lens_Store::put_words( $uid, $pushW );
 		Sawa_Lens_Store::put_sentences( $uid, $pushS );
+		// Words and sentences saved while watching or reading count as study time.
+		$saved = count( array_filter( (array) $pushS, function ( $x ) { return is_array( $x ) && empty( $x['deleted'] ); } ) ) + count( array_filter( (array) $pushW, function ( $x ) { return is_array( $x ) && 'learning' === ( $x['status'] ?? '' ) && empty( $x['base'] ); } ) );
+		if ( $saved ) {
+			Sawa_Lens_Activity::add( $uid, 'saved', min( 40, $saved ) );
+		}
 		// Vocabulary test result: the newest one wins.
 		$vocab = $r->get_param( 'vocab' );
 		$saved = get_user_meta( $uid, 'sawa_lens_vocab', true );

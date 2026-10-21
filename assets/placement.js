@@ -6,6 +6,7 @@
 	var KEYS = 'sawaPT';
 	var S = { key: '', step: null, busy: false };
 	var PARTS = ['Vocabulary', 'Grammar', 'Reading', 'Listening', 'Writing'];
+	function parts() { return S.step && S.step.quick ? ['Vocabulary', 'Grammar'] : PARTS; }
 
 	function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 	function store(k) { try { if (k === undefined) return localStorage.getItem(KEYS); if (k === null) localStorage.removeItem(KEYS); else localStorage.setItem(KEYS, k); } catch (e) { return null; } return null; }
@@ -17,7 +18,7 @@
 		});
 	}
 	function page(inner, part) {
-		var bar = part ? '<div class="pt-parts">' + PARTS.map(function (p, i) { return '<span class="' + (i + 1 < part ? 'done' : i + 1 === part ? 'cur' : '') + '">' + p + '</span>'; }).join('') + '</div>' : '';
+		var bar = part ? '<div class="pt-parts">' + parts().map(function (p, i) { return '<span class="' + (i + 1 < part ? 'done' : i + 1 === part ? 'cur' : '') + '">' + p + '</span>'; }).join('') + '</div>' : '';
 		$pt.innerHTML = '<header class="top"><div class="brand">Sawa English <span>· English level test</span></div>' + (B.member ? '<a class="small muted" href="' + esc(B.app) + '">App</a>' : '') + '</header>' + bar + '<main class="stack">' + inner + '</main>';
 		window.scrollTo(0, 0);
 	}
@@ -39,7 +40,7 @@
 			+ '<ol class="pt-list"><li><b>Vocabulary</b> · do you know these words? <span>3 min</span></li><li><b>Grammar</b> · choose the right answer <span>6 min</span></li><li><b>Reading</b> · complete the missing letters <span>6 min</span></li><li><b>Listening</b> · listen and type <span>4 min</span></li><li><b>Writing</b> · a short text' + (B.member ? '' : ' (members)') + ' <span>5 min</span></li></ol>'
 			+ '<p class="small muted">🎧 You need sound for the listening part. Don\'t use a dictionary — the result is only useful if it\'s really you.</p>'
 			+ (prev ? '<div class="card small">Your last result: <b>' + esc(prev.level) + '</b> · ' + prev.score + '/100 · ' + esc(prev.date) + '</div>' : '')
-			+ (B.ready ? '<button class="btn block" id="go">' + (store() ? 'Continue my test' : 'Start the test') + '</button>' + (store() ? '<button class="link small center-text" id="fresh">Start again from the beginning</button>' : '') : '<p class="card">The test is being prepared. Please come back soon.</p>')
+			+ (B.ready ? (store() ? '<button class="btn block" id="go">Continue my test</button>' : '<button class="btn block" id="go">Full test · 25 min</button><button class="btn ghost block" id="quick">Quick check · 8 min</button><p class="small muted center-text">The quick check is vocabulary + grammar: a good first estimate. Take the full test for your exact level.</p>') + (store() ? '<button class="link small center-text" id="fresh">Start again from the beginning</button>' : '') : '<p class="card">The test is being prepared. Please come back soon.</p>')
 			+ '<p class="err"></p>');
 		var go = $pt.querySelector('#go');
 		if (go) go.onclick = function () {
@@ -48,9 +49,10 @@
 			begin();
 		};
 		var fr = $pt.querySelector('#fresh'); if (fr) fr.onclick = function () { store(null); begin(); };
+		var qk = $pt.querySelector('#quick'); if (qk) qk.onclick = function () { qk.disabled = true; begin('quick'); };
 	}
-	function begin() {
-		api('start').then(function (d) { S.key = d.key; store(d.key); show(d); }, function (e) { $pt.querySelector('.err').textContent = e.message; });
+	function begin(mode) {
+		api('start', { mode: mode || 'full' }).then(function (d) { S.key = d.key; store(d.key); show(d); }, function (e) { $pt.querySelector('.err').textContent = e.message; });
 	}
 
 	/* ── Steps ─────────────────────────────────────────── */
@@ -171,11 +173,13 @@
 					+ (k === 'vocabulary' ? '<p class="small muted">You know about <b>' + (s.size || 0).toLocaleString('en-US') + '</b> of the 7,000 most common English words.</p>' : '')
 					+ (k === 'writing' && s.good ? '<p class="small">👍 ' + esc(s.good) + '</p><p class="small">➜ ' + esc(s.next) + '</p>' : '') + '</div>';
 			}).join('') + '</section>'
+			+ (r.quick ? '<div class="card stack"><b>This was the quick check.</b><p class="small muted">It\'s an estimate from vocabulary and grammar. The full test adds reading, listening and writing for your exact level.</p><button class="btn ghost" id="full">Take the full test</button></div>' : '')
 			+ (r.beta ? '<p class="small muted">Beta: this test is still being calibrated with real answers, so your result may move a little (±' + Math.max(3, r.margin) + ' points). It gets more accurate as more students take it.</p>' : '')
 			+ (B.member ? '<p class="card">Your level was saved to your account: Language Lens now colours words for ' + esc(r.level) + ', and your plan uses it.</p><a class="btn block" href="' + esc(B.app) + '">Back to the app</a>'
 				: '<section class="card stack center-text"><h3>Ready to improve your level?</h3><p class="muted">Sawa English: a daily plan, review cards, videos with questions, writing and speaking feedback, and a community that studies together.</p><a class="btn block" href="' + esc(B.join) + '">Join Sawa English</a></section>')
 			+ '<button class="link small center-text" id="again">Take the test again</button>');
 		$pt.querySelector('#again').onclick = function () { store(null); B.previous = r; intro(); };
+		var fl = $pt.querySelector('#full'); if (fl) fl.onclick = function () { store(null); begin('full'); };
 	}
 
 	intro();
