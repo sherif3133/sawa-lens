@@ -1231,6 +1231,7 @@
 	api('review/settings', { body: {} }).then(function (st) { S.due = st.due; var n = document.querySelector('[data-nav="review"]'); if (n && st.due) n.insertAdjacentHTML('beforeend', '<i class="badge">' + st.due + '</i>'); }).catch(function () {});
 	var h0 = location.hash.slice(1);
 	if (B.appMode) {
+		if ('serviceWorker' in navigator) navigator.serviceWorker.register('/app/sw.js', { scope: '/app/' }).catch(function () {});
 		document.addEventListener('sawa-tracker', function (e) {
 			var d = e.detail || {};
 			if (d.unread != null) { S.unread = d.unread; paintNav(); }

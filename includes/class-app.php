@@ -15,7 +15,7 @@ final class Sawa_Lens_App {
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'rewrite' ) );
 		add_filter( 'query_vars', function ( $v ) { $v[] = 'sawa_lens_app'; return $v; } );
-		add_action( 'template_redirect', array( __CLASS__, 'render' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'render' ), 1 ); // before WordPress adds a trailing slash to /app/sw.js
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
 	}
 
@@ -26,6 +26,8 @@ final class Sawa_Lens_App {
 	public static function rewrite() {
 		add_rewrite_rule( '^lens/?$', 'index.php?sawa_lens_app=1', 'top' );
 		add_rewrite_rule( '^app/?$', 'index.php?sawa_lens_app=2', 'top' );
+		add_rewrite_rule( '^app/manifest.json$', 'index.php?sawa_lens_app=5', 'top' );
+		add_rewrite_rule( '^app/sw.js$', 'index.php?sawa_lens_app=4', 'top' );
 		if ( get_option( 'sawa_lens_rw' ) !== SAWA_LENS_VER ) {
 			flush_rewrite_rules( false );
 			update_option( 'sawa_lens_rw', SAWA_LENS_VER );
@@ -33,8 +35,12 @@ final class Sawa_Lens_App {
 	}
 
 	public static function render() {
-		if ( ! get_query_var( 'sawa_lens_app' ) ) {
+		// 1 = old /lens/, 2 = /app, 4/5 = the app's service worker / manifest (3 = /placement/, its own class).
+		if ( ! in_array( (string) get_query_var( 'sawa_lens_app' ), array( '1', '2', '4', '5' ), true ) ) {
 			return;
+		}
+		if ( in_array( (string) get_query_var( 'sawa_lens_app' ), array( '4', '5' ), true ) ) {
+			self::pwa_file( (string) get_query_var( 'sawa_lens_app' ) );
 		}
 		nocache_headers();
 		// The old Language Lens address now opens the one app (the #part of the link is kept by the browser).
@@ -80,6 +86,12 @@ final class Sawa_Lens_App {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F0F10">
 <meta name="robots" content="noindex">
+<?php if ( $app_mode ) : ?>
+<link rel="manifest" href="<?php echo esc_url( home_url( '/app/manifest.json' ) ); ?>">
+<link rel="apple-touch-icon" href="<?php echo esc_url( SAWA_LENS_URL . 'assets/icon-192.png' ); ?>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sawa English">
+<?php endif; ?>
 <title><?php echo $app_mode ? 'Sawa English' : 'Language Lens – Sawa English'; ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,6 +112,39 @@ final class Sawa_Lens_App {
 </body>
 </html>
 		<?php
+		exit;
+	}
+
+	/** The app's web manifest (5) and service worker (4), so students can add it to their home screen. */
+	private static function pwa_file( $which ) {
+		if ( '5' === $which ) {
+			header( 'Content-Type: application/manifest+json; charset=utf-8' );
+			echo wp_json_encode(
+				array(
+					'name'             => 'Sawa English',
+					'short_name'       => 'Sawa English',
+					'start_url'        => '/app/#today',
+					'scope'            => '/app/',
+					'display'          => 'standalone',
+					'background_color' => '#F6F5F3',
+					'theme_color'      => '#0F0F10',
+					'icons'            => array(
+						array( 'src' => SAWA_LENS_URL . 'assets/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable' ),
+						array( 'src' => SAWA_LENS_URL . 'assets/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable' ),
+					),
+				),
+				JSON_UNESCAPED_SLASHES
+			);
+			exit;
+		}
+		header( 'Content-Type: application/javascript; charset=utf-8' );
+		header( 'Service-Worker-Allowed: /app/' );
+		header( 'Cache-Control: no-cache' );
+		// Online only (the app needs fresh data); the fetch handler makes the app installable.
+		echo "self.addEventListener('install', function () { self.skipWaiting(); });
+self.addEventListener('activate', function (e) { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', function () {});
+";
 		exit;
 	}
 
