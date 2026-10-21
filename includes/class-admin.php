@@ -32,6 +32,13 @@ final class Sawa_Lens_Admin {
 		if ( ! empty( $_POST['remove_key'] ) ) {
 			$s['api_key'] = '';
 		}
+		$stt = isset( $_POST['stt_key'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['stt_key'] ) ) ) : '';
+		if ( '' !== $stt && false === strpos( $stt, '•' ) ) {
+			$s['stt_key'] = $stt;
+		}
+		if ( ! empty( $_POST['remove_stt'] ) ) {
+			$s['stt_key'] = '';
+		}
 		$s['model']       = isset( $_POST['model'] ) ? sanitize_text_field( wp_unslash( $_POST['model'] ) ) : $s['model'];
 		$s['daily_limit'] = isset( $_POST['daily_limit'] ) ? max( 0, (int) $_POST['daily_limit'] ) : $s['daily_limit'];
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
@@ -75,6 +82,7 @@ final class Sawa_Lens_Admin {
 		$devices = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'tokens' ) ); // phpcs:ignore
 		$users   = (int) $wpdb->get_var( 'SELECT COUNT(DISTINCT user_id) FROM ' . Sawa_Lens_Store::t( 'tokens' ) ); // phpcs:ignore
 		$masked  = $s['api_key'] ? substr( $s['api_key'], 0, 10 ) . str_repeat( '•', 12 ) . substr( $s['api_key'], -4 ) : '';
+		$mstt    = $s['stt_key'] ? substr( $s['stt_key'], 0, 7 ) . str_repeat( '•', 12 ) . substr( $s['stt_key'], -4 ) : '';
 		?>
 		<div class="wrap">
 			<h1>Language Lens</h1>
@@ -94,6 +102,16 @@ final class Sawa_Lens_Admin {
 								<label style="margin-inline-start:12px"><input type="checkbox" name="remove_key" value="1"> Remove key</label>
 							<?php endif; ?>
 							<p class="description">Create one at console.anthropic.com → API keys. It stays on this server; the extension never sees it. Without a key the dictionary still works, only the "in this sentence" explanations are off.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="stt_key">Speech-to-text key (OpenAI)</label></th>
+						<td>
+							<input type="password" id="stt_key" name="stt_key" class="regular-text" value="<?php echo esc_attr( $mstt ); ?>" autocomplete="off" placeholder="sk-…">
+							<?php if ( $s['stt_key'] ) : ?>
+								<label style="margin-inline-start:12px"><input type="checkbox" name="remove_stt" value="1"> Remove key</label>
+							<?php endif; ?>
+							<p class="description">Turns on "write it as text" for voice messages in the tracker chat (and feedback on voice messages). Claude can't listen to audio, so this one step uses OpenAI's transcription (gpt-4o-mini-transcribe, about $0.003 per minute). Create a key at platform.openai.com → API keys. Each voice message is transcribed once, then saved.</p>
 						</td>
 					</tr>
 					<tr>

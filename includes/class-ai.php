@@ -20,6 +20,8 @@ final class Sawa_Lens_AI {
 				'model'       => 'claude-haiku-5-5',
 				'daily_limit' => 150,
 				'store_url'   => '',
+				'stt_key'     => '',
+				'stt_model'   => 'gpt-4o-mini-transcribe',
 			)
 		);
 	}
@@ -236,7 +238,7 @@ final class Sawa_Lens_AI {
 	 * Checks a learner's writing: every clear error with its skill-tree point, plus correct uses of points,
 	 * so the tree can open, reopen or close points from real writing.
 	 */
-	public static function check_writing( $uid, $text ) {
+	public static function check_writing( $uid, $text, $mode = 'write' ) {
 		$limit = self::limit( $uid );
 		if ( is_wp_error( $limit ) ) {
 			return $limit;
@@ -258,6 +260,11 @@ final class Sawa_Lens_AI {
 			. '"praise":"one short specific sentence about something they did well", '
 			. '"tip":"the one most useful thing to work on next, one short sentence"}. '
 			. 'List errors in the order they appear. If the text has no errors, return an empty errors array.';
+		if ( 'voice' === $mode ) {
+			$system .= ' The text is an automatic TRANSCRIPT of the learner speaking in a voice message: ignore punctuation, capital letters and spelling (the transcriber wrote those), ignore fillers (um, uh) and self-corrections, and only flag grammar, word choice and tone. Use "corrected" for the corrected spoken text.';
+		} elseif ( 'chat' === $mode ) {
+			$system .= ' The text is a casual chat message: casual style, emojis and informal words are fine in chat; only flag clear errors.';
+		}
 		$out = self::call( $system, "Learner's text:\n" . $text, 9000, 90 );
 		if ( is_wp_error( $out ) ) {
 			return $out;
@@ -293,6 +300,64 @@ final class Sawa_Lens_AI {
 			'praise'    => mb_substr( (string) ( $out['praise'] ?? '' ), 0, 300 ),
 			'tip'       => mb_substr( (string) ( $out['tip'] ?? '' ), 0, 300 ),
 		);
+	}
+
+	/**
+	 * Voice message → text with OpenAI's transcription API (Claude doesn't take audio input).
+	 * The prompt asks for a verbatim transcript, so learners' grammar mistakes stay in.
+	 */
+	public static function transcribe( $uid, $path ) {
+		$s = self::settings();
+		if ( '' === $s['stt_key'] ) {
+			return new WP_Error( 'off', 'تحويل الصوت لنص مش متفعّل لسه.' );
+		}
+		if ( ! is_readable( $path ) || filesize( $path ) > 8 * MB_IN_BYTES ) {
+			return new WP_Error( 'audio', 'الملف ده مش راضي يتقري.' );
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$ext      = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		$types    = array( 'webm' => 'audio/webm', 'weba' => 'audio/webm', 'm4a' => 'audio/mp4', 'mp4' => 'audio/mp4', 'ogg' => 'audio/ogg', 'mp3' => 'audio/mpeg', 'wav' => 'audio/wav' );
+		$boundary = wp_generate_password( 24, false );
+		$fields   = array(
+			'model'           => $s['stt_model'],
+			'response_format' => 'json',
+			'prompt'          => 'An Arabic-speaking learner of English is speaking, sometimes with a few Arabic words. Write exactly what they say, word for word, keeping their grammar mistakes. Do not correct or improve anything.',
+		);
+		$body = '';
+		$crlf = "\r\n";
+		foreach ( $fields as $k => $v ) {
+			$body .= '--' . $boundary . $crlf . 'Content-Disposition: form-data; name="' . $k . '"' . $crlf . $crlf . $v . $crlf;
+		}
+		$body .= '--' . $boundary . $crlf . 'Content-Disposition: form-data; name="file"; filename="voice.' . $ext . '"' . $crlf
+			. 'Content-Type: ' . ( $types[ $ext ] ?? 'application/octet-stream' ) . $crlf . $crlf
+			. file_get_contents( $path ) . $crlf . '--' . $boundary . '--' . $crlf; // phpcs:ignore
+		$res = wp_remote_post(
+			'https://api.openai.com/v1/audio/transcriptions',
+			array(
+				'timeout' => 60,
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $s['stt_key'],
+					'Content-Type'  => 'multipart/form-data; boundary=' . $boundary,
+				),
+				'body'    => $body,
+			)
+		);
+		if ( is_wp_error( $res ) ) {
+			return new WP_Error( 'net', 'مش قادرين نوصل لخدمة تحويل الصوت. جرب كمان شوية.' );
+		}
+		$j = json_decode( wp_remote_retrieve_body( $res ), true );
+		if ( 200 !== wp_remote_retrieve_response_code( $res ) || ! isset( $j['text'] ) ) {
+			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · transcription: ' . mb_substr( (string) ( $j['error']['message'] ?? wp_remote_retrieve_response_code( $res ) ), 0, 300 ), false );
+			return new WP_Error( 'stt', 'تحويل الصوت لنص مشتغلش المرة دي. جرب تاني.' );
+		}
+		$usage = (array) get_option( 'sawa_lens_stt_usage', array() );
+		$month = wp_date( 'Y-m' );
+		$usage[ $month ] = (int) ( $usage[ $month ] ?? 0 ) + 1;
+		update_option( 'sawa_lens_stt_usage', array_slice( $usage, -12, null, true ), false );
+		return mb_substr( trim( (string) $j['text'] ), 0, 4000 );
 	}
 
 	/**
