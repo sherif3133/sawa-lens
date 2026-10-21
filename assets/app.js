@@ -143,6 +143,7 @@
 		var action = n.status === 'locked'
 			? '<p class="muted">🔒 Opens when you pass: <b>' + n.missing.map(nameOf).join(', ') + '</b>. Or it opens early if your writing shows you need it.</p>'
 			: '<button class="btn block" id="go">' + (n.sets ? 'Practise again' : 'Start practice') + '</button>' +
+			(n.track === 'pron' ? '<button class="btn ghost block" id="ra" style="margin-top:8px">🎙 Read aloud' + (B.stt ? '' : ' (soon)') + '</button>' : '') +
 			(!B.ai ? '<p class="small err">Practice is not switched on yet.</p>' : '');
 		shell('<button class="back" id="back">← Skill tree</button>' +
 			'<section class="stack"><span class="pill ' + n.status + '">' + STATUS[n.status] + '</span><h1>' + esc(n.name) + '</h1>' +
@@ -160,6 +161,8 @@
 		$app.querySelector('#back').onclick = function () { go('skills'); };
 		var g = $app.querySelector('#go');
 		if (g) g.onclick = function () { go('practice', id); };
+		var ra = $app.querySelector('#ra');
+		if (ra) ra.onclick = function () { if (!B.stt) return toast('Speaking checks switch on soon.'); readAloud(id); };
 		if (n.write) {
 			api('skill?id=' + encodeURIComponent(id)).then(function (d) {
 				if (!d.mine || !d.mine.length) return;
@@ -344,11 +347,12 @@
 	function write(result) {
 		if (!S.tree) return loadTree().then(function () { write(result); }, fail);
 		var words = function (s) { return (s.trim().match(/\S+/g) || []).length; };
-		shell('<section class="stack"><h1>Write</h1><p class="muted">Write anything in English – a message, your day, an email. You get every correction. Explanations open as you unlock the skill.</p></section>' +
+		shell(modeSeg('write') + '<section class="stack"><h1>Write</h1><p class="muted">Write anything in English – a message, your day, an email. You get every correction. Explanations open as you unlock the skill.</p></section>' +
 			'<section class="stack"><textarea id="txt" rows="7" placeholder="Write here…" autocapitalize="sentences">' + esc(result ? result.text : draft) + '</textarea>' +
 			'<div class="count"><span id="wc"></span><span>up to ~500 words</span></div>' +
 			'<button class="btn block" id="chk"' + (B.ai ? '' : ' disabled') + '>Check my writing</button><p class="err" id="er"></p></section>' +
 			'<section id="res" class="stack"></section>');
+		bindModes();
 		var ta = $app.querySelector('#txt'), wc = $app.querySelector('#wc');
 		var upd = function () { wc.textContent = words(ta.value) + ' words'; };
 		upd();
@@ -472,6 +476,208 @@
 				};
 			});
 		}, fail);
+	}
+
+	/* ── Write · Speak · Scan ─────────────────────────── */
+	function modeSeg(cur) {
+		return '<div class="seg modes" role="group">' + [['write', '✍️ Write'], ['speak', '🎙 Speak'], ['scan', '📷 Scan a page']].map(function (m) {
+			return '<button data-mode="' + m[0] + '" aria-pressed="' + (cur === m[0]) + '">' + m[1] + '</button>';
+		}).join('') + '</div>';
+	}
+	function bindModes() {
+		$app.querySelectorAll('[data-mode]').forEach(function (b) {
+			b.onclick = function () { stopRec(); if (b.dataset.mode === 'write') write(); else if (b.dataset.mode === 'speak') speakView(); else scanView(); };
+		});
+	}
+
+	/* Recorder: one at a time, max seconds, returns a Blob. */
+	var REC = null;
+	function startRec(max, onTick, onDone) {
+		if (!(navigator.mediaDevices && window.MediaRecorder)) { toast('Your browser can\'t record audio.'); return; }
+		navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+			var types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'], type = '';
+			for (var i = 0; i < types.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) { type = types[i]; break; }
+			var rec = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream), chunks = [], t0 = Date.now();
+			REC = { rec: rec, cancel: false };
+			rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+			rec.onstop = function () {
+				stream.getTracks().forEach(function (t) { t.stop(); });
+				clearInterval(REC && REC.tick);
+				var r = REC; REC = null;
+				if (r && r.cancel) return;
+				onDone(new Blob(chunks, { type: (rec.mimeType || type || 'audio/webm').split(';')[0] }), Math.round((Date.now() - t0) / 1000));
+			};
+			rec.start();
+			REC.tick = setInterval(function () { var sec = Math.floor((Date.now() - t0) / 1000); onTick(sec); if (sec >= max) rec.stop(); }, 250);
+		}, function () { toast('Allow the microphone to record.'); });
+	}
+	function stopRec(cancel) { if (REC) { REC.cancel = !!cancel; REC.rec.stop(); } }
+	function upload(path, blob, fields) {
+		var fd = new FormData();
+		fd.append('audio', blob, 'voice.' + (/mp4/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm'));
+		Object.keys(fields || {}).forEach(function (k) { [].concat(fields[k]).forEach(function (v) { fd.append(Array.isArray(fields[k]) ? k + '[]' : k, v); }); });
+		return fetch(B.root + path, { method: 'POST', credentials: 'same-origin', headers: { 'X-WP-Nonce': B.nonce }, body: fd }).then(function (r) {
+			return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.message || 'Something went wrong.'); return j; });
+		});
+	}
+	function mmss(sec) { return Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2); }
+
+	/** Free speaking: record up to 2 minutes, get the transcript checked like writing. */
+	function speakView() {
+		if (!S.tree) return loadTree().then(speakView, fail);
+		var prompts = ['Talk about your day.', 'Describe your home or your street.', 'What did you do last weekend?', 'What are you going to do tomorrow?', 'Talk about a film or video you liked.', 'Why are you learning English?', 'Describe a person you admire.'];
+		var p = prompts[new Date().getDate() % prompts.length];
+		shell(modeSeg('speak') + '<section class="stack"><h1>Speak</h1><p class="muted">Speak in English for up to 2 minutes. You get the text of what you said and corrections for grammar and word choice, like in Write.</p></section>'
+			+ '<section class="card stack center-text"><p class="small muted">Idea for today</p><p class="q">' + esc(p) + '</p>'
+			+ '<button class="say rec" id="rec" aria-label="Record">🎙</button><p id="rt" class="small muted">' + (B.stt ? 'Tap to start' : 'Speaking checks switch on soon.') + '</p></section>'
+			+ '<section id="res" class="stack"></section>');
+		bindModes();
+		var btn = $app.querySelector('#rec'), rt = $app.querySelector('#rt');
+		if (!B.stt) { btn.disabled = true; return; }
+		btn.onclick = function () {
+			if (REC) { stopRec(); return; }
+			btn.classList.add('on'); btn.textContent = '■';
+			startRec(120, function (sec) { rt.textContent = mmss(sec) + ' / 2:00 · tap to stop'; }, function (blob, secs) {
+				btn.classList.remove('on'); btn.textContent = '🎙'; btn.disabled = true;
+				rt.textContent = 'Listening to your recording…';
+				upload('speak', blob, { seconds: secs }).then(function (d) {
+					btn.disabled = false; rt.textContent = 'Tap to record again';
+					if (d.short) { $app.querySelector('#res').innerHTML = '<p class="card">I heard: “' + esc(d.transcript) + '”. Try speaking a bit longer.</p>'; return; }
+					setTree(d);
+					showResult(d);
+					var box = $app.querySelector('#res');
+					box.insertAdjacentHTML('afterbegin', '<p class="small muted">What I heard (grammar and words are checked, not your accent):</p>');
+					if (d.xp > 0) toast('+' + d.xp + ' XP in the tracker');
+				}, function (e) { btn.disabled = false; rt.textContent = e.message; });
+			});
+		};
+	}
+
+	/** Read aloud: sentences full of one sound; each target word is marked heard or not. */
+	function readAloud(id) {
+		var n = S.byId[id];
+		shell('<button class="back" id="back">← ' + esc(n.name) + '</button><p class="loading">Preparing sentences…</p>');
+		$app.querySelector('#back').onclick = function () { stopRec(true); go('skill', id); };
+		api('readaloud?id=' + encodeURIComponent(id) + '&v=' + (n.sets || 0)).then(function (d) {
+			var i = 0, scores = [];
+			function show(result) {
+				var it = d.items[i], tg = it.targets.map(function (t) { return t.toLowerCase(); });
+				var words = result ? result.words.map(function (w) { return '<span class="ra-w ' + (w.ok ? 'ok' : 'no') + (tg.indexOf(w.w) >= 0 ? ' tg' : '') + '">' + esc(w.w) + '</span>'; }).join(' ')
+					: esc(it.text).replace(new RegExp('\\b(' + it.targets.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')\\b', 'gi'), '<mark class="fx">$1</mark>');
+				shell('<button class="back" id="back">← ' + esc(n.name) + '</button>'
+					+ '<div class="dots">' + d.items.map(function (_, k) { return '<i class="' + (k < scores.length ? (scores[k] >= 80 ? 'ok' : 'no') : k === i ? 'cur' : '') + '"></i>'; }).join('') + '</div>'
+					+ '<section class="card stack center-text"><p class="small muted">Read it aloud, clearly and not too fast.</p><p class="q ra" dir="ltr">' + words + '</p>'
+					+ '<div class="ra-btns"><button class="say sm" id="listen" aria-label="Listen">🔊</button><button class="say rec" id="rec" aria-label="Record">🎙</button></div>'
+					+ '<p id="rt" class="small muted">' + (result ? 'Score ' + result.score + '% · I heard: “' + esc(result.transcript) + '”' : 'Listen first, then tap the mic') + '</p>'
+					+ (result ? '<p class="small muted">Red words weren\'t heard clearly — listen and try them again.</p><div class="ra-btns"><button class="btn ghost" id="again">Try again</button><button class="btn" id="next">' + (i + 1 < d.items.length ? 'Next' : 'Finish') + '</button></div>' : '')
+					+ '</section>');
+				$app.querySelector('#back').onclick = function () { stopRec(true); go('skill', id); };
+				$app.querySelector('#listen').onclick = function () { speak(it.text); };
+				var btn = $app.querySelector('#rec'), rt = $app.querySelector('#rt');
+				btn.onclick = function () {
+					if (REC) { stopRec(); return; }
+					btn.classList.add('on'); btn.textContent = '■';
+					startRec(20, function (sec) { rt.textContent = mmss(sec) + ' · tap to stop'; }, function (blob, secs) {
+						btn.disabled = true; rt.textContent = 'Checking…';
+						upload('speak', blob, { target: it.text, targets: it.targets, skill: id, seconds: secs }).then(function (res) {
+							if (result === undefined || !result) scores[i] = res.score; else scores[i] = Math.max(scores[i] || 0, res.score);
+							show(res);
+						}, function (e) { btn.disabled = false; rt.textContent = e.message; });
+					});
+				};
+				var ag = $app.querySelector('#again'), nx = $app.querySelector('#next');
+				if (ag) ag.onclick = function () { show(null); };
+				if (nx) nx.onclick = function () {
+					i++;
+					if (i < d.items.length) return show(null);
+					var avg = Math.round(scores.reduce(function (a, b) { return a + b; }, 0) / Math.max(1, scores.length));
+					loadTree().then(function () {
+						shell('<section class="stack center-text"><h1>' + avg + '%</h1><p class="muted">' + esc(n.name) + ' · read aloud</p><button class="btn block" id="more">More sentences</button><button class="btn ghost block" id="tree">Back to the skill</button></section>');
+						$app.querySelector('#more').onclick = function () { readAloud(id); };
+						$app.querySelector('#tree').onclick = function () { go('skill', id); };
+					});
+				};
+			}
+			show(null);
+		}, fail);
+	}
+
+	/** Scan: photo of a book page → text you can tap for meanings, save and learn from. */
+	var SCAN = null;
+	function scanView() {
+		try { SCAN = SCAN || JSON.parse(localStorage.getItem('lensScan') || 'null'); } catch (e) { /* storage blocked */ }
+		shell(modeSeg('scan') + '<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learning, or save the sentence.</p></section>'
+			+ '<label class="btn block" for="cam">📷 Take or choose a photo</label><input id="cam" type="file" accept="image/*" capture="environment" hidden>'
+			+ '<p class="err" id="er"></p><section id="scan" class="stack"></section>');
+		bindModes();
+		$app.querySelector('#cam').onchange = function () { if (this.files[0]) doScan(this.files[0]); };
+		if (SCAN) paintScan();
+	}
+	function doScan(file) {
+		var box = $app.querySelector('#scan'), er = $app.querySelector('#er');
+		er.textContent = '';
+		box.innerHTML = '<p class="loading">Reading the page…</p>';
+		var img = new Image(), u = URL.createObjectURL(file);
+		img.onload = function () {
+			var k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+			c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+			c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u);
+			var data = c.toDataURL('image/jpeg', 0.85).split(',')[1];
+			Promise.all([api('scan', { body: { image: data, mime: 'image/jpeg' } }), lex()]).then(function (res) {
+				var d = res[0];
+				if (!d.paragraphs.length) { box.innerHTML = '<p class="card">I couldn\'t find English text in this photo. Try a sharper, closer photo.</p>'; return; }
+				SCAN = d;
+				try { localStorage.setItem('lensScan', JSON.stringify(d)); } catch (e) { /* storage blocked */ }
+				paintScan();
+			}, function (e) { box.innerHTML = ''; er.textContent = e.message; });
+		};
+		img.onerror = function () { box.innerHTML = ''; er.textContent = 'This photo didn\'t open. Try a JPG or PNG.'; };
+		img.src = u;
+	}
+	function lemmaOf(w) {
+		var x = w.toLowerCase().replace(/[’']s$/, '');
+		if (!LEX) return x;
+		if (LEX.lemmas[x]) return x;
+		var f = LEX.forms[x];
+		return f && f.length ? f[0] : x;
+	}
+	function paintScan() {
+		var box = $app.querySelector('#scan'); if (!box) return;
+		var my = (paintScan.n = (paintScan.n || 0) + 1);
+		lex().then(function () {
+			if (my !== paintScan.n || !box.isConnected) return;
+			var pi = 0;
+			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + '<div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
+				var idx = pi++;
+				return '<p data-p="' + idx + '">' + esc(p).replace(/[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { return '<span class="sw">' + w + '</span>'; }) + '</p>';
+			}).join('') + '</div><div id="wcard"></div>';
+			box.querySelectorAll('.sw').forEach(function (sp) {
+				sp.onclick = function () {
+					box.querySelectorAll('.sw.on').forEach(function (x) { x.classList.remove('on'); });
+					sp.classList.add('on');
+					var para = SCAN.paragraphs[+sp.parentNode.dataset.p], word = sp.textContent;
+					var sents = para.match(/[^.!?]+[.!?]*/g) || [para], sentence = sents.filter(function (x) { return x.indexOf(word) >= 0; })[0] || para;
+					wordCard(word, sentence.trim());
+				};
+			});
+		});
+	}
+	function wordCard(word, sentence) {
+		var lemma = lemmaOf(word), ms = meanings(lemma), el = $app.querySelector('#wcard');
+		el.innerHTML = '<section class="card stack wcard"><div class="row-between"><b class="rv-word" dir="ltr" style="font-size:26px">' + esc(lemma) + '</b><button class="say sm" data-say="' + esc(lemma) + '">🔊</button></div>'
+			+ (ms.length ? ms.slice(0, 2).map(function (m) { return '<div><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span><p class="ar">' + esc(m.ar) + '</p>' + (m.en ? '<p class="small">' + esc(m.en) + '</p>' : '') + '</div>'; }).join('') : '')
+			+ '<div data-ai-word="' + esc(word) + '" data-ai-sent="' + esc(sentence) + '"><button class="link small">' + (ms.length ? 'Meaning in this sentence (AI)' : 'Explain with AI') + '</button></div>'
+			+ '<p class="small muted" dir="ltr">“' + esc(sentence) + '”</p>'
+			+ '<div class="ra-btns"><button class="btn sm" id="learn">+ Learning</button><button class="btn ghost sm" id="savesent">Save sentence</button><button class="btn ghost sm" data-say="' + esc(sentence) + '">🔊 Sentence</button></div></section>';
+		bindSay();
+		var aw = el.querySelector('[data-ai-word]');
+		aw.querySelector('button').onclick = function () {
+			this.textContent = 'Explaining…';
+			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small ar muted">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
+		};
+		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learning'; b.disabled = true; toast('Added to your review cards'); }, function (e) { toast(e.message); }); };
+		el.querySelector('#savesent').onclick = function () { var b = this; api('library/save', { body: { text: sentence, focus: word, kind: 'sentence', title: SCAN.title || 'Scanned page' } }).then(function () { b.textContent = '✓ Saved'; b.disabled = true; }, function (e) { toast(e.message); }); };
+		el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	}
 
 	/* ── Dictionary (shared with the extension) ───────── */

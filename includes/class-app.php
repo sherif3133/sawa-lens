@@ -53,6 +53,7 @@ final class Sawa_Lens_App {
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
 			'name'    => $u->first_name ? $u->first_name : $u->display_name,
 			'ai'      => Sawa_Lens_AI::ready(),
+			'stt'     => '' !== Sawa_Lens_AI::settings()['stt_key'],
 			'tracker' => esc_url_raw( home_url( '/tracker/' ) ),
 			'lessons' => $lessons,
 			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
@@ -112,6 +113,10 @@ final class Sawa_Lens_App {
 		$r( 'library/sentence', 'POST', array( __CLASS__, 'library_sentence' ) );
 		$r( 'library/translate', 'POST', array( __CLASS__, 'library_translate' ) );
 		$r( 'library/explain', 'POST', array( __CLASS__, 'library_explain' ) );
+		$r( 'library/save', 'POST', array( __CLASS__, 'library_save' ) );
+		$r( 'scan', 'POST', array( __CLASS__, 'scan' ) );
+		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
+		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
 	}
 
 	private static function out( $data ) {
@@ -326,12 +331,150 @@ final class Sawa_Lens_App {
 		return self::out( array( 'ar' => $res['sentence'] ) );
 	}
 
+	/** Save a sentence or phrase from the web app (scan, review…): same as saving it in the extension. */
+	public static function library_save( WP_REST_Request $r ) {
+		$uuid = wp_generate_uuid4();
+		Sawa_Lens_Store::put_sentences(
+			get_current_user_id(),
+			array(
+				array(
+					'uuid'  => $uuid,
+					'text'  => (string) $r->get_param( 'text' ),
+					'focus' => (string) $r->get_param( 'focus' ),
+					'kind'  => (string) $r->get_param( 'kind' ),
+					'title' => (string) $r->get_param( 'title' ),
+					't'     => (int) round( microtime( true ) * 1000 ),
+				),
+			)
+		);
+		return self::out( array( 'uuid' => $uuid ) );
+	}
+
+	/** Photo of a page → text (Claude vision). Body: { image: base64, mime }. */
+	public static function scan( WP_REST_Request $r ) {
+		$res = Sawa_Lens_AI::scan( get_current_user_id(), preg_replace( '/\s+/', '', (string) $r->get_param( 'image' ) ), (string) $r->get_param( 'mime' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	public static function readaloud( WP_REST_Request $r ) {
+		$id = sanitize_key( (string) $r->get_param( 'id' ) );
+		$k  = Sawa_Lens_Skills::get( $id );
+		if ( ! $k || 'pron' !== $k['track'] ) {
+			return new WP_Error( 'skill', 'Unknown pronunciation point.', array( 'status' => 404 ) );
+		}
+		$res = Sawa_Lens_AI::readaloud( get_current_user_id(), $id, (int) $r->get_param( 'v' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** Words of a sentence, lower-case, for comparing what was said with what was meant. */
+	private static function words( $s ) {
+		preg_match_all( "/[a-z0-9]+(?:'[a-z]+)?/", strtolower( str_replace( array( '’', '‘' ), "'", (string) $s ) ), $m );
+		return $m[0];
+	}
+
+	/**
+	 * Speaking: an uploaded recording (max 2 minutes) is transcribed and deleted at once.
+	 *   With "target" (read aloud): every target word is marked heard / not heard; pronunciation practice is recorded.
+	 *   Without (free speaking): the transcript is checked like writing, and mistakes feed the skill tree.
+	 */
+	public static function speak( WP_REST_Request $r ) {
+		$uid   = get_current_user_id();
+		$files = $r->get_file_params();
+		$f     = $files['audio'] ?? null;
+		if ( ! $f || ! empty( $f['error'] ) || (int) $f['size'] > 6 * MB_IN_BYTES || ! preg_match( '~^(audio|video)/~', (string) $f['type'] ) ) {
+			return new WP_Error( 'audio', 'The recording didn\'t arrive. Try again (max 2 minutes).', array( 'status' => 400 ) );
+		}
+		$ext = preg_match( '~mp4|m4a|aac~', $f['type'] ) ? 'm4a' : ( false !== strpos( $f['type'], 'ogg' ) ? 'ogg' : 'webm' );
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$tmp = wp_tempnam( 'sawa-speak' ) . '.' . $ext;
+		if ( ! move_uploaded_file( $f['tmp_name'], $tmp ) && ! copy( $f['tmp_name'], $tmp ) ) {
+			return new WP_Error( 'audio', 'Could not read the recording.', array( 'status' => 500 ) );
+		}
+		$text = Sawa_Lens_AI::transcribe( $uid, $tmp );
+		wp_delete_file( $tmp );
+		if ( is_wp_error( $text ) ) {
+			return $text;
+		}
+		$target = trim( (string) $r->get_param( 'target' ) );
+		$secs   = max( 1, min( 120, (int) $r->get_param( 'seconds' ) ) );
+		if ( '' !== $target ) {
+			$want  = self::words( $target );
+			$heard = self::words( $text );
+			// Longest common subsequence: which target words were heard, in order.
+			$n  = count( $want );
+			$m  = count( $heard );
+			$dp = array_fill( 0, $n + 1, array_fill( 0, $m + 1, 0 ) );
+			for ( $i = $n - 1; $i >= 0; $i-- ) {
+				for ( $j = $m - 1; $j >= 0; $j-- ) {
+					$dp[ $i ][ $j ] = $want[ $i ] === $heard[ $j ] ? $dp[ $i + 1 ][ $j + 1 ] + 1 : max( $dp[ $i + 1 ][ $j ], $dp[ $i ][ $j + 1 ] );
+				}
+			}
+			$ok = array_fill( 0, $n, false );
+			for ( $i = 0, $j = 0; $i < $n && $j < $m; ) {
+				if ( $want[ $i ] === $heard[ $j ] ) {
+					$ok[ $i ] = true;
+					$i++;
+					$j++;
+				} elseif ( $dp[ $i + 1 ][ $j ] >= $dp[ $i ][ $j + 1 ] ) {
+					$i++;
+				} else {
+					$j++;
+				}
+			}
+			$words = array();
+			foreach ( $want as $i => $w ) {
+				$words[] = array( 'w' => $w, 'ok' => $ok[ $i ] );
+			}
+			$targets = array_map( 'strtolower', (array) $r->get_param( 'targets' ) );
+			$res     = array();
+			foreach ( $words as $w ) {
+				if ( ! $targets || in_array( $w['w'], $targets, true ) ) {
+					$res[] = $w['ok'] ? 1 : 0;
+				}
+			}
+			$skill = sanitize_key( (string) $r->get_param( 'skill' ) );
+			if ( $skill && Sawa_Lens_Skills::get( $skill ) ) {
+				Sawa_Lens_Skills::record_practice( $uid, $skill, array( $res && array_sum( $res ) / count( $res ) >= 0.8 ? 1 : 0 ), 0 );
+			}
+			$xp = Sawa_Lens_Skills::xp( $uid, 3, 'speak' );
+			return self::out(
+				array(
+					'transcript' => $text,
+					'words'      => $words,
+					'score'      => $n ? (int) round( 100 * array_sum( $ok ) / $n ) : 0,
+					'xp'         => $xp,
+				)
+			);
+		}
+		if ( count( self::words( $text ) ) < 3 ) {
+			return self::out( array( 'transcript' => $text, 'short' => true ) );
+		}
+		$before = Sawa_Lens_Skills::tree( $uid );
+		$res    = Sawa_Lens_AI::check_writing( $uid, $text, 'voice' );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		global $wpdb;
+		$words = count( self::words( $text ) );
+		$wpdb->insert( Sawa_Lens_Store::t( 'writing' ), array( 'user_id' => $uid, 'source' => 'voice', 'body' => $text, 'result' => wp_json_encode( $res ), 'words' => $words, 'errors' => count( $res['errors'] ), 'created_at' => current_time( 'mysql' ) ) ); // phpcs:ignore
+		Sawa_Lens_Skills::log_errors( $uid, $res['errors'], 'voice', (int) $wpdb->insert_id );
+		Sawa_Lens_Skills::record_uses( $uid, $res['good'] );
+		$out            = self::tree_out( $uid );
+		$out['changed'] = self::changes( $before, $out['tree'] );
+		$out['result']  = $res;
+		$out['text']    = $text;
+		$out['words']   = $words;
+		$out['xp']      = Sawa_Lens_Skills::xp( $uid, 5 + intdiv( $secs, 10 ), 'voice' );
+		return self::out( $out );
+	}
+
 	/** AI meaning for a word or phrase that isn't in the dictionary, using a sentence the learner saved with it. */
 	public static function library_explain( WP_REST_Request $r ) {
 		global $wpdb;
 		$uid  = get_current_user_id();
 		$word = mb_substr( trim( sanitize_text_field( (string) $r->get_param( 'word' ) ) ), 0, 60 );
-		$sent = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0 AND body LIKE %s ORDER BY id DESC LIMIT 1', $uid, '%' . $wpdb->esc_like( $word ) . '%' ) ); // phpcs:ignore
+		$given = trim( (string) $r->get_param( 'sentence' ) );
+		$sent = '' !== $given ? mb_substr( $given, 0, 600 ) : (string) $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0 AND body LIKE %s ORDER BY id DESC LIMIT 1', $uid, '%' . $wpdb->esc_like( $word ) . '%' ) ); // phpcs:ignore
 		$res  = Sawa_Lens_AI::explain( $uid, $word, '' !== $sent ? $sent : $word, 'ar' );
 		return is_wp_error( $res ) ? $res : self::out( $res + array( 'example' => $sent ) );
 	}

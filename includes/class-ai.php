@@ -343,6 +343,105 @@ final class Sawa_Lens_AI {
 		return $res;
 	}
 
+	/** Read-aloud sentences for a pronunciation point: 8 short sentences full of that sound. Shared and cached. */
+	public static function readaloud( $uid, $id, $variant = 0 ) {
+		$k = Sawa_Lens_Skills::get( $id );
+		if ( ! $k ) {
+			return new WP_Error( 'skill', 'Unknown skill.', array( 'status' => 404 ) );
+		}
+		$key = hash( 'sha256', 'readaloud|v1|' . $id . '|' . ( (int) $variant % 3 ) );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$out = self::call(
+			'You write read-aloud practice for Arabic-speaking learners of English (A2–B1). '
+			. "Pronunciation point: {$k['name']}. Rule: {$k['rule']} Typical errors: {$k['errors']}. "
+			. 'Write 8 short, natural everyday sentences (5–10 words, simple vocabulary) that each contain the target sound or feature 2–3 times. '
+			. 'Return ONLY a JSON object: {"items":[{"text":"the sentence","targets":["the words in it that contain the target sound, copied exactly"]}]}.',
+			'Write them now. Variation ' . ( (int) $variant % 3 + 1 ) . '.',
+			3000
+		);
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$items = array();
+		foreach ( array_slice( (array) ( $out['items'] ?? array() ), 0, 10 ) as $it ) {
+			if ( is_array( $it ) && ! empty( $it['text'] ) ) {
+				$items[] = array(
+					'text'    => mb_substr( (string) $it['text'], 0, 200 ),
+					'targets' => array_values( array_map( 'strval', array_slice( (array) ( $it['targets'] ?? array() ), 0, 6 ) ) ),
+				);
+			}
+		}
+		if ( count( $items ) < 3 ) {
+			return new WP_Error( 'ai', 'The sentences came back incomplete. Try again.', array( 'status' => 502 ) );
+		}
+		$res = array( 'items' => $items );
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/**
+	 * Photo of a book page or screenshot → its English text, in reading order (Claude vision).
+	 * $data is base64 JPEG/PNG/WebP, already resized by the browser.
+	 */
+	public static function scan( $uid, $data, $mime ) {
+		if ( ! in_array( $mime, array( 'image/jpeg', 'image/png', 'image/webp' ), true ) || strlen( $data ) > 7 * MB_IN_BYTES ) {
+			return new WP_Error( 'image', 'Use a JPG or PNG photo under 5 MB.', array( 'status' => 400 ) );
+		}
+		$key = hash( 'sha256', 'scan|v1|' . md5( $data ) );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$content = array(
+			array(
+				'type'   => 'image',
+				'source' => array(
+					'type'       => 'base64',
+					'media_type' => $mime,
+					'data'       => $data,
+				),
+			),
+			array(
+				'type' => 'text',
+				'text' => 'Copy the English text from this photo exactly, in reading order.',
+			),
+		);
+		$out = self::call(
+			'You read photos of book pages, worksheets, signs and screenshots for an English learner. Copy the English text exactly as printed (fix only obvious OCR-style line-break hyphenation), in natural reading order, keeping paragraphs. Skip page numbers, headers and footers. '
+			. 'Return ONLY a JSON object: {"title": "a short title for the text (max 8 words)", "paragraphs": ["paragraph 1", "paragraph 2", …]}. If there is no readable English text, return {"title": "", "paragraphs": []}.',
+			$content,
+			6000,
+			90
+		);
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$paras = array();
+		foreach ( array_slice( (array) ( $out['paragraphs'] ?? array() ), 0, 60 ) as $p ) {
+			$p = trim( (string) $p );
+			if ( '' !== $p ) {
+				$paras[] = mb_substr( $p, 0, 3000 );
+			}
+		}
+		$res = array(
+			'title'      => mb_substr( (string) ( $out['title'] ?? '' ), 0, 100 ),
+			'paragraphs' => $paras,
+		);
+		self::store( $key, $res );
+		return $res;
+	}
+
 	/**
 	 * Voice message → text with OpenAI's transcription API (Claude doesn't take audio input).
 	 * The prompt asks for a verbatim transcript, so learners' grammar mistakes stay in.
