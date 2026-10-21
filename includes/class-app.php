@@ -258,7 +258,9 @@ final class Sawa_Lens_App {
 		$wid = (int) $wpdb->insert_id;
 		Sawa_Lens_Skills::log_errors( $uid, $res['errors'], 'write', $wid );
 		Sawa_Lens_Skills::record_uses( $uid, $res['good'] );
+		$xp             = Sawa_Lens_Skills::xp( $uid, min( 50, intdiv( $words, 2 ) ), 'write' );
 		$out            = self::tree_out( $uid );
+		$out['xp']      = $xp;
 		$out['changed'] = self::changes( $before, $out['tree'] );
 		$out['result']  = $res;
 		$out['text']    = $text;

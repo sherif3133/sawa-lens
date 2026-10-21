@@ -57,10 +57,27 @@ final class Sawa_Lens_Skills {
 		self::save_raw( $uid, $raw );
 	}
 
+	/** English XP in the tracker (when it's installed). */
+	public static function xp( $uid, $n, $reason, $capped = true ) {
+		return class_exists( 'Sawa_Tracker_XP' ) ? Sawa_Tracker_XP::award( $uid, $n, $reason, $capped ) : 0;
+	}
+
 	/** Correct uses seen in free writing / chat: { skill: n }. */
 	public static function record_uses( $uid, $good ) {
 		$raw = self::raw( $uid );
 		$day = wp_date( 'Y-m-d' );
+		// Bonus XP: a correct use of a point the learner got wrong in the last 30 days (max 30 a point a day).
+		$recent = self::error_counts( $uid, 30 );
+		foreach ( (array) $good as $id => $n ) {
+			if ( ! empty( $recent[ $id ] ) && $n > 0 ) {
+				$given = (int) ( $raw[ $id ]['bonus'][ $day ] ?? 0 );
+				$add   = min( 30 - $given, 5 * (int) $n );
+				if ( $add > 0 ) {
+					self::xp( $uid, $add, 'improve:' . $id, false );
+					$raw[ $id ]['bonus'] = array( $day => $given + $add );
+				}
+			}
+		}
 		foreach ( (array) $good as $id => $n ) {
 			if ( ! self::get( $id ) || $n <= 0 ) {
 				continue;
@@ -172,6 +189,7 @@ final class Sawa_Lens_Skills {
 				$raw[ $id ]['ever'] = 1;
 				$ever               = true;
 				$dirty              = true;
+				self::xp( $uid, 100, 'mastered:' . $id, false );
 			}
 			$passed = $mastered || ( $items >= 8 && $acc >= 0.8 );
 			$state[ $id ] = array( 'passed' => $passed || $ever );

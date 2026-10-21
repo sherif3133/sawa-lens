@@ -366,6 +366,7 @@
 				btn.disabled = false;
 				btn.textContent = 'Check again';
 				showResult(d);
+				if (d.xp > 0) toast('+' + d.xp + ' XP in the tracker');
 			}, function (e) {
 				btn.disabled = false;
 				btn.textContent = 'Check my writing';
