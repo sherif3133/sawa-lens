@@ -151,6 +151,29 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
+	 * Messages API body. Our answers are short JSON, so thinking is switched off where the model allows it:
+	 * Claude Haiku 5.5 thinks by default and accepts {type: disabled} at its default effort; Opus 5.5 and
+	 * Sonnet 5.5 reject "disabled", so for those we leave thinking at its default.
+	 */
+	private static function request_body( $model, $system, $user, $max_tokens ) {
+		$body = array(
+			'model'      => $model,
+			'max_tokens' => max( 1500, (int) $max_tokens ),
+			'system'     => $system,
+			'messages'   => array(
+				array(
+					'role'    => 'user',
+					'content' => $user,
+				),
+			),
+		);
+		if ( 0 === strpos( $model, 'claude-haiku' ) ) {
+			$body['thinking'] = array( 'type' => 'disabled' );
+		}
+		return $body;
+	}
+
+	/**
 	 * The last complete {…} object in a reply. The model sometimes writes an answer, then a corrected one:
 	 * the last valid object is the one it meant.
 	 */
@@ -236,21 +259,7 @@ final class Sawa_Lens_AI {
 					'anthropic-version' => '2023-06-01',
 					'content-type'      => 'application/json',
 				),
-				'body'    => wp_json_encode(
-					array(
-						'model'      => $s['model'],
-						'max_tokens' => max( 1500, (int) $max_tokens ),
-						// Short JSON answers: no thinking (Claude Haiku 5.5 thinks by default; 'disabled' is allowed at its default effort).
-						'thinking'   => array( 'type' => 'disabled' ),
-						'system'     => $system,
-						'messages'   => array(
-							array(
-								'role'    => 'user',
-								'content' => $user,
-							),
-						),
-					)
-				),
+				'body'    => wp_json_encode( self::request_body( $s['model'], $system, $user, $max_tokens ) ),
 			)
 		);
 		if ( is_wp_error( $res ) ) {
