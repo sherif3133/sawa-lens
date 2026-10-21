@@ -548,7 +548,7 @@
 				{ k: 'sets', t: 'Do one practice set in your skill tree', ar: 'تمرين واحد في شجرة المهارات', how: 'Open Skills → "Work on next" → Start practice. Explanations open as you unlock each point.', done: function (j) { return j.sets >= 1; }, go: 'skills' }
 			] },
 		{ n: 4, title: 'Speak', ar: 'تكلّم', tabs: ['speak'],
-			intro: 'Speaking is where it all comes together. Talk for a minute and get the text of what you said with corrections.',
+			intro: 'Speaking is where it all comes together. Talk for a minute and get the text of what you said with corrections. In the Silk Road you can now pick a job (Thief, Hunter or Trader), buy gear and raid — better English unlocks better gear.',
 			steps: [
 				{ k: 'speaks', t: 'Speak once (in Write → Speak, or a voice note in the tracker chat)', ar: 'سجّل كلامك مرة', how: 'Write → 🎙 Speak → talk about the idea of the day. Or send a voice note in the tracker chat and tap "رأي في كلامي".', done: function (j) { return j.speaks >= 1; }, go: 'write' }
 			] },
@@ -559,7 +559,8 @@
 				'📈 Progress: see if each type of mistake is going down, week by week.',
 				'🔎 Focus mode (Language Lens popup): highlight one grammar point or sound in every video.',
 				'🌐 Write in Arabic in the tracker chat — it\'s translated to English for you to check before sending.',
-				'⚡ Every English message, voice note and fixed mistake earns XP in the tracker.'
+				'⚡ Every English message, voice note and fixed mistake earns XP in the tracker.',
+				'⚔ Silk Road parties: play with 2–4 friends — a party chat, a 48-hour party boss and live battles on the words you are all learning.'
 			], steps: [] }
 	];
 	function stageOf(j) {
@@ -581,6 +582,7 @@
 			S.J = j; S.stage = stageOf(j);
 			if (before && S.stage > before) setTimeout(function () { toast('🎉 Unlocked: ' + STAGES[S.stage - 1].title); }, 400);
 			setPref('lensStage', String(S.stage));
+			window.SawaAppStage = S.stage; // the Silk Road opens its parts stage by stage
 		});
 	}
 	function guide() {
@@ -608,7 +610,7 @@
 			+ '<p class="small muted center-text">' + (cur < 5 ? 'Already know your way around? <button class="link small" id="all">Show me everything</button>' : '') + ' · <a href="' + esc(j.guide) + '" target="_blank" rel="noopener">Full guide (Arabic)</a></p>');
 		$app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
 		var all = $app.querySelector('#all');
-		if (all) all.onclick = function () { setPref('lensAll', '1'); S.stage = 5; toast('Everything is open'); guide(); };
+		if (all) all.onclick = function () { setPref('lensAll', '1'); S.stage = 5; window.SawaAppStage = 5; toast('Everything is open'); guide(); };
 	}
 
 	/* ── The one app: Today, Learn and Me ─────────────── */
