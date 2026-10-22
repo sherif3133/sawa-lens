@@ -54,11 +54,11 @@
 		today: '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
 		learn: '<svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10v5c3 2.5 9 2.5 12 0v-5"/></svg>',
 		chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
-		community: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.5 3-6 6-6s6 2.5 6 6M14.5 14.5c3 0 6.5 1.5 6.5 5"/></svg>',
+		community: '<svg viewBox="0 0 24 24"><path d="M7 8h10a4 4 0 0 1 4 4v3a3 3 0 0 1-5.4 1.8L14.5 15h-5l-1.1 1.8A3 3 0 0 1 3 15v-3a4 4 0 0 1 4-4z"/><path d="M8 11v3M6.5 12.5h3"/><circle cx="15.5" cy="11.5" r=".6"/><circle cx="17.5" cy="13.5" r=".6"/></svg>', // Play: a game controller
 		me: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/></svg>'
 	};
 
-	var APP_TABS = [['today', 'Home'], ['learn', 'Learn'], ['chat', 'Chat'], ['community', 'Community']];
+	var APP_TABS = [['today', 'Home'], ['learn', 'Learn'], ['chat', 'Chat'], ['community', 'Play']]; // Play: the Silk Road game and your clan
 	function tabOf(v) {
 		if (['today', 'chat', 'community'].indexOf(v) >= 0) return v;
 		return ['me', 'library', 'progress', 'start'].indexOf(v) >= 0 ? 'today' : 'learn';
@@ -114,7 +114,7 @@
 		if (view === 'me') { view = 'today'; S.view = 'today'; } // Me is part of Home now
 		if (view === 'scan') return scanView();
 		if (view === 'read') return readView();
-		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Community</h1></section><div class="card stack"><p><b>🐫 The Silk Road opens at stage 3</b> — a world you walk through with the other students, where monsters attack with the words you save. Clans, the weekly boss and the caravan board open with it.</p><p class="muted">To get there, finish your stages — or check a few sentences you wrote in Learn → Write. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Play</h1></section><div class="card stack"><p><b>🐫 The Silk Road opens at stage 3</b> — a world you walk through with the other students, where monsters attack with the words you save. Clans, the weekly boss and the caravan board open with it.</p><p class="muted">To get there, finish your stages — or check a few sentences you wrote in Learn → Write. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
 		if (view === 'chat' || view === 'community') return shell('');
 		if (view === 'start') return guide();
 		if (view === 'skills') return skills();
@@ -936,20 +936,136 @@
 	var SCAN = null;
 	/** Read a text: paste any English text and use it like a scanned page (tap words, save, listen). */
 	function readView() {
-		shell('<section class="stack"><h1>Read a text</h1><p class="muted">Paste any English text — an article, a story, a message, a lesson. Tap a word for its meaning, save it as Learning, save sentences, or listen to the whole text.</p></section>'
-			+ '<textarea id="rtext" rows="7" dir="ltr" maxlength="20000" placeholder="Paste English text here"></textarea><input id="rtitle" dir="auto" maxlength="120" placeholder="Title (optional)">'
-			+ '<button class="btn block" id="rgo">Start reading</button><p class="err" id="er"></p><section id="scan" class="stack"></section>');
-		var ta = $app.querySelector('#rtext'), er = $app.querySelector('#er');
-		ta.oninput = function () { er.textContent = ''; };
-		$app.querySelector('#rgo').onclick = function () {
+		shell('<section class="stack"><h1>Read a text</h1><p class="muted">Paste any English text or upload a PDF — an article, a story, a lesson. Read it as it is, or let AI rewrite it at <b>your level</b>: almost every word one you know, plus a few new ones to learn. Tap a word for its meaning, save it, or listen to the whole text.</p></section>'
+			+ '<textarea id="rtext" rows="7" dir="ltr" maxlength="40000" placeholder="Paste English text here"></textarea>'
+			+ '<div class="ra-btns"><label class="btn ghost" for="rpdf">📄 Upload a PDF</label><input id="rpdf" type="file" accept="application/pdf,.pdf" hidden><span class="small muted" id="rinfo"></span></div>'
+			+ '<input id="rtitle" dir="auto" maxlength="120" placeholder="Title (optional)">'
+			+ '<div class="ra-btns"><button class="btn" id="radapt">✨ Adapt to my level</button><button class="btn ghost" id="rgo">Read as it is</button></div><p class="err" id="er"></p><section id="scan" class="stack"></section>');
+		var ta = $app.querySelector('#rtext'), er = $app.querySelector('#er'), info = $app.querySelector('#rinfo');
+		var count = function () { var n = (ta.value.match(/[A-Za-z]+/g) || []).length; info.textContent = n ? n.toLocaleString('en-US') + ' words' + (n > ADAPT_MAX ? ' · the first ' + ADAPT_MAX.toLocaleString('en-US') + ' can be adapted' : '') : ''; };
+		ta.oninput = function () { er.textContent = ''; count(); };
+		var text = function () {
 			var t = ta.value.trim();
-			if (!t) { er.textContent = 'Paste a text first.'; return; }
+			if (!t) { er.textContent = 'Paste a text or upload a PDF first.'; return ''; }
 			var ar = (t.match(/[؀-ۿ]/g) || []).length, all = (t.match(/[A-Za-z؀-ۿ]/g) || []).length;
-			if (all && ar / all > 0.3) { er.textContent = 'This looks like Arabic. Paste an English text.'; return; }
-			SCAN = { title: $app.querySelector('#rtitle').value.trim() || 'My text', paragraphs: t.split(/\n\s*\n|\n/).map(function (p) { return p.trim(); }).filter(Boolean).slice(0, 300) };
+			if (all && ar / all > 0.3) { er.textContent = 'This looks like Arabic. Paste an English text.'; return ''; }
+			return t;
+		};
+		var paras = function (t) { return t.split(/\n\s*\n|\n/).map(function (p) { return p.trim(); }).filter(Boolean).slice(0, 300); };
+		$app.querySelector('#rgo').onclick = function () {
+			var t = text(); if (!t) return;
+			SCAN = { title: $app.querySelector('#rtitle').value.trim() || 'My text', paragraphs: paras(t) };
 			try { localStorage.setItem('lensScan', JSON.stringify(SCAN)); } catch (e) { /* storage blocked */ }
 			paintScan();
 		};
+		$app.querySelector('#radapt').onclick = function () {
+			var t = text(); if (!t) return;
+			adaptText($app.querySelector('#rtitle').value.trim() || 'My text', paras(t), this);
+		};
+		$app.querySelector('#rpdf').onchange = function () {
+			var f = this.files[0]; if (!f) return;
+			er.textContent = ''; info.textContent = 'Reading the PDF…';
+			pdfText(f).then(function (r) {
+				ta.value = r.text; count();
+				if (!$app.querySelector('#rtitle').value) $app.querySelector('#rtitle').value = f.name.replace(/\.pdf$/i, '').slice(0, 120);
+				if (!r.text.trim()) er.textContent = 'No text found in this PDF. If it is a scanned book, take a photo of the page in Scan a page instead.';
+				else if (r.more) info.textContent += ' · first ' + r.pages + ' pages';
+			}, function () { info.textContent = ''; er.textContent = 'This PDF couldn\'t be opened. Try copying the text instead.'; });
+		};
+	}
+
+	/* ── Graded reading: a text rewritten at your level (Krashen's i+1) ── */
+	var ADAPT_MAX = 6000, ADAPT_CHUNK = 550;
+	/** The PDF's text, page by page, in the browser (pdf.js); lines are joined back into paragraphs. */
+	function pdfText(file) {
+		var load = window.pdfjsLib ? Promise.resolve() : new Promise(function (ok, no) {
+			var s = document.createElement('script');
+			s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+			s.onload = ok; s.onerror = no; document.head.appendChild(s);
+		});
+		return load.then(function () {
+			pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+			return file.arrayBuffer();
+		}).then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; }).then(function (doc) {
+			var pages = Math.min(doc.numPages, 40), out = [], chain = Promise.resolve();
+			for (var i = 1; i <= pages; i++) (function (i) {
+				chain = chain.then(function () { return doc.getPage(i); }).then(function (pg) { return pg.getTextContent(); }).then(function (tc) {
+					var lines = [], line = '', lastY = null, gap = 0;
+					tc.items.forEach(function (it) {
+						var y = it.transform[5];
+						if (lastY !== null && Math.abs(y - lastY) > 2) { lines.push({ t: line.trim(), gap: Math.abs(y - lastY) }); line = ''; }
+						line += it.str + (it.hasEOL ? ' ' : ''); lastY = y;
+					});
+					if (line.trim()) lines.push({ t: line.trim(), gap: 0 });
+					// a bigger gap than usual between lines = a new paragraph
+					var gaps = lines.map(function (l) { return l.gap; }).filter(Boolean).sort(function (a, b) { return a - b; }), usual = gaps[Math.floor(gaps.length / 2)] || 12;
+					var para = '';
+					lines.forEach(function (l) {
+						if (!l.t) return;
+						para += (para && !/-$/.test(para) ? ' ' : '') + l.t.replace(/-$/, '');
+						if (l.gap > usual * 1.4 || /[.!?:"”]$/.test(l.t) && l.t.length < 45) { out.push(para); para = ''; }
+					});
+					if (para) out.push(para);
+				});
+			})(i);
+			return chain.then(function () { return { text: out.join('\n\n'), pages: pages, more: doc.numPages > pages }; });
+		});
+	}
+	/** Share of words a learner at this level probably knows (by the dictionary's levels; names and unknown words skipped). */
+	function coverage(paragraphs, level) {
+		var n = 0, ok = 0;
+		paragraphs.forEach(function (p) {
+			(p.match(/[A-Za-z]+(?:[’'][a-z]+)?/g) || []).forEach(function (w) {
+				if (/^[A-Z]/.test(w) && !/^(I|A|The|An)$/.test(w)) return; // probably a name
+				var es = LEX && LEX.lemmas[lemmaOf(w)];
+				if (!es) return;
+				var lv = Math.min.apply(null, es.map(function (i) { return LEX.entries[i][2]; }));
+				n++; if (lv <= level) ok++;
+			});
+		});
+		return n ? Math.round(100 * ok / n) : null;
+	}
+	/** Rewrites the text chunk by chunk (about 550 words each), so long texts show progress and never time out. */
+	function adaptText(title, paragraphs, btn) {
+		var chunks = [], cur = [], words = 0, total = 0, er = $app.querySelector('#er');
+		paragraphs.forEach(function (p) {
+			var w = (p.match(/[A-Za-z]+/g) || []).length;
+			if (total >= ADAPT_MAX) return;
+			if (words && words + w > ADAPT_CHUNK) { chunks.push(cur); cur = []; words = 0; }
+			cur.push(p); words += w; total += w;
+		});
+		if (cur.length) chunks.push(cur);
+		var out = [], targets = {}, level = 0, i = 0, box = $app.querySelector('#scan');
+		btn.disabled = true;
+		var step = function () {
+			if (i >= chunks.length) return done();
+			btn.textContent = '✨ Adapting… ' + (i + 1) + ' of ' + chunks.length;
+			box.innerHTML = '<p class="loading">Rewriting part ' + (i + 1) + ' of ' + chunks.length + ' at your level…</p>';
+			api('adapt', { body: { text: chunks[i].join('\n\n') } }).then(function (r) {
+				out = out.concat(r.paragraphs); level = r.levelNum;
+				r.targets.forEach(function (t) { targets[t.word] = t; });
+				i++; step();
+			}, function (e) { btn.disabled = false; btn.textContent = '✨ Adapt to my level'; box.innerHTML = ''; er.textContent = e.message; if (out.length) done(); });
+		};
+		var done = function () {
+			btn.disabled = false; btn.textContent = '✨ Adapt to my level';
+			lex().then(function () {
+				SCAN = { title: title, paragraphs: out, adapted: true, level: level, targets: Object.keys(targets).map(function (k) { return targets[k]; }), before: coverage(paragraphs, level), after: coverage(out, level), partial: i < chunks.length };
+				try { localStorage.setItem('lensScan', JSON.stringify(SCAN)); } catch (e) { /* storage blocked */ }
+				paintScan();
+			});
+		};
+		step();
+	}
+	/** Above an adapted text: how much easier it got, and its new words (tap to hear, + to learn). */
+	function adaptedHead() {
+		if (!SCAN || !SCAN.adapted) return '';
+		var lv = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'][(SCAN.level || 2) - 1];
+		return '<section class="card adapted"><div class="row-between"><b>✨ Rewritten for ' + lv + '</b>' + (SCAN.before != null && SCAN.after != null ? '<span class="pill">' + SCAN.before + '% → <b>' + SCAN.after + '%</b> words at your level</span>' : '') + '</div>'
+			+ (SCAN.partial ? '<p class="small muted">Only part of the text was adapted. Try again later for the rest.</p>' : '')
+			+ (SCAN.targets && SCAN.targets.length ? '<p class="small muted">New words in this text (underlined) — your +1. Tap ＋ to add one to your review cards.</p><ul class="tg-list">' + SCAN.targets.map(function (t, i) {
+				return '<li><button class="say sm" data-say="' + esc(t.word) + '" aria-label="Listen">🔊</button><b dir="ltr">' + esc(t.word) + '</b><span class="small muted" dir="ltr">' + esc(t.en) + '</span><span class="small" dir="rtl">' + esc(t.ar) + '</span><button class="btn ghost sm" data-tgl="' + i + '">＋</button></li>';
+			}).join('') + '</ul>' : '') + '</section>';
 	}
 	function scanView() {
 		try { SCAN = SCAN || JSON.parse(localStorage.getItem('lensScan') || 'null'); } catch (e) { /* storage blocked */ }
@@ -1037,11 +1153,19 @@
 		lex().then(function () {
 			if (my !== paintScan.n || !box.isConnected) return;
 			var pi = 0;
-			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + '<div class="ra-btns"><button class="btn" id="readall">🔊 Listen to the whole text</button><label class="small">Speed <select id="readrate"><option value="0.75">Slow</option><option value="0.9" selected>Normal</option><option value="1.05">Fast</option></select></label></div><p class="small muted">Tap a word for its meaning · select words to save a phrase or a sentence</p><div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
+			var tg = {}; (SCAN.targets || []).forEach(function (t) { tg[t.word] = 1; });
+			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + adaptedHead() + '<div class="ra-btns"><button class="btn" id="readall">🔊 Listen to the whole text</button><label class="small">Speed <select id="readrate"><option value="0.75">Slow</option><option value="0.9" selected>Normal</option><option value="1.05">Fast</option></select></label></div><p class="small muted">Tap a word for its meaning · select words to save a phrase or a sentence</p><div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
 				var idx = pi++;
-				return '<p data-p="' + idx + '">' + esc(p).replace(/[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { return '<span class="sw">' + w + '</span>'; }) + '</p>';
+				return '<p data-p="' + idx + '">' + esc(p).replace(/[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { return '<span class="sw' + (tg[w.toLowerCase()] || tg[lemmaOf(w)] ? ' tg' : '') + '">' + w + '</span>'; }) + '</p>';
 			}).join('') + '</div><div id="wcard"></div>';
 			box.querySelector('#readall').onclick = function () { readAll(this); };
+			box.querySelectorAll('[data-tgl]').forEach(function (b) {
+				b.onclick = function () {
+					var t = SCAN.targets[+b.dataset.tgl]; b.disabled = true;
+					api('library/word', { body: { lemma: lemmaOf(t.word), status: 'learning', sentence: (SCAN.paragraphs.filter(function (p) { return p.toLowerCase().indexOf(t.word) >= 0; })[0] || '').slice(0, 600), title: SCAN.title } }).then(function () { b.textContent = '✓'; toast('Added to your review cards'); }, function (e) { b.disabled = false; toast(e.message); });
+				};
+			});
+			box.querySelectorAll('.adapted [data-say]').forEach(function (b) { b.onclick = function () { speak(b.dataset.say); }; });
 			box.querySelectorAll('.sw').forEach(function (sp) {
 				sp.onclick = function () {
 					box.querySelectorAll('.sw.on').forEach(function (x) { x.classList.remove('on'); });

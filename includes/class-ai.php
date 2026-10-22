@@ -173,6 +173,61 @@ final class Sawa_Lens_AI {
 		return array( 'english' => array_values( $out ) );
 	}
 
+	/** The model for graded texts: rewriting well at a level needs a stronger model than short explanations. */
+	const ADAPT_MODEL = 'claude-sonnet-5-5';
+
+	/**
+	 * Graded reading (Krashen's i+1): rewrites a piece of text so a learner at $level (1 = A1 … 6 = C2) knows about
+	 * 95–98% of the words, plus a few useful words just above their level (the "+1"), preferably words they are
+	 * already learning. Meaning, facts, names and the order of ideas stay the same.
+	 * Returns { paragraphs: [...], targets: [{word, en, ar}] }. Long texts are sent in chunks by the app.
+	 */
+	public static function adapt( $uid, $text, $level, $learning = array() ) {
+		$text  = mb_substr( trim( preg_replace( "/[ \t]+/u", ' ', wp_strip_all_tags( (string) $text ) ) ), 0, 6000 );
+		$level = max( 1, min( 6, (int) $level ) );
+		if ( '' === $text ) {
+			return new WP_Error( 'empty', 'No text to adapt.' );
+		}
+		$cefr  = array( 1 => 'A1', 2 => 'A2', 3 => 'B1', 4 => 'B2', 5 => 'C1', 6 => 'C2' );
+		$cur   = $cefr[ $level ];
+		$next  = $cefr[ min( 6, $level + 1 ) ];
+		$learn = array_slice( array_values( array_filter( array_map( 'sanitize_text_field', (array) $learning ) ) ), 0, 40 );
+		$key   = hash( 'sha256', 'adapt|v1|' . $level . '|' . implode( ',', $learn ) . '|' . $text );
+		$hit   = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$system = 'You write graded readers for Arabic-speaking learners of English. Rewrite the text for a learner at CEFR ' . $cur . ', following Krashen\'s i+1: '
+			. 'about 95–98% of the running words must be words a ' . $cur . ' learner knows (the most common ' . ( $level <= 2 ? '1,500' : ( 3 === $level ? '3,000' : '5,000' ) ) . ' English words), and the rest are a few useful words just above that level (' . $next . '), about 2 for every 100 words, never more than 4. '
+			. 'Those new words must be understandable from the sentence around them. '
+			. ( $learn ? 'If they fit naturally, use some of the words this learner is studying as new words: ' . implode( ', ', $learn ) . '. ' : '' )
+			. 'Keep the meaning, the facts, the order of ideas and the tone. Keep people\'s and place names as they are. Do not add opinions or new information, and do not shorten it into a summary: keep every idea. '
+			. ( $level <= 2 ? 'Use short sentences (about 8–14 words), present and past simple mostly, and clear linking words (and, but, because, so, then). ' : 'Use clear sentences (about 12–20 words); keep useful grammar but split very long sentences. ' )
+			. 'Explain idioms and cultural references in simple words inside the text. Keep the paragraph breaks of the original. '
+			. 'Return ONLY a JSON object: {"paragraphs": [the rewritten paragraphs, as strings], "targets": [for each new above-level word you used: {"word": the word as it appears (base form), "en": a very simple English meaning, "ar": its Arabic meaning}]}. Plain JSON, no markdown.';
+		$out = self::call( $system, $text, 9000, 90, self::ADAPT_MODEL );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$paras = array_values( array_filter( array_map( function ( $p ) { return mb_substr( trim( (string) $p ), 0, 4000 ); }, (array) ( $out['paragraphs'] ?? array() ) ) ) );
+		if ( ! $paras ) {
+			return new WP_Error( 'ai', 'The text came back empty. Try again.', array( 'status' => 502 ) );
+		}
+		$targets = array();
+		foreach ( array_slice( (array) ( $out['targets'] ?? array() ), 0, 30 ) as $t ) {
+			if ( ! empty( $t['word'] ) ) {
+				$targets[] = array( 'word' => mb_substr( strtolower( (string) $t['word'] ), 0, 40 ), 'en' => mb_substr( (string) ( $t['en'] ?? '' ), 0, 160 ), 'ar' => mb_substr( (string) ( $t['ar'] ?? '' ), 0, 120 ) );
+			}
+		}
+		$res = array( 'paragraphs' => $paras, 'targets' => $targets, 'level' => $cur );
+		self::store( $key, $res );
+		return $res;
+	}
+
 	/**
 	 * How a phrase or sentence sounds in natural, fast American English, and why:
 	 * linking, flap t, weak forms, elision, assimilation, contractions.
@@ -782,7 +837,7 @@ final class Sawa_Lens_AI {
 		return true;
 	}
 
-	private static function call( $system, $user, $max_tokens, $timeout = 45 ) {
+	private static function call( $system, $user, $max_tokens, $timeout = 45, $model = '' ) {
 		$s = self::settings();
 		if ( '' === $s['api_key'] ) {
 			return new WP_Error( 'off', 'AI explanations are not switched on yet.', array( 'status' => 503 ) );
@@ -796,7 +851,7 @@ final class Sawa_Lens_AI {
 					'anthropic-version' => '2023-06-01',
 					'content-type'      => 'application/json',
 				),
-				'body'    => wp_json_encode( self::request_body( $s['model'], $system, $user, $max_tokens ) ),
+				'body'    => wp_json_encode( self::request_body( '' !== $model ? $model : $s['model'], $system, $user, $max_tokens ) ),
 			)
 		);
 		if ( is_wp_error( $res ) ) {

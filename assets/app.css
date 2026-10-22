@@ -321,3 +321,10 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
 .ch-legend{display:flex;flex-wrap:wrap;gap:12px;margin:6px 0}.ch-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
 @media (max-width:560px){.ch-tiles{grid-template-columns:repeat(2,1fr)}}
 .trk.at-top{padding:0 0 4px}
+
+/* Graded reading (adapted texts) */
+.adapted{border-color:#C7D2FE;background:#F5F7FF}
+.tg-list{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
+.tg-list li{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:4px 10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px}.tg-list .say{width:32px;height:32px;padding:0;font-size:14px}.tg-list [data-tgl]{min-width:40px;padding:4px 10px}
+.scan-text .sw.tg{text-decoration:underline 2px #6250d6;text-underline-offset:4px;font-weight:600}
+@media (max-width:560px){.tg-list li{grid-template-columns:auto auto 1fr auto}.tg-list li .small:not([dir=rtl]){grid-column:1/-1;order:9}.tg-list li [dir=rtl]{text-align:right}}

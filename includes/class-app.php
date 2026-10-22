@@ -232,6 +232,7 @@ self.addEventListener('fetch', function () {});
 		$r( 'library/explain', 'POST', array( __CLASS__, 'library_explain' ) );
 		$r( 'library/save', 'POST', array( __CLASS__, 'library_save' ) );
 		$r( 'scan', 'POST', array( __CLASS__, 'scan' ) );
+		$r( 'adapt', 'POST', array( __CLASS__, 'adapt' ) );
 		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
 		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
 		$r( 'journey', 'GET', array( __CLASS__, 'journey' ) );
@@ -420,6 +421,20 @@ self.addEventListener('fetch', function () {});
 	/** Progress over time, for the charts on the home page. */
 	public static function review_history() {
 		return self::out( Sawa_Lens_Review::history( get_current_user_id() ) );
+	}
+
+	/** Graded reading: one chunk of a text rewritten at the learner's level (i+1), with their Learning words. */
+	public static function adapt( WP_REST_Request $r ) {
+		global $wpdb;
+		$uid   = get_current_user_id();
+		$level = (int) $r->get_param( 'level' );
+		if ( $level < 1 ) {
+			$p     = (array) get_user_meta( $uid, 'sawa_lens_placement', true );
+			$level = Sawa_Lens_Store::level( $uid ) ?: ( (int) ( $p['levelNum'] ?? 0 ) ?: 2 );
+		}
+		$learning = (array) $wpdb->get_col( $wpdb->prepare( 'SELECT lemma FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'learning' ORDER BY learning_on DESC LIMIT 40", $uid ) ); // phpcs:ignore
+		$res      = Sawa_Lens_AI::adapt( $uid, (string) $r->get_param( 'text' ), $level, $learning );
+		return is_wp_error( $res ) ? $res : self::out( $res + array( 'levelNum' => $level ) );
 	}
 
 	public static function library() {
