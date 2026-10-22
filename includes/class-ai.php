@@ -30,15 +30,30 @@ final class Sawa_Lens_AI {
 		return '' !== self::settings()['api_key'];
 	}
 
-	/** Explains a word as used in a sentence: Arabic meaning, sentence translation, short note. */
-	public static function explain( $uid, $word, $sentence, $lang = 'ar' ) {
+	/** The student's "Explanations" setting: 'en' (default) or 'ar'. Shared by the extension and /app. */
+	public static function explain_lang( $uid ) {
+		return 'ar' === get_user_meta( $uid, 'sawa_lens_explain', true ) ? 'ar' : 'en';
+	}
+
+	/** 'en' | 'ar' from a request value; anything else (an old client sent nothing) gives $fallback. */
+	public static function pick_lang( $v, $fallback ) {
+		return in_array( $v, array( 'en', 'ar' ), true ) ? $v : $fallback;
+	}
+
+	/**
+	 * Explains a word as used in a sentence: meaning, sentence translation, short note.
+	 * $lang is the meaning's language (Arabic meaning or English definition); $expl the note's language
+	 * ("Explanations" setting). Without $expl the note follows $lang, as before.
+	 */
+	public static function explain( $uid, $word, $sentence, $lang = 'ar', $expl = '' ) {
 		$lang     = 'en' === $lang ? 'en' : 'ar';
+		$expl     = self::pick_lang( $expl, $lang );
 		$word     = mb_substr( trim( wp_strip_all_tags( (string) $word ) ), 0, 60 );
 		$sentence = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $sentence ) ) ), 0, 600 );
 		if ( '' === $word ) {
 			return new WP_Error( 'empty', 'No word.' );
 		}
-		$key = hash( 'sha256', 'explain|v1|' . ( 'en' === $lang ? 'en|' : '' ) . strtolower( $word ) . '|' . $sentence );
+		$key = hash( 'sha256', 'explain|v1|' . ( 'en' === $lang ? 'en|' : '' ) . ( $expl !== $lang ? 'x' . $expl . '|' : '' ) . strtolower( $word ) . '|' . $sentence );
 		$hit = self::cached( $key );
 		if ( $hit ) {
 			return $hit;
@@ -61,6 +76,11 @@ final class Sawa_Lens_AI {
 				. '"note" (one short sentence about usage only if useful: phrasal verb, idiom, collocation, register; otherwise empty string). '
 				. 'Never invent context that is not in the sentence.';
 		}
+		if ( $expl !== $lang ) {
+			$system .= 'ar' === $expl
+				? ' Exception: write "note" in short Modern Standard Arabic (فصحى), keeping quoted English words in English.'
+				: ' Exception: write "note" in simple, clear English (B1 level).';
+		}
 		$user   = "Word: {$word}\nSentence: {$sentence}";
 		$out    = self::call( $system, $user, 1200 );
 		if ( is_wp_error( $out ) ) {
@@ -70,6 +90,7 @@ final class Sawa_Lens_AI {
 			'meaning'  => mb_substr( (string) ( $out['meaning'] ?? '' ), 0, 120 ),
 			'sentence' => mb_substr( (string) ( $out['sentence'] ?? '' ), 0, 1000 ),
 			'note'     => mb_substr( (string) ( $out['note'] ?? '' ), 0, 300 ),
+			'noteLang' => $expl,
 		);
 		self::store( $key, $res );
 		return $res;
@@ -232,12 +253,13 @@ final class Sawa_Lens_AI {
 	 * How a phrase or sentence sounds in natural, fast American English, and why:
 	 * linking, flap t, weak forms, elision, assimilation, contractions.
 	 */
-	public static function sound( $uid, $text ) {
+	public static function sound( $uid, $text, $lang = 'en' ) {
+		$lang = 'ar' === $lang ? 'ar' : 'en';
 		$text = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $text ) ) ), 0, 400 );
 		if ( '' === $text ) {
 			return new WP_Error( 'empty', 'Nothing to explain.' );
 		}
-		$key = hash( 'sha256', 'sound|v1|' . strtolower( $text ) );
+		$key = hash( 'sha256', 'sound|v1|' . ( 'ar' === $lang ? 'ar|' : '' ) . strtolower( $text ) );
 		$hit = self::cached( $key );
 		if ( $hit ) {
 			return $hit;
@@ -253,6 +275,9 @@ final class Sawa_Lens_AI {
 			. '"ipa": a broad American IPA transcription of the connected speech; '
 			. '"features": an array (max 5) of objects {"where": the exact words from the text, "feature": short name (linking, flap t, weak form, elision, assimilation, contraction, -ed ending, stress, intonation), "why": one short simple-English sentence explaining the rule, e.g. "When a word ends in a consonant and the next starts with a vowel, we join them."}. '
 			. 'Only include features that really happen in this text. Plain JSON, no markdown.';
+		if ( 'ar' === $lang ) {
+			$system .= ' Write every "why" in short, simple Modern Standard Arabic (فصحى) instead of English, keeping the English words and sounds you quote in English; "feature" stays an English name.';
+		}
 		$out    = self::call( $system, "Text to analyse:\n" . $text, 1200 );
 		if ( is_wp_error( $out ) ) {
 			return $out;
@@ -272,6 +297,7 @@ final class Sawa_Lens_AI {
 			'soundsLike' => mb_substr( (string) ( $out['soundsLike'] ?? '' ), 0, 600 ),
 			'ipa'        => mb_substr( (string) ( $out['ipa'] ?? '' ), 0, 600 ),
 			'features'   => $features,
+			'lang'       => $lang,
 		);
 		self::store( $key, $res );
 		return $res;

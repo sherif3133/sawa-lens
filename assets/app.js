@@ -5,7 +5,7 @@
 	var $app = document.getElementById('app');
 	var TRACKS = [['grammar', 'Grammar'], ['tone', 'Tone & politeness'], ['pron', 'Pronunciation']];
 	var STATUS = { open: 'Open', mastered: 'Mastered', review: 'Needs work', locked: 'Locked' };
-	var S = { view: 'skills', track: 'grammar', tree: null, next: [], byId: {}, ar: pref('lensAr', '0') === '1' };
+	var S = { view: 'skills', track: 'grammar', tree: null, next: [], byId: {}, ar: B.explainLang ? B.explainLang === 'ar' : pref('lensAr', '0') === '1' }; // "Explanations: English / العربية", saved with the account
 
 	function pref(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
 	function setPref(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
@@ -182,6 +182,7 @@
 			b.onclick = function () {
 				S.ar = !S.ar;
 				setPref('lensAr', S.ar ? '1' : '0');
+				api('prefs', { body: { explainLang: S.ar ? 'ar' : 'en' } }).catch(function () {}); // Language Lens follows it too
 				root.querySelectorAll('[data-ar]').forEach(function (e) { e.hidden = !S.ar; });
 				root.querySelectorAll('[data-toggle-ar]').forEach(function (x) { x.textContent = S.ar ? 'Hide Arabic' : 'عربي – show in Arabic'; });
 			};
@@ -1236,7 +1237,7 @@
 		var aw = el.querySelector('[data-ai-word]');
 		aw.querySelector('button').onclick = function () {
 			this.textContent = 'Explaining…';
-			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small ar muted">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
+			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
 		};
 		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learning'; b.disabled = true; toast('Added to your review cards'); }, function (e) { toast(e.message); }); };
 		el.querySelector('#savesent').onclick = function () { saveEditor(sentence, sentence); };
@@ -1327,7 +1328,7 @@
 					var right = box.querySelector('.opt[data-k="' + r.answer + '"]'); if (right) right.classList.add('right');
 				} else { box.querySelector('#qa').disabled = true; }
 				box.querySelector('#qfb').innerHTML = '<div class="fb ' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? 'Correct ✓ +5 XP' : 'Not quite' + (q.type === 'blank' ? ' — it\'s “' + esc(r.answer) + '”' : '')) + '</b>'
-					+ (r.why ? '<p>' + esc(r.why) + '</p>' : '') + (r.why_ar ? '<p class="ar">' + esc(r.why_ar) + '</p>' : '') + (!r.ok && q.word ? '<p class="small muted">“' + esc(q.word) + '” was added to your review cards.</p>' : '') + '</div>'
+					+ (r.why ? '<p>' + esc(r.why) + '</p>' : '') + (r.why_ar && S.ar ? '<p class="ar">' + esc(r.why_ar) + '</p>' : '') + (!r.ok && q.word ? '<p class="small muted">“' + esc(q.word) + '” was added to your review cards.</p>' : '') + '</div>'
 					+ '<button class="btn block" id="qgo">Continue the video ▶</button>';
 				paintMarks();
 				$app.querySelector('#qgo').onclick = function () { W.asking = null; box.innerHTML = ''; W.player.playVideo(); };
@@ -1425,7 +1426,7 @@
 		if (c.type === 'mistake') {
 			var open = unlockedSkill(c.skill);
 			return '<p class="rv-sent ok" dir="ltr">✓ ' + esc(c.fixed) + '</p>'
-				+ (open ? (c.why ? '<p>' + esc(c.why) + '</p>' : '') + (c.why_ar ? '<p class="ar muted">' + esc(c.why_ar) + '</p>' : '') : '<p class="small muted">🔒 The explanation unlocks with <b>' + esc(c.skillName) + '</b>.</p>')
+				+ (open ? (c.why ? '<p>' + esc(c.why) + '</p>' : '') + (c.why_ar && S.ar ? '<p class="ar muted">' + esc(c.why_ar) + '</p>' : '') : '<p class="small muted">🔒 The explanation unlocks with <b>' + esc(c.skillName) + '</b>.</p>')
 				+ (c.skillName ? '<p class="small muted">' + esc(c.skillName) + '</p>' : '');
 		}
 		var link = srcLink(c);
@@ -1583,7 +1584,7 @@
 			b.onclick = function () {
 				b.textContent = 'Explaining…';
 				api('library/explain', { body: { word: box.dataset.aiWord } }).then(function (x) {
-					box.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small ar muted">' + esc(x.note) + '</p>' : '') + (x.example ? '<p class="small muted" dir="ltr">“' + esc(x.example) + '”</p>' : '');
+					box.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.example ? '<p class="small muted" dir="ltr">“' + esc(x.example) + '”</p>' : '');
 				}, function (e) { b.textContent = e.message; });
 			};
 		});

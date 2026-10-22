@@ -117,6 +117,7 @@ final class Sawa_Lens_Rest {
 				'app'      => Sawa_Lens_App::url(),
 				'progress' => Sawa_Lens_Store::progress( $uid, 14 ),
 				'admin'    => user_can( $uid, 'manage_options' ),
+				'explainLang' => Sawa_Lens_AI::explain_lang( $uid ), // "Explanations: English / العربية"
 			)
 		);
 	}
@@ -170,7 +171,12 @@ final class Sawa_Lens_Rest {
 		if ( $level >= 1 && $level <= 6 ) {
 			update_user_meta( get_current_user_id(), 'sawa_lens_level', $level );
 		}
-		return self::out( array( 'level' => Sawa_Lens_Store::level( get_current_user_id() ) ) );
+		// "Explanations: English / العربية", shared with /app.
+		$expl = (string) $r->get_param( 'explainLang' );
+		if ( in_array( $expl, array( 'en', 'ar' ), true ) ) {
+			update_user_meta( get_current_user_id(), 'sawa_lens_explain', $expl );
+		}
+		return self::out( array( 'level' => Sawa_Lens_Store::level( get_current_user_id() ), 'explainLang' => Sawa_Lens_AI::explain_lang( get_current_user_id() ) ) );
 	}
 
 	/**
@@ -185,6 +191,11 @@ final class Sawa_Lens_Rest {
 		$level = (int) $r->get_param( 'level' );
 		if ( $level >= 1 && $level <= 6 ) {
 			update_user_meta( $uid, 'sawa_lens_level', $level );
+		}
+		// "Explanations" changed on this device (sent only then; otherwise the account's value comes back).
+		$expl = (string) $r->get_param( 'explainLang' );
+		if ( in_array( $expl, array( 'en', 'ar' ), true ) ) {
+			update_user_meta( $uid, 'sawa_lens_explain', $expl );
 		}
 		Sawa_Lens_Store::put_words( $uid, $pushW );
 		Sawa_Lens_Store::put_sentences( $uid, $pushS );
@@ -221,6 +232,7 @@ final class Sawa_Lens_Rest {
 				'more'      => count( $words ) >= 5000 || count( $sentences ) >= 2000,
 				'level'     => Sawa_Lens_Store::level( $uid ),
 				'cards'     => Sawa_Lens_Review::capacity( $uid ), // card level: how many new Learning words today
+				'explainLang' => Sawa_Lens_AI::explain_lang( $uid ),
 				'words'     => array_map(
 					function ( $w ) {
 						return array(
@@ -239,7 +251,7 @@ final class Sawa_Lens_Rest {
 	}
 
 	public static function explain( WP_REST_Request $r ) {
-		$res = Sawa_Lens_AI::explain( get_current_user_id(), $r->get_param( 'word' ), $r->get_param( 'sentence' ), (string) $r->get_param( 'lang' ) );
+		$res = Sawa_Lens_AI::explain( get_current_user_id(), $r->get_param( 'word' ), $r->get_param( 'sentence' ), (string) $r->get_param( 'lang' ), (string) $r->get_param( 'expl' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
@@ -264,7 +276,7 @@ final class Sawa_Lens_Rest {
 	}
 
 	public static function sound( WP_REST_Request $r ) {
-		$res = Sawa_Lens_AI::sound( get_current_user_id(), $r->get_param( 'text' ) );
+		$res = Sawa_Lens_AI::sound( get_current_user_id(), $r->get_param( 'text' ), (string) $r->get_param( 'lang' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 

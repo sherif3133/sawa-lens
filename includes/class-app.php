@@ -88,6 +88,7 @@ final class Sawa_Lens_App {
 			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
 			'appMode' => $app_mode,
 			'progress' => esc_url_raw( rest_url( self::NS . '/web/progress' ) ),
+			'explainLang' => Sawa_Lens_AI::explain_lang( $u->ID ), // same setting as in Language Lens
 		);
 		$trk = $app_mode ? do_shortcode( '[sawa_tracker embedded="1" view="today"]' ) : '';
 		$v = SAWA_LENS_VER;
@@ -224,6 +225,7 @@ self.addEventListener('fetch', function () {});
 		$r( 'review', 'GET', array( __CLASS__, 'review' ) );
 		$r( 'review', 'POST', array( __CLASS__, 'review_grade' ) );
 		$r( 'review/settings', 'POST', array( __CLASS__, 'review_settings' ) );
+		$r( 'prefs', 'POST', array( __CLASS__, 'prefs' ) );
 		$r( 'review/history', 'GET', array( __CLASS__, 'review_history' ) );
 		$r( 'library', 'GET', array( __CLASS__, 'library' ) );
 		$r( 'library/word', 'POST', array( __CLASS__, 'library_word' ) );
@@ -416,6 +418,16 @@ self.addEventListener('fetch', function () {});
 			update_user_meta( get_current_user_id(), 'sawa_lens_new_per_day', $n );
 		}
 		return self::out( Sawa_Lens_Review::stats( get_current_user_id() ) );
+	}
+
+	/** "Explanations: English / العربية" (shared with Language Lens). */
+	public static function prefs( WP_REST_Request $r ) {
+		$uid  = get_current_user_id();
+		$expl = (string) $r->get_param( 'explainLang' );
+		if ( in_array( $expl, array( 'en', 'ar' ), true ) ) {
+			update_user_meta( $uid, 'sawa_lens_explain', $expl );
+		}
+		return self::out( array( 'explainLang' => Sawa_Lens_AI::explain_lang( $uid ) ) );
 	}
 
 	/** Progress over time, for the charts on the home page. */
@@ -773,7 +785,7 @@ self.addEventListener('fetch', function () {});
 		$word = mb_substr( trim( sanitize_text_field( (string) $r->get_param( 'word' ) ) ), 0, 60 );
 		$given = trim( (string) $r->get_param( 'sentence' ) );
 		$sent = '' !== $given ? mb_substr( $given, 0, 600 ) : (string) $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0 AND body LIKE %s ORDER BY id DESC LIMIT 1', $uid, '%' . $wpdb->esc_like( $word ) . '%' ) ); // phpcs:ignore
-		$res  = Sawa_Lens_AI::explain( $uid, $word, '' !== $sent ? $sent : $word, 'ar' );
+		$res  = Sawa_Lens_AI::explain( $uid, $word, '' !== $sent ? $sent : $word, 'ar', Sawa_Lens_AI::explain_lang( $uid ) );
 		return is_wp_error( $res ) ? $res : self::out( $res + array( 'example' => $sent ) );
 	}
 
