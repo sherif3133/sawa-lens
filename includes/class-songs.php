@@ -25,7 +25,9 @@ final class Sawa_Lens_Songs {
 	public static function init() {
 		add_action( 'sawa_lens_make_song', array( __CLASS__, 'make' ) );
 		// The Silk Road's song camp: only when there is a song to sing (or one can be made now).
-		add_filter( 'sawa_tracker_road_song', function ( $on, $uid ) { return $on && self::road_ready( $uid ); }, 10, 2 );
+		add_filter( 'sawa_tracker_road_song', function ( $on, $uid ) { return ( $on && self::road_ready( $uid ) ) || ( class_exists( 'Sawa_Lens_Lessons' ) && Sawa_Lens_Lessons::count_kind( 'song' ) > 0 ); }, 10, 2 );
+		// …and the video camp only when there is a published video (not a song).
+		add_filter( 'sawa_tracker_road_video', function ( $on ) { return class_exists( 'Sawa_Lens_Lessons' ) && Sawa_Lens_Lessons::count_kind( 'video' ) > 0; } );
 	}
 
 	/** A ready song, one being made, or one that can be made now. */

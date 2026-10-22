@@ -20,6 +20,7 @@ final class Sawa_Lens_Lessons {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			video_id varchar(11) NOT NULL,
 			title varchar(200) NOT NULL DEFAULT '',
+			kind varchar(8) NOT NULL DEFAULT 'video',
 			words text,
 			transcript longtext,
 			questions longtext,
@@ -67,6 +68,7 @@ final class Sawa_Lens_Lessons {
 			'id'         => (int) $r['id'],
 			'videoId'    => $r['video_id'],
 			'title'      => $r['title'],
+			'kind'       => 'song' === ( $r['kind'] ?? '' ) ? 'song' : 'video', // a song: a music video, its transcript is the lyrics
 			'words'      => array_values( array_filter( array_map( 'trim', explode( ',', (string) $r['words'] ) ) ) ),
 			'transcript' => is_array( $t ) ? $t : array(),
 			'questions'  => is_array( $q ) ? $q : array(),
@@ -77,7 +79,7 @@ final class Sawa_Lens_Lessons {
 
 	public static function all( $published_only = false ) {
 		global $wpdb;
-		$rows = (array) $wpdb->get_results( 'SELECT id, video_id, title, words, questions, published, updated_at FROM ' . self::t() . ( $published_only ? ' WHERE published = 1' : '' ) . ' ORDER BY id DESC', ARRAY_A ); // phpcs:ignore
+		$rows = (array) $wpdb->get_results( 'SELECT id, video_id, title, kind, words, questions, published, updated_at FROM ' . self::t() . ( $published_only ? ' WHERE published = 1' : '' ) . ' ORDER BY id DESC', ARRAY_A ); // phpcs:ignore
 		return array_map(
 			function ( $r ) {
 				$r['transcript'] = '';
@@ -97,6 +99,9 @@ final class Sawa_Lens_Lessons {
 		}
 		if ( isset( $data['title'] ) ) {
 			$row['title'] = mb_substr( sanitize_text_field( $data['title'] ), 0, 200 );
+		}
+		if ( isset( $data['kind'] ) ) {
+			$row['kind'] = 'song' === $data['kind'] ? 'song' : 'video';
 		}
 		if ( isset( $data['words'] ) ) {
 			$row['words'] = implode( ', ', array_slice( array_filter( array_map( 'trim', explode( ',', sanitize_text_field( $data['words'] ) ) ) ), 0, 60 ) );
@@ -208,7 +213,9 @@ final class Sawa_Lens_Lessons {
 			'id'        => $lesson['id'],
 			'videoId'   => $lesson['videoId'],
 			'title'     => $lesson['title'],
+			'kind'      => $lesson['kind'],
 			'words'     => $lesson['words'],
+			'transcript' => $lesson['transcript'], // [[seconds, text], …]: from the admin's own captions or a pasted transcript
 			'questions' => array_map(
 				function ( $q ) {
 					return array_intersect_key( $q, array_flip( array( 'id', 't', 'type', 'q', 'options', 'word' ) ) );
@@ -270,6 +277,16 @@ final class Sawa_Lens_Lessons {
 		);
 	}
 
+	/** How many published lessons of a kind there are (video | song), for the Silk Road's camps. */
+	public static function count_kind( $kind ) {
+		global $wpdb;
+		static $c = array();
+		if ( ! isset( $c[ $kind ] ) ) {
+			$c[ $kind ] = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . self::t() . ' WHERE published = 1 AND kind = %s', $kind ) ); // phpcs:ignore
+		}
+		return $c[ $kind ];
+	}
+
 	/** Published lessons with this student's score, for the Watch tab. */
 	public static function list_for( $uid ) {
 		global $wpdb;
@@ -283,6 +300,7 @@ final class Sawa_Lens_Lessons {
 					'id'       => $l['id'],
 					'videoId'  => $l['videoId'],
 					'title'    => $l['title'],
+					'kind'     => $l['kind'],
 					'words'    => array_slice( $l['words'], 0, 12 ),
 					'total'    => count( $l['questions'] ),
 					'correct'  => $scores[ $l['id'] ][0] ?? 0,

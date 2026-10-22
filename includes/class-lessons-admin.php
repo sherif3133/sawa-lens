@@ -47,6 +47,7 @@ final class Sawa_Lens_Lessons_Admin {
 		$data = array(
 			'title' => isset( $_POST['title'] ) ? wp_unslash( $_POST['title'] ) : '', // phpcs:ignore
 			'words' => isset( $_POST['words'] ) ? wp_unslash( $_POST['words'] ) : '', // phpcs:ignore
+			'kind'  => isset( $_POST['kind'] ) && 'song' === $_POST['kind'] ? 'song' : 'video', // phpcs:ignore
 		);
 		if ( isset( $_POST['video'] ) ) {
 			$vid = self::video_id( wp_unslash( $_POST['video'] ) ); // phpcs:ignore
@@ -157,7 +158,7 @@ final class Sawa_Lens_Lessons_Admin {
 			$n   = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'lesson_results' ) . ' WHERE lesson_id = %d', $l['id'] ) ); // phpcs:ignore
 			$avg = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT AVG(correct / GREATEST(answered,1)) FROM ' . Sawa_Lens_Store::t( 'lesson_results' ) . ' WHERE lesson_id = %d', $l['id'] ) ); // phpcs:ignore
 			echo '<tr><td><a href="' . esc_url( self::url( array( 'edit' => $l['id'] ) ) ) . '"><img src="https://i.ytimg.com/vi/' . esc_attr( $l['videoId'] ) . '/default.jpg" alt="" style="width:80px;vertical-align:middle;margin-right:8px;border-radius:4px"><b>' . esc_html( $l['title'] ? $l['title'] : $l['videoId'] ) . '</b></a></td>'
-				. '<td>' . esc_html( implode( ', ', array_slice( $l['words'], 0, 8 ) ) ) . '</td><td>' . count( $l['questions'] ) . '</td>'
+				. '<td>' . ( 'song' === $l['kind'] ? '🎵 ' : '📺 ' ) . esc_html( implode( ', ', array_slice( $l['words'], 0, 8 ) ) ) . '</td><td>' . count( $l['questions'] ) . '</td>'
 				. '<td>' . ( $n ? esc_html( $n . ' · ' . round( $avg * 100 ) . '% right' ) : '–' ) . '</td><td>' . ( $l['published'] ? '<span style="color:#15803D;font-weight:600">Published</span>' : 'Draft' ) . '</td></tr>';
 		}
 		echo '</tbody></table>';
@@ -174,11 +175,13 @@ final class Sawa_Lens_Lessons_Admin {
 			echo '<p><a href="https://www.youtube.com/watch?v=' . esc_attr( $l['videoId'] ) . '" target="_blank">Open on YouTube</a></p>';
 		}
 		echo '</td></tr>';
+		$song = $l && 'song' === $l['kind'];
+		echo '<tr><th>Type</th><td><label><input type="radio" name="kind" value="video"' . ( $song ? '' : ' checked' ) . '> 📺 Video</label> &nbsp; <label><input type="radio" name="kind" value="song"' . ( $song ? ' checked' : '' ) . '> 🎵 Song (a music video: the transcript is the lyrics)</label><p class="description">In the Silk Road, videos open at the 📺 camp and songs at the 🎵 camp, with the transcript under the player: students tap any word for its meaning, on a phone too.</p></td></tr>';
 		echo '<tr><th><label for="title">Title</label></th><td><input id="title" name="title" class="regular-text" value="' . esc_attr( $l ? $l['title'] : '' ) . '"></td></tr>';
 		echo '<tr><th><label for="words">Key words to teach</label></th><td><textarea id="words" name="words" class="large-text" rows="2" placeholder="afford, give up, get along with…">' . esc_textarea( $l ? implode( ', ', $l['words'] ) : '' ) . '</textarea><p class="description">Comma-separated. Leave empty and the AI picks the most useful words from the video.</p></td></tr>';
 		$lines = $l ? count( $l['transcript'] ) : 0;
 		echo '<tr><th><label for="transcript">Transcript</label></th><td>' . ( $lines ? '<p>' . (int) $lines . ' lines saved (to ' . esc_html( self::mmss( end( $l['transcript'] )[0] ) ) . '). Paste a new one below only to replace it.</p>' : '' )
-			. '<textarea id="transcript" name="transcript" class="large-text code" rows="' . ( $lines ? 3 : 8 ) . '" placeholder="0:00&#10;Hello everyone, welcome back…&#10;0:04&#10;Today we are going to…"></textarea><p class="description">On YouTube: … (under the video) → Show transcript → select it all → copy → paste here. Or use the Language Lens button on the video.</p></td></tr></table>';
+			. '<textarea id="transcript" name="transcript" class="large-text code" rows="' . ( $lines ? 3 : 8 ) . '" placeholder="0:00&#10;Hello everyone, welcome back…&#10;0:04&#10;Today we are going to…"></textarea><p class="description">On YouTube: … (under the video) → Show transcript → select it all → copy → paste here. Or use the Language Lens button on the video. Use your own captions, or the lyrics with times for a song. Students see this transcript under the video in the Silk Road.</p></td></tr></table>';
 
 		echo '<p><label>Questions to make: <input type="number" name="count" min="3" max="20" value="8" style="width:60px"></label> ';
 		echo '<label><input type="checkbox" name="append" value="1"> Keep the questions I have and add new ones</label></p>';
