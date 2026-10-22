@@ -103,6 +103,76 @@ final class Sawa_Lens_AI {
 		return $res;
 	}
 
+	const TO_EN = 'You translate Arabic (Modern Standard Arabic, Egyptian or any dialect, or Franco-Arabic written in Latin letters and numbers) into natural, simple English that an A2–B1 learner can read. Keep the meaning and tone (casual stays casual). Keep people\'s names, usernames and @mentions as they are; never translate a name. Keep emojis. Plain JSON, no markdown.';
+
+	/**
+	 * Arabic → English, so learners read English even when the page is in Arabic.
+	 * With $word (an Arabic word in the text): also that word's English meaning here.
+	 */
+	public static function to_english( $uid, $text, $word = '' ) {
+		$text = mb_substr( trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $text ) ) ), 0, 800 );
+		$word = mb_substr( trim( (string) $word ), 0, 40 );
+		if ( '' === $text ) {
+			return new WP_Error( 'empty', 'Nothing to translate.' );
+		}
+		$key = hash( 'sha256', 'to_en|v1|' . $word . '|' . $text );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$out = self::call( self::TO_EN . ' Return ONLY a JSON object: {"english": the whole text in English' . ( '' !== $word ? ', "word": the English for the Arabic word "' . $word . '" as used here (1–3 words), "pos": its part of speech (noun, verb, adjective, adverb, other)' : '' ) . '}.', $text, 1200 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$res = array(
+			'english' => mb_substr( (string) ( $out['english'] ?? '' ), 0, 1500 ),
+			'word'    => mb_substr( (string) ( $out['word'] ?? '' ), 0, 60 ),
+			'pos'     => sanitize_key( (string) ( $out['pos'] ?? '' ) ),
+		);
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/** Many short Arabic texts (posts, comments) → English in one AI call; each one cached on its own. */
+	public static function to_english_many( $uid, $texts ) {
+		$texts = array_slice( array_values( array_filter( array_map( function ( $t ) { return mb_substr( trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) $t ) ) ), 0, 600 ); }, (array) $texts ) ) ), 0, 12 );
+		$out   = array();
+		$need  = array();
+		foreach ( $texts as $i => $t ) {
+			$hit = self::cached( hash( 'sha256', 'to_en|v1||' . $t ) );
+			if ( $hit ) {
+				$out[ $i ] = (string) $hit['english'];
+			} else {
+				$need[ $i ] = $t;
+			}
+		}
+		if ( $need ) {
+			$limit = self::limit( $uid );
+			if ( is_wp_error( $limit ) ) {
+				return $limit;
+			}
+			$r = self::call( self::TO_EN . ' You get a JSON array of texts. Return ONLY a JSON object: {"english": [one English translation for each text, same order, same count]}.', wp_json_encode( array_values( $need ), JSON_UNESCAPED_UNICODE ), 3000, 60 );
+			if ( is_wp_error( $r ) ) {
+				return $r;
+			}
+			$en = array_values( (array) ( $r['english'] ?? array() ) );
+			$k  = 0;
+			foreach ( $need as $i => $t ) {
+				$e = mb_substr( (string) ( $en[ $k++ ] ?? '' ), 0, 1200 );
+				$out[ $i ] = $e;
+				if ( '' !== $e ) {
+					self::store( hash( 'sha256', 'to_en|v1||' . $t ), array( 'english' => $e, 'word' => '', 'pos' => '' ) );
+				}
+			}
+		}
+		ksort( $out );
+		return array( 'english' => array_values( $out ) );
+	}
+
 	/**
 	 * How a phrase or sentence sounds in natural, fast American English, and why:
 	 * linking, flap t, weak forms, elision, assimilation, contractions.

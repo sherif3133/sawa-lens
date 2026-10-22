@@ -56,6 +56,7 @@ final class Sawa_Lens_Rest {
 		$r( '/sync', 'POST', array( __CLASS__, 'sync' ) );
 		$r( '/explain', 'POST', array( __CLASS__, 'explain' ) );
 		$r( '/translate', 'POST', array( __CLASS__, 'translate' ) );
+		$r( '/to-english', 'POST', array( __CLASS__, 'to_english' ) );
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
 		$r( '/proof', 'POST', array( __CLASS__, 'proof' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
@@ -264,6 +265,15 @@ final class Sawa_Lens_Rest {
 
 	public static function translate( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::translate( get_current_user_id(), $r->get_param( 'sentence' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** Arabic → English: {text, word?} for one text, or {texts: [...]} for posts and comments on a page. */
+	public static function to_english( WP_REST_Request $r ) {
+		$uid = get_current_user_id();
+		$res = is_array( $r->get_param( 'texts' ) )
+			? Sawa_Lens_AI::to_english_many( $uid, $r->get_param( 'texts' ) )
+			: Sawa_Lens_AI::to_english( $uid, (string) $r->get_param( 'text' ), (string) $r->get_param( 'word' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
