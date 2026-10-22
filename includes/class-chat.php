@@ -7,7 +7,8 @@
  * Chat English is also checked automatically, without the learner asking: English messages queue up per learner,
  * and once a day an hourly job checks them in one batch (one AI call per learner per day, with a daily cap for the
  * whole site). Errors go to the error log (source "chat"), right uses pay the improvement bonus, and the learner gets
- * a private notification. Nothing is shown in the room.
+ * a private notification. Nothing is shown in the room. Voice notes (5+ seconds) are checked too: up to two a day are
+ * transcribed (the text is saved on the message for everyone) and checked as speaking (source "voice").
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -39,11 +40,25 @@ final class Sawa_Lens_Chat {
 	const BATCH_MIN  = 3;    // a check needs at least this many messages (or one day of waiting)
 	const BATCH_CHARS = 900; // text sent in one check
 	const SITE_DAY   = 150;  // checks a day for the whole site
+	const VOICE_DAY  = 2;    // voice notes transcribed and checked per learner a day
 
 	/** A chat message in English (5+ words) waits for the daily check. */
 	public static function queue( $uid, $room_id, $msg_id, $body, $audio ) {
 		$text = trim( wp_strip_all_tags( (string) $body ) );
-		if ( '' === $text || '0' === (string) get_option( 'sawa_lens_chat_auto', '1' ) || ! Sawa_Lens_Auth::allowed( $uid ) ) {
+		if ( '0' === (string) get_option( 'sawa_lens_chat_auto', '1' ) || ! Sawa_Lens_Auth::allowed( $uid ) ) {
+			return;
+		}
+		if ( '' !== (string) $audio && class_exists( 'Sawa_Tracker_Social' ) ) { // a voice note: checked as speaking
+			$m = Sawa_Tracker_Social::message_row( (int) $msg_id );
+			if ( $m && (int) $m['duration'] >= 5 ) {
+				$q = get_user_meta( $uid, 'sawa_lens_chatq', true );
+				$q = is_array( $q ) ? $q : array( 'since' => time(), 'msgs' => array() );
+				$q['voice'] = array_slice( array_merge( (array) ( $q['voice'] ?? array() ), array( (int) $msg_id ) ), -5 );
+				update_user_meta( $uid, 'sawa_lens_chatq', $q );
+			}
+			return;
+		}
+		if ( '' === $text ) {
 			return;
 		}
 		if ( count( preg_split( '/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY ) ) < 5 || preg_match( '/[\x{0600}-\x{06FF}]/u', $text ) || ! preg_match( '/[a-z]{2}/i', $text ) ) {
@@ -86,12 +101,21 @@ final class Sawa_Lens_Chat {
 	public static function review( $uid, $force = false ) {
 		global $wpdb;
 		$q = get_user_meta( $uid, 'sawa_lens_chatq', true );
-		if ( ! is_array( $q ) || ! $q['msgs'] ) {
+		if ( ! is_array( $q ) || ( ! $q['msgs'] && empty( $q['voice'] ) ) ) {
 			return false;
 		}
 		$day = Sawa_Lens_Store::today();
-		if ( ! $force && ( get_user_meta( $uid, 'sawa_lens_chatq_last', true ) === $day || ( count( $q['msgs'] ) < self::BATCH_MIN && time() - (int) $q['since'] < DAY_IN_SECONDS ) ) ) {
+		if ( ! $force && ( get_user_meta( $uid, 'sawa_lens_chatq_last', true ) === $day || ( count( $q['msgs'] ) < self::BATCH_MIN && empty( $q['voice'] ) && time() - (int) $q['since'] < DAY_IN_SECONDS ) ) ) {
 			return false;
+		}
+		$spoken = self::review_voice( $uid, (array) ( $q['voice'] ?? array() ) );
+		if ( ! $q['msgs'] ) {
+			delete_user_meta( $uid, 'sawa_lens_chatq' );
+			update_user_meta( $uid, 'sawa_lens_chatq_last', $day );
+			if ( $spoken ) {
+				self::notify( $uid, 0, array(), $spoken );
+			}
+			return (bool) $spoken;
 		}
 		$text = '';
 		foreach ( $q['msgs'] as $m ) {
@@ -109,16 +133,69 @@ final class Sawa_Lens_Chat {
 		$wpdb->insert( Sawa_Lens_Store::t( 'writing' ), array( 'user_id' => $uid, 'source' => 'chat', 'body' => $text, 'result' => wp_json_encode( $res ), 'words' => count( preg_split( '/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY ) ), 'errors' => count( $res['errors'] ), 'created_at' => current_time( 'mysql' ) ) ); // phpcs:ignore
 		Sawa_Lens_Skills::log_errors( $uid, $res['errors'], 'chat', (int) $wpdb->insert_id );
 		Sawa_Lens_Skills::record_uses( $uid, $res['good'] ); // right uses of points you got wrong before pay a bonus
-		if ( class_exists( 'Sawa_Tracker_Game' ) ) {
-			$names = array();
-			foreach ( Sawa_Lens_Skills::tree( $uid ) as $n ) {
-				$names[ $n['id'] ] = $n['name'];
-			}
-			$top = array_count_values( array_map( function ( $e ) { return $e['skill']; }, $res['errors'] ) );
-			arsort( $top );
-			Sawa_Tracker_Game::event( 0, 'chat_review', $uid, array( 'msgs' => count( $q['msgs'] ), 'errors' => count( $res['errors'] ), 'good' => array_sum( (array) $res['good'] ), 'focus' => $top ? ( $names[ key( $top ) ] ?? key( $top ) ) : '' ) );
-		}
+		self::notify( $uid, count( $q['msgs'] ), $res, $spoken );
 		return true;
+	}
+
+	/** The private notification after a check: text messages and voice notes together. */
+	private static function notify( $uid, $msgs, $res, $spoken ) {
+		if ( ! class_exists( 'Sawa_Tracker_Game' ) ) {
+			return;
+		}
+		$errors = array_merge( (array) ( $res['errors'] ?? array() ), (array) ( $spoken['errors'] ?? array() ) );
+		$names  = array();
+		foreach ( Sawa_Lens_Skills::tree( $uid ) as $n ) {
+			$names[ $n['id'] ] = $n['name'];
+		}
+		$top = array_count_values( array_map( function ( $e ) { return $e['skill']; }, $errors ) );
+		arsort( $top );
+		Sawa_Tracker_Game::event( 0, 'chat_review', $uid, array( 'msgs' => $msgs, 'voice' => (int) ( $spoken['n'] ?? 0 ), 'errors' => count( $errors ), 'good' => array_sum( (array) ( $res['good'] ?? array() ) ) + array_sum( (array) ( $spoken['good'] ?? array() ) ), 'focus' => $top ? ( $names[ key( $top ) ] ?? key( $top ) ) : '' ) );
+	}
+
+	/** Up to two voice notes: transcribed (saved on the message for everyone), then checked as speaking. */
+	private static function review_voice( $uid, $ids ) {
+		global $wpdb;
+		if ( ! $ids || ! class_exists( 'Sawa_Tracker_Social' ) || '' === Sawa_Lens_AI::settings()['stt_key'] ) {
+			return null;
+		}
+		$texts = array();
+		$up    = wp_upload_dir();
+		foreach ( array_slice( array_reverse( $ids ), 0, self::VOICE_DAY ) as $id ) {
+			$m = Sawa_Tracker_Social::message_row( (int) $id );
+			if ( ! $m || $m['deleted'] ) {
+				continue;
+			}
+			$t = trim( (string) $m['transcript'] );
+			if ( '' === $t ) {
+				$url  = set_url_scheme( (string) $m['audio'], 'https' );
+				$base = set_url_scheme( $up['baseurl'], 'https' );
+				$path = 0 === strpos( $url, $base ) ? $up['basedir'] . substr( $url, strlen( $base ) ) : '';
+				if ( '' === $path || ! is_file( $path ) ) {
+					continue;
+				}
+				$t = Sawa_Lens_AI::transcribe( $uid, $path );
+				if ( is_wp_error( $t ) || '' === trim( (string) $t ) ) {
+					continue;
+				}
+				$t = trim( (string) $t );
+				$wpdb->update( Sawa_Tracker_Game::table( 'messages' ), array( 'transcript' => $t ), array( 'id' => (int) $id ) ); // phpcs:ignore
+			}
+			if ( count( preg_split( '/\s+/u', $t, -1, PREG_SPLIT_NO_EMPTY ) ) >= 4 ) {
+				$texts[] = mb_substr( $t, 0, 500 );
+			}
+		}
+		if ( ! $texts ) {
+			return null;
+		}
+		$text = implode( "\n", $texts );
+		$res  = Sawa_Lens_AI::check_writing( $uid, $text, 'voice' );
+		if ( is_wp_error( $res ) ) {
+			return null;
+		}
+		$wpdb->insert( Sawa_Lens_Store::t( 'writing' ), array( 'user_id' => $uid, 'source' => 'voice', 'body' => $text, 'result' => wp_json_encode( $res ), 'words' => count( preg_split( '/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY ) ), 'errors' => count( $res['errors'] ), 'created_at' => current_time( 'mysql' ) ) ); // phpcs:ignore
+		Sawa_Lens_Skills::log_errors( $uid, $res['errors'], 'voice', (int) $wpdb->insert_id );
+		Sawa_Lens_Skills::record_uses( $uid, $res['good'] );
+		return $res + array( 'n' => count( $texts ) );
 	}
 
 	public static function features( $f, $uid ) {
