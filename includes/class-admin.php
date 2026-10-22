@@ -53,6 +53,8 @@ final class Sawa_Lens_Admin {
 		$s['readers_budget']   = isset( $_POST['readers_budget'] ) ? max( 0, (float) $_POST['readers_budget'] ) : ( $s['readers_budget'] ?? 10 );
 		$s['readers_price']    = isset( $_POST['readers_price'] ) ? max( 0, (float) $_POST['readers_price'] ) : ( $s['readers_price'] ?? 0.04 );
 		$s['readers_personal'] = isset( $_POST['readers_beta'] ) ? ! empty( $_POST['readers_personal'] ) : ! empty( $s['readers_personal'] );
+		$s['readers_ai']       = isset( $_POST['readers_beta'] ) ? ! empty( $_POST['readers_ai'] ) : ! empty( $s['readers_ai'] );
+		$s['readers_voice']    = isset( $_POST['readers_beta'] ) ? ! empty( $_POST['readers_voice'] ) : ! empty( $s['readers_voice'] );
 		$s['model']       = isset( $_POST['model'] ) ? sanitize_text_field( wp_unslash( $_POST['model'] ) ) : $s['model'];
 		$s['daily_limit'] = isset( $_POST['daily_limit'] ) ? max( 0, (int) $_POST['daily_limit'] ) : $s['daily_limit'];
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
@@ -184,14 +186,20 @@ final class Sawa_Lens_Admin {
 					</tr>
 					<?php $rspent = class_exists( 'Sawa_Lens_Readers' ) ? Sawa_Lens_Readers::spent_this_month() : 0; ?>
 					<tr>
-						<th><label for="readers_beta">📖 Stories for you (beta) testers</label></th>
-						<td><textarea id="readers_beta" name="readers_beta" rows="2" class="large-text" placeholder="12, student@example.com, … or all"><?php echo esc_textarea( (string) ( $s['readers_beta'] ?? '' ) ); ?></textarea><p class="description">Short stories, explainers and chapter series written at each student's level about what they picked in the interest quiz (uses the Claude key above, model claude-sonnet-5-5). User IDs or emails, separated by commas; "all" opens it to everyone. Admins always have it. Stories are shared: each one is written once and reused by every student with the same interest and level.</p></td>
+						<th>📖 Stories for you</th>
+						<td><p class="description">The written story library (in the plugin, free to read) is open to every student. List, hide and reading numbers: <a href="<?php echo esc_url( admin_url( 'admin.php?page=sawa-lens-stories' ) ); ?>">Video quizzes → Stories</a>. The options below cost money and are all off by default.</p>
+							<p><label><input type="checkbox" name="readers_ai" value="1" <?php checked( ! empty( $s['readers_ai'] ) ); ?>> When a student has read every story, the AI writes a new shared one (Claude key above, about $0.04 each)</label></p>
+							<p><label><input type="checkbox" name="readers_voice" value="1" <?php checked( ! empty( $s['readers_voice'] ) ); ?>> Natural voice for stories (OpenAI key above; each story is recorded once for everyone, a few cents; without it the phone's own voice reads)</label></p>
+							<p><label><input type="checkbox" name="readers_personal" value="1" <?php checked( ! empty( $s['readers_personal'] ) ); ?>> Personal stories for the testers below: one a day, written by the AI around their own Learning words</label></p></td>
 					</tr>
 					<tr>
-						<th><label for="readers_budget">Stories budget</label></th>
+						<th><label for="readers_beta">Personal-story testers</label></th>
+						<td><textarea id="readers_beta" name="readers_beta" rows="2" class="large-text" placeholder="12, student@example.com, … or all"><?php echo esc_textarea( (string) ( $s['readers_beta'] ?? '' ) ); ?></textarea><p class="description">User IDs or emails, separated by commas; "all" for everyone. Admins always have it.</p></td>
+					</tr>
+					<tr>
+						<th><label for="readers_budget">Stories AI budget</label></th>
 						<td>$<input id="readers_budget" name="readers_budget" type="number" step="0.01" min="0" class="small-text" value="<?php echo esc_attr( (string) ( $s['readers_budget'] ?? 10 ) ); ?>"> a month, at about $<input name="readers_price" type="number" step="0.001" min="0" class="small-text" value="<?php echo esc_attr( (string) ( $s['readers_price'] ?? 0.04 ) ); ?>"> a new story · spent this month: <b>$<?php echo esc_html( number_format( $rspent, 2 ) ); ?></b>
-							<p><label><input type="checkbox" name="readers_personal" value="1" <?php checked( ! empty( $s['readers_personal'] ) ); ?>> Personal stories: one a day per tester, written around their own Learning words</label></p>
-							<p class="description">When the month's budget is used up, no new stories are written; students keep reading the shared ones already written.</p></td>
+							<p class="description">When the month's budget is used up, no new stories are written by the AI; the library stays open.</p></td>
 					</tr>
 					<tr>
 						<th><label for="model">Model</label></th>

@@ -697,7 +697,7 @@
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
 		].concat(B.songs ? [['songs', '🎵 My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1]] : [])
-			.concat(B.readers ? [['stories', '📖 Stories for you <i class="beta-tag">BETA</i>', 'Short stories about what you love, at your level', 1]] : []);
+			.concat(B.readers ? [['stories', '📖 Stories for you', 'Short stories about what you love, at your level', 1]] : []);
 		shell('<section class="stack"><div class="row-between"><h1>Learn</h1>' + langSwitch() + '</div></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
 			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
@@ -1219,9 +1219,10 @@
 	});
 	/* Listen to the whole text: paragraph by paragraph, the one being read is highlighted. */
 	var READ = null;
-	function stopReading() { if (READ) { READ = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); $app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); }); var b = $app.querySelector('#readall'); if (b) b.textContent = '🔊 Listen to the whole text'; } }
+	function stopReading() { if (READ) { if (READ.audio) READ.audio.pause(); READ = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); $app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); }); var b = $app.querySelector('#readall'); if (b) b.textContent = '🔊 Listen to the whole text'; } }
 	function readAll(btn) {
 		if (READ) return stopReading();
+		if (SCAN && SCAN.voice) return readVoice(btn); // Stories for you: a natural recorded voice
 		if (!('speechSynthesis' in window)) return toast('Your browser can\'t play audio.');
 		var paras = SCAN.paragraphs, i = 0, run = READ = {}, vs = speechSynthesis.getVoices();
 		var v = vs.filter(function (x) { return /en[-_]US/i.test(x.lang) && /Google|Samantha|Aria|Jenny|Natural/i.test(x.name); })[0] || vs.filter(function (x) { return /en[-_]US/i.test(x.lang); })[0] || null;
@@ -1956,7 +1957,7 @@
 	var ST_FMT = { story: ['📖', 'Story'], explainer: ['💡', 'Explainer'], series: ['📚', 'Series'] };
 	function stCat(c) { return c ? (c.emoji ? c.emoji + ' ' : '') + c.name : ''; }
 	function storiesView() {
-		shell('<section class="stack"><h1>📖 Stories for you <i class="beta-tag">BETA</i></h1><p class="muted">Short stories and explainers about what you love, written at your level: almost every word one you know, plus a few new ones. Tap any word for its meaning, and listen along.</p></section><section id="st" class="stack"><p class="loading">Loading…</p></section>');
+		shell('<section class="stack"><h1>📖 Stories for you</h1><p class="muted">Short stories and explainers about what you love, written at your level: almost every word one you know, plus a few new ones. Tap any word for its meaning, and listen along.</p></section><section id="st" class="stack"><p class="loading">Loading…</p></section>');
 		api('readers').then(function (h) {
 			var box = $app.querySelector('#st'); if (!box || S.view !== 'stories') return;
 			var t = h.today, sr = h.series, p = h.personal;
@@ -1964,8 +1965,9 @@
 				+ (!h.quiz ? '<div class="card stack"><p><b>💛 Tell us what you love first</b></p><p class="small muted">Take the 2-minute interest quiz (football, rap, business, gaming…) and your stories will be about it. Until then, you get stories on popular topics.</p><button class="btn sm" data-in>Take the quiz</button></div>' : '')
 				+ (sr ? '<div class="card stack"><div class="row-between"><h3>📚 ' + esc(sr.title) + '</h3><span class="pill">Chapter ' + sr.next + ' of ' + sr.of + '</span></div>'
 					+ (sr.tomorrow ? '<p class="small muted">Chapter ' + sr.next + ' opens tomorrow. Come back to see what happens next!</p>' : '<button class="btn" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>') + '</div>' : '')
-				+ (t && t.cat ? '<div class="card stack"><div class="row-between"><h3>Today\'s pick</h3><span class="pill">' + ST_FMT[t.format][0] + ' ' + (t.format === 'series' ? 'A new series' : ST_FMT[t.format][1]) + '</span></div><p><b>' + esc(stCat(t.cat)) + '</b> <span class="ar small muted">' + esc(t.cat.ar) + '</span></p>'
-					+ '<div class="ra-btns"><button class="btn" data-cat="' + esc(t.cat.id) + '" data-fmt="' + t.format + '">Read it</button>' + (h.cats.some(function (c) { return c.id === t.cat.id; }) ? '<button class="btn ghost sm" data-skip="' + esc(t.cat.id) + '">👎 Not this topic</button>' : '') + '</div></div>' : '')
+				+ (t ? '<div class="card stack"><div class="row-between"><h3>Today\'s pick</h3><span class="pill">' + ST_FMT[t.format][0] + ' ' + (t.format === 'series' ? 'A series' : ST_FMT[t.format][1]) + ' · ' + t.level + ' · ' + t.minutes + ' min</span></div><p><b>' + esc(t.title) + '</b></p>' + (t.teaser ? '<p class="small muted">' + esc(t.teaser) + '</p>' : '') + '<p class="small">' + esc(stCat(t.cat)) + '</p>'
+					+ '<div class="ra-btns"><button class="btn" data-open="' + t.id + '">Read it</button>' + (h.cats.some(function (c) { return c.id === t.cat.id; }) ? '<button class="btn ghost sm" data-skip="' + esc(t.cat.id) + '">👎 Not this topic</button>' : '') + '</div></div>'
+					: '<div class="card"><p><b>You read every story we have for now! 🎉</b></p><p class="small muted">New ones are on the way. Read a favourite again below.</p></div>')
 				+ (h.cats.length ? '<h3>Or pick a topic</h3><div class="st-chips">' + h.cats.map(function (c) { return '<button class="btn ghost sm" data-cat="' + esc(c.id) + '">' + esc(stCat(c)) + '</button>'; }).join('') + '</div>' : '')
 				+ (p.why !== 'off' ? '<div class="card stack st-mine"><h3>✨ A story made just for you</h3><p class="small muted">Built around the words you are learning, about something you love. One a day.</p>'
 					+ (p.can ? '<button class="btn" data-mine>Write my story</button>' : '<p class="small">' + ({ today: 'You got today\'s personal story. Come back tomorrow!', words: 'Mark at least 3 words as Learning first (tap words while you read or watch).', budget: 'Personal stories are paused until next month.' }[p.why] || '') + '</p>') + '</div>' : '')
@@ -1998,7 +2000,7 @@
 		api('readers/' + id).then(function (r) { if (S.view === 'story') storyShow(r); }, function (e) { toast(e.message); go('stories'); });
 	}
 	function storyShow(r) {
-		SCAN = { title: '', paragraphs: r.paragraphs, targets: r.targets, story: r.id };
+		SCAN = { title: '', paragraphs: r.paragraphs, targets: r.targets, story: r.id, voice: r.voice ? r.id : 0 };
 		var f = ST_FMT[r.format] || ST_FMT.story;
 		shell('<section class="stack"><button class="link small" id="stback">← Stories</button>'
 			+ '<div class="in-tags"><span class="pill">' + esc(stCat(r.cat)) + '</span><span class="pill">' + f[0] + ' ' + (r.format === 'series' ? 'Chapter ' + r.chapter + ' of ' + r.of : f[1]) + '</span><span class="pill">' + r.level + ' · ' + r.minutes + ' min</span>' + (r.format !== 'explainer' ? '<span class="pill">Fiction</span>' : '') + (r.mine ? '<span class="pill open">✨ Made for you</span>' : '') + (r.hidden ? '<span class="pill review">Hidden</span>' : '') + '</div>'
@@ -2026,6 +2028,27 @@
 		var hd = $app.querySelector('#sthide');
 		if (hd) hd.onclick = function () { hd.disabled = true; api('readers/hide', { body: { id: r.id, show: r.hidden ? 1 : 0 } }).then(function () { toast(r.hidden ? 'Shown again' : 'Hidden: it won\'t be suggested again'); go('stories'); }, function (e) { hd.disabled = false; toast(e.message); }); };
 		storyCheck(r);
+	}
+	/** Listen along with a recorded natural voice, paragraph by paragraph (recorded once on the server, then shared). */
+	function readVoice(btn) {
+		var paras = SCAN.paragraphs, i = 0, run = READ = { audio: new Audio() }, id = SCAN.voice;
+		btn.textContent = '■ Stop reading';
+		(function next() {
+			if (READ !== run) return;
+			$app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); });
+			if (i >= paras.length) return stopReading();
+			var el = $app.querySelector('.scan-text p[data-p="' + i + '"]'); if (el) { el.classList.add('reading'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+			api('readers/audio', { body: { id: id, p: i } }).then(function (x) {
+				if (READ !== run) return;
+				var a = run.audio;
+				a.src = x.url; a.playbackRate = +(($app.querySelector('#readrate') || {}).value || 0.9) / 0.9;
+				a.onended = function () { i++; next(); };
+				a.onerror = function () { fallback(); };
+				var pl = a.play(); if (pl && pl.catch) pl.catch(function () { fallback(); });
+			}, function () { fallback(); });
+		})();
+		// No recording (voice off or failed): the phone's own voice reads from here.
+		function fallback() { if (READ !== run) return; stopReading(); SCAN.voice = 0; readAll(btn); }
 	}
 	/** After reading: a quick check (tap answers), then XP and the reading streak. */
 	function storyCheck(r) {
@@ -2079,13 +2102,14 @@
 			if (S.view !== 'today' || !box.isConnected) return;
 			var sr = h.series && !h.series.tomorrow ? h.series : null, t = h.today;
 			box.hidden = false;
-			box.innerHTML = '<div class="row-between"><h3>📖 ' + (sr ? 'Your series continues' : h.readToday ? 'You read today ✓' : 'Today\'s story') + '</h3>' + (h.streak ? '<span class="pill mastered">🔥 ' + h.streak + '</span>' : '<i class="beta-tag">BETA</i>') + '</div>'
+			box.innerHTML = '<div class="row-between"><h3>📖 ' + (sr ? 'Your series continues' : h.readToday ? 'You read today ✓' : 'Today\'s story') + '</h3>' + (h.streak ? '<span class="pill mastered">🔥 ' + h.streak + '</span>' : '') + '</div>'
 				+ (sr ? '<p><b>' + esc(sr.title) + '</b> · chapter ' + sr.next + ' of ' + sr.of + '</p><button class="btn sm" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>'
 					: h.readToday ? '<p class="small muted">Want another? Pick a topic you love.</p><button class="btn ghost sm" data-more>More stories</button>'
-						: t && t.cat ? '<p>A short ' + (ST_FMT[t.format][1]).toLowerCase() + ' about <b>' + esc(stCat(t.cat)) + '</b>, at your level (' + esc(h.level) + ').</p><button class="btn sm" data-cat="' + esc(t.cat.id) + '" data-fmt="' + t.format + '">Read today\'s story</button>' : '<button class="btn sm" data-more>Open Stories</button>');
+						: t ? '<p><b>' + esc(t.title) + '</b></p><p class="small muted">' + esc(stCat(t.cat)) + ' · ' + t.level + ' · ' + t.minutes + ' min' + (t.teaser ? ' · ' + esc(t.teaser) : '') + '</p><button class="btn sm" data-open="' + t.id + '">Read today\'s story</button>' : '<button class="btn sm" data-more>Open Stories</button>');
 			box.querySelectorAll('[data-series]').forEach(function (b) { b.onclick = function () { storyNext({ series: +b.dataset.series }); }; });
 			box.querySelectorAll('[data-cat]').forEach(function (b) { b.onclick = function () { storyNext({ cat: b.dataset.cat, format: b.dataset.fmt }); }; });
 			box.querySelectorAll('[data-more]').forEach(function (b) { b.onclick = function () { go('stories'); }; });
+			box.querySelectorAll('[data-open]').forEach(function (b) { b.onclick = function () { go('story', +b.dataset.open); }; });
 		}, function () {});
 	}
 
@@ -2101,7 +2125,7 @@
 		document.addEventListener('sawa-tracker', function (e) {
 			var d = e.detail || {};
 			if (d.unread != null) { S.unread = d.unread; paintNav(); }
-			if (d.go) { go(d.go); return; } // a Silk Road quest step: take the student to where they learn it
+			if (d.go) { var gp = String(d.go).split('-'); go(gp[0], gp[1] ? +gp[1] || gp[1] : undefined); return; } // a Silk Road quest step (or a story: "story-12"): take the student to where they learn it
 			if (d.gate) { S.gate = d.gate; if (S.view !== 'today') go('today'); else showTrk('today'); }
 			if (d.ready) { var wasGate = S.gate; S.gate = null; S.trk = d.data; if (wasGate || S.view === 'today') go(S.view === 'today' ? 'today' : S.view); }
 			// The tracker switched itself (e.g. a reply notification opened a chat): follow it.

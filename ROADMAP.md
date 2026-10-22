@@ -1,9 +1,9 @@
 # Sawa Lens – planned features
 
-## Stories for you (beta, built 22 Oct 2026 in 0.18.0) – next steps
+## Stories for you (built 22 Oct 2026, 0.18.0–0.19.0)
 
-- **Pre-write the shared pool with the Batch API** (50% cheaper): for each interest × level (A1–B2), write a few stories, explainers and series openers overnight, so students never wait ~30 s for a new one. Today a shared story is written the first time someone needs it, then reused.
-- **Listen with a natural voice** (cached TTS audio per story) instead of the browser's voice.
-- **Stories in the Silk Road game**: see `sawa-tracker/ROADMAP.md` ("camp stories").
-- **Admin list of stories** in Settings, with hide/show, cost per month and the most-read topics. (Admins can already hide a story from the story page.)
-- Count the time spent reading toward the daily study minutes.
+Built: a written library in `data/stories/*.json` (104 stories: every interest-quiz topic at A2 and B1, a story and an explainer, plus the 6-chapter football series "The Bulaq Boys"), imported on each update, free and open to every student; nearest-level matching (A1 students get A2, B2+ get B1); "Video quizzes → Stories" admin list (reads, finishes, quick-check %, hide/show, re-import); reading time counts as Active Immersion minutes; optional natural voice (OpenAI TTS, recorded once per paragraph and shared); optional AI writing when a student has read everything, and AI personal stories for testers, both off by default within a monthly budget; Rawi the storyteller in the Silk Road (sawa-tracker 2.10.8). Check the library with `node tools/stories-check.js`; test with `tools/readers-test.js`.
+
+Next:
+- **More stories**: B2 versions for the most popular topics (football, rap, business, gaming, comedy), and more series (one per popular topic). Add them as new JSON files; the check and import handle the rest.
+- **Arabic summary after reading** (one line, for A1–A2) and a "too easy / too hard" button that nudges the level of the next story.
