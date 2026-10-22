@@ -1070,6 +1070,7 @@ final class Sawa_Lens_AI {
 			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · transcription: ' . mb_substr( (string) ( $j['error']['message'] ?? wp_remote_retrieve_response_code( $res ) ), 0, 300 ), false );
 			return new WP_Error( 'stt', 'تحويل الصوت لنص مشتغلش المرة دي. جرب تاني.' );
 		}
+		Sawa_Lens_Cost::log( 'transcribe', 'openai', $s['stt_model'], 0, 0, null, 0, $per_user ? (int) $uid : 0 );
 		$usage = (array) get_option( 'sawa_lens_stt_usage', array() );
 		$month = wp_date( 'Y-m' );
 		$usage[ $month ] = (int) ( $usage[ $month ] ?? 0 ) + 1;
@@ -1165,6 +1166,7 @@ final class Sawa_Lens_AI {
 	}
 
 	private static function limit( $uid ) {
+		Sawa_Lens_Cost::set_user( $uid ); // the cost meter charges the next AI call to this student
 		$k = 'sawa_lens_ai_' . $uid . '_' . wp_date( 'Ymd' );
 		$n = (int) get_transient( $k );
 		if ( $n >= (int) self::settings()['daily_limit'] ) {
@@ -1179,6 +1181,11 @@ final class Sawa_Lens_AI {
 		if ( '' === $s['api_key'] ) {
 			return new WP_Error( 'off', 'AI explanations are not switched on yet.', array( 'status' => 503 ) );
 		}
+		$feature = Sawa_Lens_Cost::caller();
+		if ( Sawa_Lens_Cost::blocked( $feature ) ) { // the optional site-wide monthly budget is used up
+			return new WP_Error( 'limit', 'You reached today\'s limit for AI explanations. The dictionary still works, and explanations come back tomorrow.', array( 'status' => 429 ) );
+		}
+		$t0  = microtime( true );
 		$res = wp_remote_post(
 			'https://api.anthropic.com/v1/messages',
 			array(
@@ -1196,6 +1203,9 @@ final class Sawa_Lens_AI {
 		}
 		$code = wp_remote_retrieve_response_code( $res );
 		$j    = json_decode( wp_remote_retrieve_body( $res ), true );
+		if ( isset( $j['usage'] ) ) { // cost meter: fails silently, never slows the answer
+			Sawa_Lens_Cost::log( $feature, 'anthropic', '' !== $model ? $model : $s['model'], (int) ( $j['usage']['input_tokens'] ?? 0 ), (int) ( $j['usage']['output_tokens'] ?? 0 ), null, (int) round( ( microtime( true ) - $t0 ) * 1000 ) );
+		}
 		// The answer can hold several blocks (e.g. thinking first): join the text ones.
 		$text = '';
 		foreach ( (array) ( $j['content'] ?? array() ) as $block ) {

@@ -237,6 +237,7 @@ final class Sawa_Lens_Songs {
 		$file = $id . '-' . wp_generate_password( 20, false ) . '.mp3'; // hard-to-guess name
 		file_put_contents( $dir . '/' . $file, $audio ); // phpcs:ignore
 		$wpdb->update( self::t(), array( 'status' => 'ready', 'file' => $file, 'cost' => self::settings()['price'] ), array( 'id' => $id ) ); // phpcs:ignore
+		Sawa_Lens_Cost::log( 'song_audio', 'google', self::MODEL, 0, 0, (float) self::settings()['price'], 0, $uid );
 	}
 
 	/** Finished the fill-the-gaps game for a song: XP once per song. */

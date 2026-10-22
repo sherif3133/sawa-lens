@@ -150,6 +150,9 @@ final class Sawa_Lens_Images {
 		);
 		$j = is_wp_error( $res ) ? null : json_decode( wp_remote_retrieve_body( $res ), true );
 		$b64 = $j['data'][0]['b64_json'] ?? '';
+		if ( '' !== $b64 ) {
+			Sawa_Lens_Cost::log( 'picture', 'openai', 'gpt-image-1' );
+		}
 		if ( '' === $b64 ) {
 			update_option( 'sawa_lens_last_ai_error', current_time( 'mysql' ) . ' · image: ' . mb_substr( (string) ( $j['error']['message'] ?? ( is_wp_error( $res ) ? $res->get_error_message() : 'no image' ) ), 0, 300 ), false );
 			return new WP_Error( 'ai', 'The AI picture didn\'t work this time. Try again later.', array( 'status' => 502 ) );

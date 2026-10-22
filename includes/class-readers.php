@@ -285,6 +285,7 @@ final class Sawa_Lens_Readers {
 			return new WP_Error( 'voice', 'The voice isn\'t available right now.', array( 'status' => 502 ) );
 		}
 		update_option( $k, (int) get_option( $k, 0 ) + 1, false );
+		Sawa_Lens_Cost::log( 'story_voice', 'openai', 'gpt-4o-mini-tts' );
 		$dir = trailingslashit( $up['basedir'] ) . 'sawa-lens-stories';
 		wp_mkdir_p( $dir );
 		if ( ! file_exists( $dir . '/index.html' ) ) {

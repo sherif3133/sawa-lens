@@ -131,6 +131,7 @@ final class Sawa_Lens_Store {
 		Sawa_Lens_Readers::install( $c );
 		Sawa_Lens_Lessons::install( $c );
 		Sawa_Lens_Placement::install( $c );
+		Sawa_Lens_Cost::install();
 		update_option( 'sawa_lens_db', SAWA_LENS_DB );
 	}
 
