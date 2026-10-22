@@ -109,7 +109,17 @@
 		if (B.appMode && S.gate) view = 'today';
 		if (['today', 'learn', 'chat', 'community', 'me', 'dev'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = B.appMode ? 'learn' : 'start';
 		S.view = view;
-		try { if (B.appMode) history.replaceState(null, '', '#' + view + (arg && typeof arg !== 'object' ? '-' + arg : '')); } catch (e) { /* ignore */ }
+		// One history entry per screen, so the phone's back button / swipe goes back one screen and only leaves from Home.
+		try {
+			if (B.appMode) {
+				var hash = '#' + view + (arg && typeof arg !== 'object' ? '-' + arg : '');
+				if (S.popping || !S.navStarted) {
+					if (!S.popping && view !== 'today') { history.replaceState(null, '', '#today'); history.pushState(null, '', hash); } // opened by a link to a screen: Home sits behind it
+					else history.replaceState(null, '', hash);
+				} else if (location.hash !== hash) history.pushState(null, '', hash);
+				S.navStarted = true;
+			}
+		} catch (e) { /* ignore */ }
 		if (view === 'today') return today();
 		if (view === 'learn') return learnHub();
 		if (view === 'me') { view = 'today'; S.view = 'today'; } // Me is part of Home now
@@ -2148,6 +2158,12 @@
 			if (d.ready) { var wasGate = S.gate; S.gate = null; S.trk = d.data; if (wasGate || S.view === 'today') go(S.view === 'today' ? 'today' : S.view); }
 			// The tracker switched itself (e.g. a reply notification opened a chat): follow it.
 			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
+		});
+		// Back / forward (Android back button, iPhone swipe, a #link): show the screen the address names.
+		window.addEventListener('popstate', function () {
+			var h = location.hash.slice(1).split('-');
+			S.popping = true;
+			try { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests', 'stories', 'story', 'dev'].indexOf(h[0]) >= 0 ? h[0] : 'today', h[1] ? +h[1] || h[1] : undefined); } finally { S.popping = false; }
 		});
 		var hv = h0.split('-')[0], ha = h0.split('-')[1];
 		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests', 'stories', 'story', 'dev'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
