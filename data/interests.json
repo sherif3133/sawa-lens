@@ -1,0 +1,5265 @@
+{
+	"updated": "2026-10-22",
+	"note": "Interests quiz for the Sawa App. Arab creators link to a YouTube search (no photos: the app shows initials). English picks: level = CEFR level of the English, speech = slow|clear|fast, captions = yes|auto|lyrics|subs|text|none, lens = works with Language Lens on YouTube, like = Arab creator ids this pick matches, start = a good first pick.",
+	"creators": {
+		"salah-abo-el-magd": {
+			"id": "salah-abo-el-magd",
+			"name": "Salah Abo El Magd",
+			"ar": "صلاح أبو المجد",
+			"what": "Business, marketing and career talks in Egyptian Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D8%B5%D9%84%D8%A7%D8%AD%20%D8%A3%D8%A8%D9%88%20%D8%A7%D9%84%D9%85%D8%AC%D8%AF"
+		},
+		"ehab-musallam": {
+			"id": "ehab-musallam",
+			"name": "Ehab Musallam",
+			"ar": "إيهاب مسلم",
+			"what": "Business podcast and talks about building companies",
+			"url": "https://www.youtube.com/results?search_query=%D8%A5%D9%8A%D9%87%D8%A7%D8%A8%20%D9%85%D8%B3%D9%84%D9%85"
+		},
+		"ahmed-abo-zaid": {
+			"id": "ahmed-abo-zaid",
+			"name": "Ahmed Abo Zaid",
+			"ar": "أحمد أبو زيد",
+			"what": "Economics and business explained simply",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%A3%D8%A8%D9%88%20%D8%B2%D9%8A%D8%AF"
+		},
+		"fnjan": {
+			"id": "fnjan",
+			"name": "Fnjan",
+			"ar": "فنجان",
+			"what": "Thmanyah's long interview podcast with founders and thinkers",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D9%88%D8%AF%D9%83%D8%A7%D8%B3%D8%AA%20%D9%81%D9%86%D8%AC%D8%A7%D9%86"
+		},
+		"al-mokhbir-al-eqtesadi": {
+			"id": "al-mokhbir-al-eqtesadi",
+			"name": "Al Mokhbir Al Eqtesadi",
+			"ar": "المخبر الاقتصادي",
+			"what": "Arabic animated explainers on economics and money",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D9%85%D8%AE%D8%A8%D8%B1%20%D8%A7%D9%84%D8%A7%D9%82%D8%AA%D8%B5%D8%A7%D8%AF%D9%8A"
+		},
+		"ahmad-al-shugairi": {
+			"id": "ahmad-al-shugairi",
+			"name": "Ahmad Al Shugairi",
+			"ar": "أحمد الشقيري",
+			"what": "Khawater and Sin Jeem — ideas for a better life",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%A7%D9%84%D8%B4%D9%82%D9%8A%D8%B1%D9%8A"
+		},
+		"ibrahim-elfiky": {
+			"id": "ibrahim-elfiky",
+			"name": "Ibrahim Elfiky",
+			"ar": "إبراهيم الفقي",
+			"what": "Classic Arabic talks on confidence and success",
+			"url": "https://www.youtube.com/results?search_query=%D8%A5%D8%A8%D8%B1%D8%A7%D9%87%D9%8A%D9%85%20%D8%A7%D9%84%D9%81%D9%82%D9%8A"
+		},
+		"amr-khaled": {
+			"id": "amr-khaled",
+			"name": "Amr Khaled",
+			"ar": "عمرو خالد",
+			"what": "Talks on faith, habits and hope",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%85%D8%B1%D9%88%20%D8%AE%D8%A7%D9%84%D8%AF"
+		},
+		"karim-esmail": {
+			"id": "karim-esmail",
+			"name": "Karim Esmail",
+			"ar": "كريم إسماعيل",
+			"what": "Egyptian self-development and life talks",
+			"url": "https://www.youtube.com/results?search_query=%D9%83%D8%B1%D9%8A%D9%85%20%D8%A5%D8%B3%D9%85%D8%A7%D8%B9%D9%8A%D9%84"
+		},
+		"hesham-afifi": {
+			"id": "hesham-afifi",
+			"name": "Hesham Afifi",
+			"ar": "هشام عفيفي",
+			"what": "Comedy videos and his take on Egyptian ads",
+			"url": "https://www.youtube.com/results?search_query=%D9%87%D8%B4%D8%A7%D9%85%20%D8%B9%D9%81%D9%8A%D9%81%D9%8A"
+		},
+		"eyad-el-mogy": {
+			"id": "eyad-el-mogy",
+			"name": "Eyad El Mogy",
+			"ar": "إياد الموجي",
+			"what": "Mogzz: El Sabt El Momtaz, funny reactions to viral clips",
+			"url": "https://www.youtube.com/results?search_query=%D8%A5%D9%8A%D8%A7%D8%AF%20%D8%A7%D9%84%D9%85%D9%88%D8%AC%D9%8A"
+		},
+		"ahmed-amin": {
+			"id": "ahmed-amin",
+			"name": "Ahmed Amin",
+			"ar": "أحمد أمين",
+			"what": "El Plateau and smart Egyptian sketch comedy",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%A3%D9%85%D9%8A%D9%86"
+		},
+		"el-twins": {
+			"id": "el-twins",
+			"name": "EL Twins",
+			"ar": "التوأم",
+			"what": "Egyptian twins making comedy skits",
+			"url": "https://www.youtube.com/results?search_query=EL%20Twins"
+		},
+		"bassem-youssef": {
+			"id": "bassem-youssef",
+			"name": "Bassem Youssef",
+			"ar": "باسم يوسف",
+			"what": "Satire, stand-up and interviews",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D8%A7%D8%B3%D9%85%20%D9%8A%D9%88%D8%B3%D9%81"
+		},
+		"ali-qandil": {
+			"id": "ali-qandil",
+			"name": "Ali Qandil",
+			"ar": "علي قنديل",
+			"what": "Egyptian stand-up about everyday life",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%84%D9%8A%20%D9%82%D9%86%D8%AF%D9%8A%D9%84"
+		},
+		"nemr-abou-nassar": {
+			"id": "nemr-abou-nassar",
+			"name": "Nemr Abou Nassar",
+			"ar": "نمر أبو نصار",
+			"what": "Lebanese stand-up in Arabic and English",
+			"url": "https://www.youtube.com/results?search_query=%D9%86%D9%85%D8%B1%20%D8%A3%D8%A8%D9%88%20%D9%86%D8%B5%D8%A7%D8%B1"
+		},
+		"fahad-albutairi": {
+			"id": "fahad-albutairi",
+			"name": "Fahad Albutairi",
+			"ar": "فهد البتيري",
+			"what": "Saudi stand-up pioneer",
+			"url": "https://www.youtube.com/results?search_query=%D9%81%D9%87%D8%AF%20%D8%A7%D9%84%D8%A8%D8%AA%D9%8A%D8%B1%D9%8A"
+		},
+		"omar-kato": {
+			"id": "omar-kato",
+			"name": "Omar Kato",
+			"ar": "عمر كاتو",
+			"what": "Pop-culture commentary on Egyptian internet",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%85%D8%B1%20%D9%83%D8%A7%D8%AA%D9%88"
+		},
+		"khaled-hossam": {
+			"id": "khaled-hossam",
+			"name": "Khaled Hossam",
+			"ar": "خالد حسام",
+			"what": "Egyptian pop-culture commentator",
+			"url": "https://www.youtube.com/results?search_query=%D8%AE%D8%A7%D9%84%D8%AF%20%D8%AD%D8%B3%D8%A7%D9%85"
+		},
+		"abo-hafiza": {
+			"id": "abo-hafiza",
+			"name": "Abo Hafiza",
+			"ar": "أبو حفيظة",
+			"what": "Satirical commentary on the news and trends",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%A8%D9%88%20%D8%AD%D9%81%D9%8A%D8%B8%D8%A9"
+		},
+		"aboflah": {
+			"id": "aboflah",
+			"name": "AboFlah",
+			"ar": "أبو فلة",
+			"what": "Kuwaiti creator: challenges, charity streams and gaming",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%A8%D9%88%20%D9%81%D9%84%D8%A9"
+		},
+		"hamdy-wafaa": {
+			"id": "hamdy-wafaa",
+			"name": "Hamdy & Wafaa",
+			"ar": "حمدي ووفاء",
+			"what": "Egyptian couple: pranks and family challenges",
+			"url": "https://www.youtube.com/results?search_query=%D8%AD%D9%85%D8%AF%D9%8A%20%D9%88%D9%88%D9%81%D8%A7%D8%A1"
+		},
+		"shawar": {
+			"id": "shawar",
+			"name": "Shawar",
+			"ar": "شاور",
+			"what": "Challenges and vlogs (YouTube MENA top creator)",
+			"url": "https://www.youtube.com/results?search_query=Shawar"
+		},
+		"abo-rany": {
+			"id": "abo-rany",
+			"name": "Abo Rany",
+			"ar": "أبو راني",
+			"what": "Palestinian creator, #1 MENA creator on YouTube in 2025",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%A8%D9%88%20%D8%B1%D8%A7%D9%86%D9%8A"
+		},
+		"abyusif": {
+			"id": "abyusif",
+			"name": "Abyusif",
+			"ar": "أبيوسف",
+			"what": "Egyptian rap legend: wordplay and flow",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%A8%D9%8A%D9%88%D8%B3%D9%81"
+		},
+		"marwan-pablo": {
+			"id": "marwan-pablo",
+			"name": "Marwan Pablo",
+			"ar": "مروان بابلو",
+			"what": "Dark, heavy Egyptian trap",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B1%D9%88%D8%A7%D9%86%20%D8%A8%D8%A7%D8%A8%D9%84%D9%88"
+		},
+		"wegz": {
+			"id": "wegz",
+			"name": "Wegz",
+			"ar": "ويجز",
+			"what": "Melodic rap hits, one of MENA's most streamed artists",
+			"url": "https://www.youtube.com/results?search_query=%D9%88%D9%8A%D8%AC%D8%B2"
+		},
+		"marwan-moussa": {
+			"id": "marwan-moussa",
+			"name": "Marwan Moussa",
+			"ar": "مروان موسى",
+			"what": "Storytelling rap and big albums",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B1%D9%88%D8%A7%D9%86%20%D9%85%D9%88%D8%B3%D9%89"
+		},
+		"afroto": {
+			"id": "afroto",
+			"name": "Afroto",
+			"ar": "عفروتو",
+			"what": "Street rap with catchy hooks",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%81%D8%B1%D9%88%D8%AA%D9%88"
+		},
+		"elgrandetoto": {
+			"id": "elgrandetoto",
+			"name": "ElGrandeToto",
+			"ar": "الجراندي طوطو",
+			"what": "Moroccan rap star",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%AC%D8%B1%D8%A7%D9%86%D8%AF%D9%8A%20%D8%B7%D9%88%D8%B7%D9%88"
+		},
+		"amr-diab": {
+			"id": "amr-diab",
+			"name": "Amr Diab",
+			"ar": "عمرو دياب",
+			"what": "The Egyptian pop king",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%85%D8%B1%D9%88%20%D8%AF%D9%8A%D8%A7%D8%A8"
+		},
+		"tamer-hosny": {
+			"id": "tamer-hosny",
+			"name": "Tamer Hosny",
+			"ar": "تامر حسني",
+			"what": "Romantic pop and films",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D8%A7%D9%85%D8%B1%20%D8%AD%D8%B3%D9%86%D9%8A"
+		},
+		"elissa": {
+			"id": "elissa",
+			"name": "Elissa",
+			"ar": "إليسا",
+			"what": "Lebanese pop star, emotional ballads",
+			"url": "https://www.youtube.com/results?search_query=%D8%A5%D9%84%D9%8A%D8%B3%D8%A7"
+		},
+		"nancy-ajram": {
+			"id": "nancy-ajram",
+			"name": "Nancy Ajram",
+			"ar": "نانسي عجرم",
+			"what": "Lebanese pop icon",
+			"url": "https://www.youtube.com/results?search_query=%D9%86%D8%A7%D9%86%D8%B3%D9%8A%20%D8%B9%D8%AC%D8%B1%D9%85"
+		},
+		"mohamed-hamaki": {
+			"id": "mohamed-hamaki",
+			"name": "Mohamed Hamaki",
+			"ar": "محمد حماقي",
+			"what": "Egyptian pop love songs",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%AD%D9%85%D8%A7%D9%82%D9%8A"
+		},
+		"bessan-ismail": {
+			"id": "bessan-ismail",
+			"name": "Bessan Ismail",
+			"ar": "بيسان إسماعيل",
+			"what": "Creator turned singer — \"Khatya\" topped YouTube MENA 2025",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D9%8A%D8%B3%D8%A7%D9%86%20%D8%A5%D8%B3%D9%85%D8%A7%D8%B9%D9%8A%D9%84"
+		},
+		"essam-sasa": {
+			"id": "essam-sasa",
+			"name": "Essam Sasa",
+			"ar": "عصام صاصا",
+			"what": "Most-streamed artist in MENA (Spotify, 2025)",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%B5%D8%A7%D9%85%20%D8%B5%D8%A7%D8%B5%D8%A7"
+		},
+		"hassan-shakosh": {
+			"id": "hassan-shakosh",
+			"name": "Hassan Shakosh",
+			"ar": "حسن شاكوش",
+			"what": "Mahraganat hits",
+			"url": "https://www.youtube.com/results?search_query=%D8%AD%D8%B3%D9%86%20%D8%B4%D8%A7%D9%83%D9%88%D8%B4"
+		},
+		"mohamed-ramadan": {
+			"id": "mohamed-ramadan",
+			"name": "Mohamed Ramadan",
+			"ar": "محمد رمضان",
+			"what": "Actor and singer, huge YouTube views",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%B1%D9%85%D8%B6%D8%A7%D9%86"
+		},
+		"oka-ortega": {
+			"id": "oka-ortega",
+			"name": "Oka & Ortega",
+			"ar": "أوكا وأورتيجا",
+			"what": "Mahraganat pioneers",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D9%88%D9%83%D8%A7%20%D9%88%D8%A3%D9%88%D8%B1%D8%AA%D9%8A%D8%AC%D8%A7"
+		},
+		"cairokee": {
+			"id": "cairokee",
+			"name": "Cairokee",
+			"ar": "كايروكي",
+			"what": "Egyptian rock band",
+			"url": "https://www.youtube.com/results?search_query=%D9%83%D8%A7%D9%8A%D8%B1%D9%88%D9%83%D9%8A"
+		},
+		"massar-egbari": {
+			"id": "massar-egbari",
+			"name": "Massar Egbari",
+			"ar": "مسار إجباري",
+			"what": "Alexandrian indie rock",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B3%D8%A7%D8%B1%20%D8%A5%D8%AC%D8%A8%D8%A7%D8%B1%D9%8A"
+		},
+		"sharmoofers": {
+			"id": "sharmoofers",
+			"name": "Sharmoofers",
+			"ar": "شارموفرز",
+			"what": "Fun Egyptian indie-pop",
+			"url": "https://www.youtube.com/results?search_query=%D8%B4%D8%A7%D8%B1%D9%85%D9%88%D9%81%D8%B1%D8%B2"
+		},
+		"mashrou-leila": {
+			"id": "mashrou-leila",
+			"name": "Mashrou' Leila",
+			"ar": "مشروع ليلى",
+			"what": "Lebanese indie band",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B4%D8%B1%D9%88%D8%B9%20%D9%84%D9%8A%D9%84%D9%89"
+		},
+		"ahmed-saad": {
+			"id": "ahmed-saad",
+			"name": "Ahmed Saad",
+			"ar": "أحمد سعد",
+			"what": "Powerful voice between pop and rock",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%B3%D8%B9%D8%AF"
+		},
+		"umm-kulthum": {
+			"id": "umm-kulthum",
+			"name": "Umm Kulthum",
+			"ar": "أم كلثوم",
+			"what": "The voice of the Arab world",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D9%85%20%D9%83%D9%84%D8%AB%D9%88%D9%85"
+		},
+		"abdel-halim-hafez": {
+			"id": "abdel-halim-hafez",
+			"name": "Abdel Halim Hafez",
+			"ar": "عبد الحليم حافظ",
+			"what": "Romantic classics",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%A8%D8%AF%20%D8%A7%D9%84%D8%AD%D9%84%D9%8A%D9%85%20%D8%AD%D8%A7%D9%81%D8%B8"
+		},
+		"fairuz": {
+			"id": "fairuz",
+			"name": "Fairuz",
+			"ar": "فيروز",
+			"what": "Morning songs from Lebanon",
+			"url": "https://www.youtube.com/results?search_query=%D9%81%D9%8A%D8%B1%D9%88%D8%B2"
+		},
+		"mohamed-mounir": {
+			"id": "mohamed-mounir",
+			"name": "Mohamed Mounir",
+			"ar": "محمد منير",
+			"what": "The King: Nubian and Egyptian soul",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D9%85%D9%86%D9%8A%D8%B1"
+		},
+		"mohamed-aboutrika": {
+			"id": "mohamed-aboutrika",
+			"name": "Mohamed Aboutrika",
+			"ar": "محمد أبو تريكة",
+			"what": "Legend and beIN SPORTS analyst",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%A3%D8%A8%D9%88%20%D8%AA%D8%B1%D9%8A%D9%83%D8%A9"
+		},
+		"essam-el-shawaly": {
+			"id": "essam-el-shawaly",
+			"name": "Essam El Shawaly",
+			"ar": "عصام الشوالي",
+			"what": "Famous Tunisian commentator",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%B5%D8%A7%D9%85%20%D8%A7%D9%84%D8%B4%D9%88%D8%A7%D9%84%D9%8A"
+		},
+		"hafeez-darraji": {
+			"id": "hafeez-darraji",
+			"name": "Hafeez Darraji",
+			"ar": "حفيظ دراجي",
+			"what": "beIN SPORTS commentator",
+			"url": "https://www.youtube.com/results?search_query=%D8%AD%D9%81%D9%8A%D8%B8%20%D8%AF%D8%B1%D8%A7%D8%AC%D9%8A"
+		},
+		"ahmed-hossam-mido": {
+			"id": "ahmed-hossam-mido",
+			"name": "Ahmed Hossam Mido",
+			"ar": "أحمد حسام ميدو",
+			"what": "Former Egypt striker, football talk",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%AD%D8%B3%D8%A7%D9%85%20%D9%85%D9%8A%D8%AF%D9%88"
+		},
+		"mohamed-salah": {
+			"id": "mohamed-salah",
+			"name": "Mohamed Salah",
+			"ar": "محمد صلاح",
+			"what": "Liverpool and Egypt star",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%B5%D9%84%D8%A7%D8%AD"
+		},
+		"pfl-mena": {
+			"id": "pfl-mena",
+			"name": "PFL MENA",
+			"ar": "PFL MENA",
+			"what": "Arab MMA league fights",
+			"url": "https://www.youtube.com/results?search_query=PFL%20MENA"
+		},
+		"bein-sports": {
+			"id": "bein-sports",
+			"name": "beIN SPORTS",
+			"ar": "بي إن سبورت",
+			"what": "Arabic sports coverage",
+			"url": "https://www.youtube.com/results?search_query=beIN%20SPORTS%20%D8%B9%D8%B1%D8%A8%D9%8A"
+		},
+		"khabib-nurmagomedov": {
+			"id": "khabib-nurmagomedov",
+			"name": "Khabib Nurmagomedov",
+			"ar": "حبيب نورمحمدوف",
+			"what": "Most loved MMA champion in the Arab world",
+			"url": "https://www.youtube.com/results?search_query=%D8%AD%D8%A8%D9%8A%D8%A8%20%D9%86%D9%88%D8%B1%D9%85%D8%AD%D9%85%D8%AF%D9%88%D9%81"
+		},
+		"big-ramy": {
+			"id": "big-ramy",
+			"name": "Big Ramy",
+			"ar": "بيج رامي",
+			"what": "Mamdouh Elssbiay — Egyptian Mr. Olympia",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D9%8A%D8%AC%20%D8%B1%D8%A7%D9%85%D9%8A"
+		},
+		"alaa-al-metwally": {
+			"id": "alaa-al-metwally",
+			"name": "Alaa Al-Metwally",
+			"ar": "علاء المتولي",
+			"what": "Bodybuilding lessons and motivation",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%84%D8%A7%D8%A1%20%D8%A7%D9%84%D9%85%D8%AA%D9%88%D9%84%D9%8A"
+		},
+		"shankoty": {
+			"id": "shankoty",
+			"name": "Shankoty",
+			"ar": "شنكوتي",
+			"what": "Workout motivation and real stories",
+			"url": "https://www.youtube.com/results?search_query=Shankoty"
+		},
+		"taleek": {
+			"id": "taleek",
+			"name": "Taleek",
+			"ar": "طليق",
+			"what": "Egypt's most-watched car channel (HypeAuditor 2025)",
+			"url": "https://www.youtube.com/results?search_query=Taleek"
+		},
+		"mo-vlogs": {
+			"id": "mo-vlogs",
+			"name": "Mo Vlogs",
+			"ar": "مو فلوقز",
+			"what": "Supercars and luxury life in Dubai",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D9%88%20%D9%81%D9%84%D9%88%D9%82%D8%B2"
+		},
+		"six-gears": {
+			"id": "six-gears",
+			"name": "Six Gears",
+			"ar": "ست سرعات",
+			"what": "Saudi car reviews",
+			"url": "https://www.youtube.com/results?search_query=%D8%B3%D8%AA%20%D8%B3%D8%B1%D8%B9%D8%A7%D8%AA"
+		},
+		"arabgt": {
+			"id": "arabgt",
+			"name": "ArabGT",
+			"ar": "عرب جي تي",
+			"what": "Arabic car news and reviews",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%B1%D8%A8%20%D8%AC%D9%8A%20%D8%AA%D9%8A"
+		},
+		"banderitax": {
+			"id": "banderitax",
+			"name": "BanderitaX",
+			"ar": "بندريتا",
+			"what": "Saudi gaming and comedy",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D9%86%D8%AF%D8%B1%D9%8A%D8%AA%D8%A7"
+		},
+		"ossy-marwah": {
+			"id": "ossy-marwah",
+			"name": "Ossy Marwah",
+			"ar": "أوسمز",
+			"what": "Huge Arabic gaming channel",
+			"url": "https://www.youtube.com/results?search_query=Ossy%20Marwah"
+		},
+		"7amoda-gaming": {
+			"id": "7amoda-gaming",
+			"name": "7amoda Gaming",
+			"ar": "حمودة جيمنج",
+			"what": "Egypt's #1 gaming channel (Heepsy, 2026)",
+			"url": "https://www.youtube.com/results?search_query=7amoda%20Gaming"
+		},
+		"faisal-al-saif": {
+			"id": "faisal-al-saif",
+			"name": "Faisal Al Saif",
+			"ar": "فيصل السيف",
+			"what": "UTD Saudi — top Arabic tech reviewer (YouTube MENA 2025)",
+			"url": "https://www.youtube.com/results?search_query=%D9%81%D9%8A%D8%B5%D9%84%20%D8%A7%D9%84%D8%B3%D9%8A%D9%81"
+		},
+		"abdullah-al-sabaa": {
+			"id": "abdullah-al-sabaa",
+			"name": "Abdullah Al-Sabaa",
+			"ar": "عبدالله السبع",
+			"what": "Arabic phone and gadget reviews",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%A8%D8%AF%D8%A7%D9%84%D9%84%D9%87%20%D8%A7%D9%84%D8%B3%D8%A8%D8%B9"
+		},
+		"adel-samir": {
+			"id": "adel-samir",
+			"name": "Adel Samir",
+			"ar": "عادل سمير",
+			"what": "Egyptian tech and AI tips",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%A7%D8%AF%D9%84%20%D8%B3%D9%85%D9%8A%D8%B1"
+		},
+		"elzero-web-school": {
+			"id": "elzero-web-school",
+			"name": "Elzero Web School",
+			"ar": "الزيرو ويب سكول",
+			"what": "Osama Elzero: full web courses in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%B2%D9%8A%D8%B1%D9%88%20%D9%88%D9%8A%D8%A8%20%D8%B3%D9%83%D9%88%D9%84"
+		},
+		"adel-nasim": {
+			"id": "adel-nasim",
+			"name": "Adel Nasim",
+			"ar": "عادل نسيم",
+			"what": "Egyptian programming tutorials",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%A7%D8%AF%D9%84%20%D9%86%D8%B3%D9%8A%D9%85"
+		},
+		"codezilla": {
+			"id": "codezilla",
+			"name": "Codezilla",
+			"ar": "كود زيلا",
+			"what": "Programming lessons in Arabic",
+			"url": "https://www.youtube.com/results?search_query=Codezilla"
+		},
+		"el-daheeh": {
+			"id": "el-daheeh",
+			"name": "El Daheeh",
+			"ar": "الدحيح",
+			"what": "Ahmed El Ghandour: science and history, funny and fast",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%AF%D8%AD%D9%8A%D8%AD"
+		},
+		"mustafa-mahmoud": {
+			"id": "mustafa-mahmoud",
+			"name": "Mustafa Mahmoud",
+			"ar": "مصطفى محمود",
+			"what": "Classic \"Science and Faith\" (العلم والإيمان)",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%B9%D9%84%D9%85%20%D9%88%D8%A7%D9%84%D8%A5%D9%8A%D9%85%D8%A7%D9%86%20%D9%85%D8%B5%D8%B7%D9%81%D9%89%20%D9%85%D8%AD%D9%85%D9%88%D8%AF"
+		},
+		"essam-heggy": {
+			"id": "essam-heggy",
+			"name": "Essam Heggy",
+			"ar": "عصام حجي",
+			"what": "Egyptian NASA scientist",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D8%B5%D8%A7%D9%85%20%D8%AD%D8%AC%D9%8A"
+		},
+		"zahi-hawass": {
+			"id": "zahi-hawass",
+			"name": "Zahi Hawass",
+			"ar": "زاهي حواس",
+			"what": "Egyptian archaeologist, pharaohs and tombs",
+			"url": "https://www.youtube.com/results?search_query=%D8%B2%D8%A7%D9%87%D9%8A%20%D8%AD%D9%88%D8%A7%D8%B3"
+		},
+		"ahmed-amer": {
+			"id": "ahmed-amer",
+			"name": "Ahmed Amer",
+			"ar": "أحمد عامر",
+			"what": "Seerah and Islamic history series",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%B9%D8%A7%D9%85%D8%B1"
+		},
+		"al-jazeera-documentary": {
+			"id": "al-jazeera-documentary",
+			"name": "Al Jazeera Documentary",
+			"ar": "الجزيرة الوثائقية",
+			"what": "Arabic documentaries",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%AC%D8%B2%D9%8A%D8%B1%D8%A9%20%D8%A7%D9%84%D9%88%D8%AB%D8%A7%D8%A6%D9%82%D9%8A%D8%A9"
+		},
+		"joe-hattab": {
+			"id": "joe-hattab",
+			"name": "Joe Hattab",
+			"ar": "جو حطاب",
+			"what": "Travel stories that explain countries",
+			"url": "https://www.youtube.com/results?search_query=%D8%AC%D9%88%20%D8%AD%D8%B7%D8%A7%D8%A8"
+		},
+		"dw-arabic": {
+			"id": "dw-arabic",
+			"name": "DW Arabic",
+			"ar": "دي دبليو عربية",
+			"what": "Arabic documentaries from Germany",
+			"url": "https://www.youtube.com/results?search_query=%D8%AF%D9%8A%20%D8%AF%D8%A8%D9%84%D9%8A%D9%88%20%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9"
+		},
+		"national-geographic-abu-dhabi": {
+			"id": "national-geographic-abu-dhabi",
+			"name": "National Geographic Abu Dhabi",
+			"ar": "ناشيونال جيوغرافيك أبوظبي",
+			"what": "Nature and science documentaries in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D9%86%D8%A7%D8%B4%D9%8A%D9%88%D9%86%D8%A7%D9%84%20%D8%AC%D9%8A%D9%88%D8%BA%D8%B1%D8%A7%D9%81%D9%8A%D9%83%20%D8%A3%D8%A8%D9%88%D8%B8%D8%A8%D9%8A"
+		},
+		"ahraz": {
+			"id": "ahraz",
+			"name": "Ahraz",
+			"ar": "أحراز",
+			"what": "Sowt's true-crime podcast with Ahmed Ragab",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D9%88%D8%AF%D9%83%D8%A7%D8%B3%D8%AA%20%D8%A3%D8%AD%D8%B1%D8%A7%D8%B2"
+		},
+		"arab-true-crime": {
+			"id": "arab-true-crime",
+			"name": "Arab True Crime",
+			"ar": "جريمة عربية",
+			"what": "Short episodes on crimes in the Arab world",
+			"url": "https://www.youtube.com/results?search_query=Arab%20True%20Crime%20podcast"
+		},
+		"ahmed-khaled-tawfik": {
+			"id": "ahmed-khaled-tawfik",
+			"name": "Ahmed Khaled Tawfik",
+			"ar": "أحمد خالد توفيق",
+			"what": "Ma Wara' El Tabi'a — Egypt's horror stories",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%AE%D8%A7%D9%84%D8%AF%20%D8%AA%D9%88%D9%81%D9%8A%D9%82"
+		},
+		"paranormal-netflix": {
+			"id": "paranormal-netflix",
+			"name": "Paranormal (Netflix)",
+			"ar": "ما وراء الطبيعة",
+			"what": "The Egyptian horror series",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%A7%20%D9%88%D8%B1%D8%A7%D8%A1%20%D8%A7%D9%84%D8%B7%D8%A8%D9%8A%D8%B9%D8%A9"
+		},
+		"arabic-horror-podcasts": {
+			"id": "arabic-horror-podcasts",
+			"name": "Arabic horror podcasts",
+			"ar": "قصص رعب",
+			"what": "Scary story podcasts in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D9%82%D8%B5%D8%B5%20%D8%B1%D8%B9%D8%A8%20%D8%A8%D9%88%D8%AF%D9%83%D8%A7%D8%B3%D8%AA"
+		},
+		"al-jazeera": {
+			"id": "al-jazeera",
+			"name": "Al Jazeera",
+			"ar": "الجزيرة",
+			"what": "Arabic news",
+			"url": "https://www.youtube.com/results?search_query=%D9%82%D9%86%D8%A7%D8%A9%20%D8%A7%D9%84%D8%AC%D8%B2%D9%8A%D8%B1%D8%A9"
+		},
+		"al-arabiya": {
+			"id": "al-arabiya",
+			"name": "Al Arabiya",
+			"ar": "العربية",
+			"what": "Arabic news",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9"
+		},
+		"bbc-arabic": {
+			"id": "bbc-arabic",
+			"name": "BBC Arabic",
+			"ar": "بي بي سي عربي",
+			"what": "Arabic news from the BBC",
+			"url": "https://www.youtube.com/results?search_query=%D8%A8%D9%8A%20%D8%A8%D9%8A%20%D8%B3%D9%8A%20%D8%B9%D8%B1%D8%A8%D9%8A"
+		},
+		"mostafa-hosny": {
+			"id": "mostafa-hosny",
+			"name": "Mostafa Hosny",
+			"ar": "مصطفى حسني",
+			"what": "Gentle talks on faith and the heart",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B5%D8%B7%D9%81%D9%89%20%D8%AD%D8%B3%D9%86%D9%8A"
+		},
+		"omar-abdelkafy": {
+			"id": "omar-abdelkafy",
+			"name": "Omar Abdelkafy",
+			"ar": "عمر عبد الكافي",
+			"what": "Islamic lessons and stories",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%85%D8%B1%20%D8%B9%D8%A8%D8%AF%20%D8%A7%D9%84%D9%83%D8%A7%D9%81%D9%8A"
+		},
+		"ahmed-emara": {
+			"id": "ahmed-emara",
+			"name": "Ahmed Emara",
+			"ar": "أحمد عمارة",
+			"what": "Egyptian psychiatrist, mental-health talks",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D8%B9%D9%85%D8%A7%D8%B1%D8%A9"
+		},
+		"mohamed-taha": {
+			"id": "mohamed-taha",
+			"name": "Mohamed Taha",
+			"ar": "محمد طه",
+			"what": "Egyptian psychiatrist and author (\"El Khoroog 3an El Nas\")",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%B7%D9%87"
+		},
+		"chef-hassan": {
+			"id": "chef-hassan",
+			"name": "Chef Hassan",
+			"ar": "الشيف حسن",
+			"what": "Egyptian TV chef",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D8%B4%D9%8A%D9%81%20%D8%AD%D8%B3%D9%86"
+		},
+		"mohamed-hamed": {
+			"id": "mohamed-hamed",
+			"name": "Mohamed Hamed",
+			"ar": "محمد حامد",
+			"what": "Egyptian pastry chef and cooking show host",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%AD%D8%A7%D9%85%D8%AF"
+		},
+		"fatma-abu-haty": {
+			"id": "fatma-abu-haty",
+			"name": "Fatma Abu Haty",
+			"ar": "فاطمة أبو حاتي",
+			"what": "Easy, family-friendly Egyptian recipes",
+			"url": "https://www.youtube.com/results?search_query=%D9%81%D8%A7%D8%B7%D9%85%D8%A9%20%D8%A3%D8%A8%D9%88%20%D8%AD%D8%A7%D8%AA%D9%8A"
+		},
+		"mohammed-hazem": {
+			"id": "mohammed-hazem",
+			"name": "Mohammed Hazem",
+			"ar": "محمد حازم",
+			"what": "Funny cooking content, famous béchamel pasta",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D8%AF%20%D8%AD%D8%A7%D8%B2%D9%85"
+		},
+		"nina-diaries": {
+			"id": "nina-diaries",
+			"name": "Nina Diaries",
+			"ar": "نينا داياريز",
+			"what": "Egypt's top food creator (Heepsy, 2026)",
+			"url": "https://www.youtube.com/results?search_query=Nina%20Diaries"
+		},
+		"noor-stars": {
+			"id": "noor-stars",
+			"name": "Noor Stars",
+			"ar": "نور ستارز",
+			"what": "Huge Arabic family and lifestyle channel",
+			"url": "https://www.youtube.com/results?search_query=%D9%86%D9%88%D8%B1%20%D8%B3%D8%AA%D8%A7%D8%B1%D8%B2"
+		},
+		"osratouna-tv": {
+			"id": "osratouna-tv",
+			"name": "Osratouna TV",
+			"ar": "أسرتنا",
+			"what": "Family channel with 20M+ subscribers",
+			"url": "https://www.youtube.com/results?search_query=Osratouna"
+		},
+		"anas-asala": {
+			"id": "anas-asala",
+			"name": "Anas & Asala",
+			"ar": "أنس وأصالة",
+			"what": "Arab family vlogs",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D9%86%D8%B3%20%D9%88%D8%A3%D8%B5%D8%A7%D9%84%D8%A9"
+		},
+		"joelle-mardinian": {
+			"id": "joelle-mardinian",
+			"name": "Joelle Mardinian",
+			"ar": "جويل ماردينيان",
+			"what": "Beauty and style star",
+			"url": "https://www.youtube.com/results?search_query=%D8%AC%D9%88%D9%8A%D9%84%20%D9%85%D8%A7%D8%B1%D8%AF%D9%8A%D9%86%D9%8A%D8%A7%D9%86"
+		},
+		"karen-wazen": {
+			"id": "karen-wazen",
+			"name": "Karen Wazen",
+			"ar": "كارين وازن",
+			"what": "Fashion influencer from Dubai",
+			"url": "https://www.youtube.com/results?search_query=%D9%83%D8%A7%D8%B1%D9%8A%D9%86%20%D9%88%D8%A7%D8%B2%D9%86"
+		},
+		"ahmed-hamdy-style": {
+			"id": "ahmed-hamdy-style",
+			"name": "Ahmed Hamdy Style",
+			"ar": "ستايل رجالي",
+			"what": "Arabic men's style tips",
+			"url": "https://www.youtube.com/results?search_query=%D8%B3%D8%AA%D8%A7%D9%8A%D9%84%20%D8%B1%D8%AC%D8%A7%D9%84%D9%8A%20%D9%86%D8%B5%D8%A7%D8%A6%D8%AD"
+		},
+		"huda-kattan": {
+			"id": "huda-kattan",
+			"name": "Huda Kattan",
+			"ar": "هدى قطان",
+			"what": "Huda Beauty founder (Iraqi-American)",
+			"url": "https://www.youtube.com/results?search_query=%D9%87%D8%AF%D9%89%20%D9%82%D8%B7%D8%A7%D9%86"
+		},
+		"fil-fan": {
+			"id": "fil-fan",
+			"name": "Fil Fan",
+			"ar": "في الفن",
+			"what": "Egyptian film news and reviews",
+			"url": "https://www.youtube.com/results?search_query=FilFan"
+		},
+		"akhdar-cinema": {
+			"id": "akhdar-cinema",
+			"name": "Akhdar Cinema",
+			"ar": "أخضر",
+			"what": "Arabic film analysis",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D8%AD%D9%84%D9%8A%D9%84%20%D8%A3%D9%81%D9%84%D8%A7%D9%85"
+		},
+		"el-kebeer-awi": {
+			"id": "el-kebeer-awi",
+			"name": "El Kebeer Awi",
+			"ar": "الكبير أوي",
+			"what": "Ahmed Mekky's comedy series",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D9%83%D8%A8%D9%8A%D8%B1%20%D8%A3%D9%88%D9%8A"
+		},
+		"turkish-series": {
+			"id": "turkish-series",
+			"name": "Turkish series",
+			"ar": "مسلسلات تركي",
+			"what": "Ertugrul, Kurulus Osman and more",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B3%D9%84%D8%B3%D9%84%20%D8%AA%D8%B1%D9%83%D9%8A"
+		},
+		"spacetoon": {
+			"id": "spacetoon",
+			"name": "Spacetoon",
+			"ar": "سبيستون",
+			"what": "The channel we all grew up with",
+			"url": "https://www.youtube.com/results?search_query=%D8%B3%D8%A8%D9%8A%D8%B3%D8%AA%D9%88%D9%86"
+		},
+		"anime-reviewers-in-arabic": {
+			"id": "anime-reviewers-in-arabic",
+			"name": "Anime reviewers in Arabic",
+			"ar": "مراجعات أنمي",
+			"what": "Arabic anime reviews and theories",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%B1%D8%A7%D8%AC%D8%B9%D8%A9%20%D8%A3%D9%86%D9%85%D9%8A"
+		},
+		"big-time-podcast": {
+			"id": "big-time-podcast",
+			"name": "Big Time Podcast",
+			"ar": "بيج تايم بودكاست",
+			"what": "Egyptian interview podcast",
+			"url": "https://www.youtube.com/results?search_query=Big%20Time%20Podcast"
+		},
+		"amr-adeeb": {
+			"id": "amr-adeeb",
+			"name": "Amr Adeeb",
+			"ar": "عمرو أديب",
+			"what": "Egypt's famous talk-show host",
+			"url": "https://www.youtube.com/results?search_query=%D8%B9%D9%85%D8%B1%D9%88%20%D8%A3%D8%AF%D9%8A%D8%A8"
+		},
+		"arabic-asmr": {
+			"id": "arabic-asmr",
+			"name": "Arabic ASMR",
+			"ar": "ASMR عربي",
+			"what": "Whispered Arabic ASMR",
+			"url": "https://www.youtube.com/results?search_query=ASMR%20%D8%B9%D8%B1%D8%A8%D9%8A"
+		},
+		"quran-recitations-for-sleep": {
+			"id": "quran-recitations-for-sleep",
+			"name": "Quran recitations for sleep",
+			"ar": "قرآن قبل النوم",
+			"what": "Calm recitation before sleep",
+			"url": "https://www.youtube.com/results?search_query=%D9%82%D8%B1%D8%A2%D9%86%20%D9%82%D8%A8%D9%84%20%D8%A7%D9%84%D9%86%D9%88%D9%85"
+		},
+		"adobe-arabia": {
+			"id": "adobe-arabia",
+			"name": "Adobe Arabia",
+			"ar": "أدوبي عربي",
+			"what": "Design tutorials in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D8%B9%D9%84%D9%8A%D9%85%20%D9%81%D9%88%D8%AA%D9%88%D8%B4%D9%88%D8%A8"
+		},
+		"arabic-illustrators": {
+			"id": "arabic-illustrators",
+			"name": "Arabic illustrators",
+			"ar": "رسامين عرب",
+			"what": "Drawing and digital art",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D8%B9%D9%84%D9%8A%D9%85%20%D8%B1%D8%B3%D9%85%20%D8%AF%D9%8A%D8%AC%D9%8A%D8%AA%D8%A7%D9%84"
+		},
+		"arabic-editing-tutorials": {
+			"id": "arabic-editing-tutorials",
+			"name": "Arabic editing tutorials",
+			"ar": "تعليم مونتاج",
+			"what": "Premiere and CapCut tutorials in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D8%B9%D9%84%D9%8A%D9%85%20%D9%85%D9%88%D9%86%D8%AA%D8%A7%D8%AC"
+		},
+		"elmoasser": {
+			"id": "elmoasser",
+			"name": "Elmoasser",
+			"ar": "المعاصر",
+			"what": "Thanaweya Amma lessons",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D9%84%D9%85%D8%B9%D8%A7%D8%B5%D8%B1%20%D8%AB%D8%A7%D9%86%D9%88%D9%8A%D8%A9%20%D8%B9%D8%A7%D9%85%D8%A9"
+		},
+		"nafham": {
+			"id": "nafham",
+			"name": "Nafham",
+			"ar": "نفهم",
+			"what": "Free school lessons in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D9%86%D9%81%D9%87%D9%85"
+		},
+		"sawa-english": {
+			"id": "sawa-english",
+			"name": "Sawa English",
+			"ar": "سوا انجليش",
+			"what": "Your own school!",
+			"url": "https://www.youtube.com/results?search_query=%D8%B3%D9%88%D8%A7%20%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B4"
+		},
+		"arabic-english-teachers": {
+			"id": "arabic-english-teachers",
+			"name": "Arabic English teachers",
+			"ar": "مدرسين إنجليزي",
+			"what": "English lessons in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D8%B9%D9%84%D9%85%20%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D9%84%D9%8A%D8%B2%D9%8A%D8%A9"
+		},
+		"naguib-mahfouz": {
+			"id": "naguib-mahfouz",
+			"name": "Naguib Mahfouz",
+			"ar": "نجيب محفوظ",
+			"what": "Nobel prize-winning Egyptian novelist",
+			"url": "https://www.youtube.com/results?search_query=%D9%86%D8%AC%D9%8A%D8%A8%20%D9%85%D8%AD%D9%81%D9%88%D8%B8"
+		},
+		"ahmed-mourad": {
+			"id": "ahmed-mourad",
+			"name": "Ahmed Mourad",
+			"ar": "أحمد مراد",
+			"what": "Thrillers: The Blue Elephant, Vertigo",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%AD%D9%85%D8%AF%20%D9%85%D8%B1%D8%A7%D8%AF"
+		},
+		"osama-moslem": {
+			"id": "osama-moslem",
+			"name": "Osama Moslem",
+			"ar": "أسامة مسلم",
+			"what": "Saudi fantasy author (\"Khawf\") — huge with young readers",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%B3%D8%A7%D9%85%D8%A9%20%D9%85%D8%B3%D9%84%D9%85"
+		},
+		"abajora": {
+			"id": "abajora",
+			"name": "Abajora",
+			"ar": "أباجورة",
+			"what": "Arabic book reviews on YouTube",
+			"url": "https://www.youtube.com/results?search_query=%D8%A3%D8%A8%D8%A7%D8%AC%D9%88%D8%B1%D8%A9"
+		},
+		"hisham-el-gakh": {
+			"id": "hisham-el-gakh",
+			"name": "Hisham El Gakh",
+			"ar": "هشام الجخ",
+			"what": "Egyptian poet, packed stadium readings",
+			"url": "https://www.youtube.com/results?search_query=%D9%87%D8%B4%D8%A7%D9%85%20%D8%A7%D9%84%D8%AC%D8%AE"
+		},
+		"tamim-al-barghouti": {
+			"id": "tamim-al-barghouti",
+			"name": "Tamim Al-Barghouti",
+			"ar": "تميم البرغوثي",
+			"what": "Palestinian poet (\"Fil Quds\")",
+			"url": "https://www.youtube.com/results?search_query=%D8%AA%D9%85%D9%8A%D9%85%20%D8%A7%D9%84%D8%A8%D8%B1%D8%BA%D9%88%D8%AB%D9%8A"
+		},
+		"mahmoud-darwish": {
+			"id": "mahmoud-darwish",
+			"name": "Mahmoud Darwish",
+			"ar": "محمود درويش",
+			"what": "The Palestinian national poet",
+			"url": "https://www.youtube.com/results?search_query=%D9%85%D8%AD%D9%85%D9%88%D8%AF%20%D8%AF%D8%B1%D9%88%D9%8A%D8%B4"
+		},
+		"cat-videos": {
+			"id": "cat-videos",
+			"name": "Cat videos",
+			"ar": "فيديوهات قطط",
+			"what": "Funny cats and pets in Arabic",
+			"url": "https://www.youtube.com/results?search_query=%D9%82%D8%B7%D8%B7%20%D9%85%D8%B6%D8%AD%D9%83%D8%A9"
+		},
+		"arabic-diy": {
+			"id": "arabic-diy",
+			"name": "Arabic DIY",
+			"ar": "افعلها بنفسك",
+			"what": "Arabic DIY and fixing videos",
+			"url": "https://www.youtube.com/results?search_query=%D8%A7%D8%B5%D9%86%D8%B9%D9%87%D8%A7%20%D8%A8%D9%86%D9%81%D8%B3%D9%83"
+		}
+	},
+	"categories": [
+		{
+			"id": "business",
+			"emoji": "💼",
+			"name": "Business & startups",
+			"ar": "بيزنس وريادة أعمال",
+			"arab": [
+				"salah-abo-el-magd",
+				"ehab-musallam",
+				"ahmed-abo-zaid",
+				"fnjan"
+			],
+			"en": [
+				{
+					"id": "ali-abdaal",
+					"type": "youtube",
+					"name": "Ali Abdaal",
+					"url": "https://www.youtube.com/@aliabdaal",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A doctor turned YouTuber on business, productivity and making money online",
+					"why": "Like Salah Abo El Magd, he turns business ideas into simple steps — and his British English is calm and clear",
+					"like": [
+						"salah-abo-el-magd"
+					],
+					"start": true
+				},
+				{
+					"id": "the-diary-of-a-ceo",
+					"type": "podcast",
+					"name": "The Diary Of A CEO",
+					"url": "https://www.youtube.com/@TheDiaryOfACEO",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Steven Bartlett interviews founders, athletes and experts",
+					"why": "The English version of Fnjan and Ehab Musallam: long, honest conversations with people who built something",
+					"like": [
+						"fnjan",
+						"ehab-musallam"
+					],
+					"start": true
+				},
+				{
+					"id": "alex-hormozi",
+					"type": "youtube",
+					"name": "Alex Hormozi",
+					"url": "https://www.youtube.com/@AlexHormozi",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Straight talk about sales, offers and growing a business",
+					"why": "If you like practical business advice with energy, he is the American version",
+					"like": [
+						"salah-abo-el-magd"
+					],
+					"start": false
+				},
+				{
+					"id": "my-first-million",
+					"type": "podcast",
+					"name": "My First Million",
+					"url": "https://www.youtube.com/@MyFirstMillionPod",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Two friends brainstorm business ideas and tell startup stories",
+					"why": "Business ideas as fun conversations — great for natural, fast English",
+					"like": [
+						"ehab-musallam"
+					],
+					"start": false
+				},
+				{
+					"id": "y-combinator",
+					"type": "youtube",
+					"name": "Y Combinator",
+					"url": "https://www.youtube.com/@ycombinator",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Free startup lessons from the world's most famous startup school",
+					"why": "If you dream of starting your own company",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "rich-dad-poor-dad",
+					"type": "book",
+					"name": "Rich Dad Poor Dad",
+					"url": "https://www.goodreads.com/search?q=Rich%20Dad%20Poor%20Dad",
+					"level": "B1",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Robert Kiyosaki's classic about money and thinking like an owner",
+					"why": "Short chapters and simple English — one of the easiest business books to read in English",
+					"like": [
+						"ahmed-abo-zaid"
+					],
+					"start": false
+				},
+				{
+					"id": "paul-graham-s-essays",
+					"type": "site",
+					"name": "Paul Graham's essays",
+					"url": "https://paulgraham.com/articles.html",
+					"level": "B2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Short essays on startups and thinking, by YC's founder",
+					"why": "Read one essay with Language Lens — clear, simple sentences",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "money",
+			"emoji": "💰",
+			"name": "Money & investing",
+			"ar": "فلوس واستثمار",
+			"arab": [
+				"ahmed-abo-zaid",
+				"al-mokhbir-al-eqtesadi",
+				"salah-abo-el-magd"
+			],
+			"en": [
+				{
+					"id": "graham-stephan",
+					"type": "youtube",
+					"name": "Graham Stephan",
+					"url": "https://www.youtube.com/@GrahamStephan",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Saving, investing and money news from a young millionaire",
+					"why": "Money explained with real numbers, like Al Mokhbir Al Eqtesadi",
+					"like": [
+						"al-mokhbir-al-eqtesadi"
+					],
+					"start": false
+				},
+				{
+					"id": "the-plain-bagel",
+					"type": "youtube",
+					"name": "The Plain Bagel",
+					"url": "https://www.youtube.com/@ThePlainBagel",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Calm, clear videos about investing and the economy",
+					"why": "Slow and clear — the easiest money channel to start with",
+					"like": [
+						"ahmed-abo-zaid"
+					],
+					"start": true
+				},
+				{
+					"id": "economics-explained",
+					"type": "youtube",
+					"name": "Economics Explained",
+					"url": "https://www.youtube.com/@EconomicsExplained",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Why countries get rich or poor, explained with stories",
+					"why": "If you like Ahmed Abo Zaid's economics videos",
+					"like": [
+						"ahmed-abo-zaid",
+						"al-mokhbir-al-eqtesadi"
+					],
+					"start": false
+				},
+				{
+					"id": "coin-bureau",
+					"type": "youtube",
+					"name": "Coin Bureau",
+					"url": "https://www.youtube.com/@CoinBureau",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Crypto and blockchain explained without hype",
+					"why": "For crypto fans: careful explanations, not \"get rich quick\"",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "the-psychology-of-money",
+					"type": "book",
+					"name": "The Psychology of Money",
+					"url": "https://www.goodreads.com/search?q=The%20Psychology%20of%20Money",
+					"level": "B1",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Morgan Housel: short stories about how people think about money",
+					"why": "Very short chapters — a perfect first business book in English",
+					"like": [],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "self",
+			"emoji": "🌱",
+			"name": "Self-improvement",
+			"ar": "تطوير الذات",
+			"arab": [
+				"ahmad-al-shugairi",
+				"ibrahim-elfiky",
+				"amr-khaled",
+				"karim-esmail"
+			],
+			"en": [
+				{
+					"id": "ted",
+					"type": "youtube",
+					"name": "TED",
+					"url": "https://www.youtube.com/@TED",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short talks by great speakers on every topic",
+					"why": "Like Ahmad Al Shugairi: one idea that can change your life, in 15 minutes — with perfect captions",
+					"like": [
+						"ahmad-al-shugairi"
+					],
+					"start": true
+				},
+				{
+					"id": "mel-robbins",
+					"type": "youtube",
+					"name": "Mel Robbins",
+					"url": "https://www.youtube.com/@melrobbins",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Practical motivation: the 5-second rule and better habits",
+					"why": "If you liked Ibrahim Elfiky's energy, she is the American version",
+					"like": [
+						"ibrahim-elfiky"
+					],
+					"start": false
+				},
+				{
+					"id": "ali-abdaal",
+					"type": "youtube",
+					"name": "Ali Abdaal",
+					"url": "https://www.youtube.com/@aliabdaal",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Productivity and a happier, calmer way to work",
+					"why": "Clear British English and simple systems you can try today",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "jay-shetty",
+					"type": "youtube",
+					"name": "Jay Shetty",
+					"url": "https://www.youtube.com/@JayShettyPodcast",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short stories and podcasts about purpose and relationships",
+					"why": "Gentle wisdom with stories, like Amr Khaled's talks",
+					"like": [
+						"amr-khaled"
+					],
+					"start": false
+				},
+				{
+					"id": "atomic-habits",
+					"type": "book",
+					"name": "Atomic Habits",
+					"url": "https://www.goodreads.com/search?q=Atomic%20Habits",
+					"level": "B1",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "James Clear: tiny habits, big results",
+					"why": "The most popular self-help book now — easy English and short chapters",
+					"like": [
+						"karim-esmail"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "comedy",
+			"emoji": "😂",
+			"name": "Funny videos & sketches",
+			"ar": "كوميدي وإسكتشات",
+			"arab": [
+				"hesham-afifi",
+				"eyad-el-mogy",
+				"ahmed-amin",
+				"el-twins",
+				"bassem-youssef"
+			],
+			"en": [
+				{
+					"id": "saturday-night-live",
+					"type": "youtube",
+					"name": "Saturday Night Live",
+					"url": "https://www.youtube.com/@SaturdayNightLive",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "America's most famous sketch comedy show",
+					"why": "Like Ahmed Amin's El Plateau: short sketches about everyday life",
+					"like": [
+						"ahmed-amin"
+					],
+					"start": false
+				},
+				{
+					"id": "key-peele",
+					"type": "youtube",
+					"name": "Key & Peele",
+					"url": "https://www.youtube.com/@ComedyCentral",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Classic two-man sketches (on Comedy Central)",
+					"why": "If you like EL Twins: two friends, crazy characters, every sketch under 5 minutes",
+					"like": [
+						"el-twins"
+					],
+					"start": true
+				},
+				{
+					"id": "mr-bean",
+					"type": "youtube",
+					"name": "Mr. Bean",
+					"url": "https://www.youtube.com/@MrBean",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "auto",
+					"lens": true,
+					"what": "Almost no words — but perfect for your first funny English",
+					"why": "Start here if English comedy feels too fast",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "danny-gonzalez",
+					"type": "youtube",
+					"name": "Danny Gonzalez",
+					"url": "https://www.youtube.com/@Danny-Gonzalez",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Funny commentary on weird internet videos",
+					"why": "The closest thing to Mogzz's El Sabt El Momtaz in English",
+					"like": [
+						"eyad-el-mogy"
+					],
+					"start": false
+				},
+				{
+					"id": "smosh",
+					"type": "youtube",
+					"name": "Smosh",
+					"url": "https://www.youtube.com/@smosh",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Sketches, games and improv",
+					"why": "Fast, silly comedy like Hesham Afifi's videos",
+					"like": [
+						"hesham-afifi"
+					],
+					"start": false
+				},
+				{
+					"id": "trevor-noah",
+					"type": "youtube",
+					"name": "Trevor Noah",
+					"url": "https://www.youtube.com/@TrevorNoah",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Stand-up and funny talks about the world",
+					"why": "Like Bassem Youssef: comedy with smart ideas about society",
+					"like": [
+						"bassem-youssef"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "standup",
+			"emoji": "🎤",
+			"name": "Stand-up comedy",
+			"ar": "ستاند أب كوميدي",
+			"arab": [
+				"ali-qandil",
+				"nemr-abou-nassar",
+				"fahad-albutairi",
+				"bassem-youssef"
+			],
+			"en": [
+				{
+					"id": "trevor-noah",
+					"type": "youtube",
+					"name": "Trevor Noah",
+					"url": "https://www.youtube.com/@TrevorNoah",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "South African comedian with very clear English",
+					"why": "The easiest stand-up comedian to understand — slow, clear and full of stories",
+					"like": [
+						"ali-qandil"
+					],
+					"start": true
+				},
+				{
+					"id": "mo-amer",
+					"type": "youtube",
+					"name": "Mo Amer",
+					"url": "https://www.youtube.com/results?search_query=Mo%20Amer",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Palestinian-American comedian (Netflix's \"Mo\")",
+					"why": "Arab life in America, in English — you'll get every joke",
+					"like": [
+						"nemr-abou-nassar",
+						"fahad-albutairi"
+					],
+					"start": true
+				},
+				{
+					"id": "ramy-youssef",
+					"type": "youtube",
+					"name": "Ramy Youssef",
+					"url": "https://www.youtube.com/results?search_query=Ramy%20Youssef",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Egyptian-American comedian (series \"Ramy\")",
+					"why": "An Egyptian family in New Jersey — like Bassem Youssef, but in English",
+					"like": [
+						"bassem-youssef"
+					],
+					"start": false
+				},
+				{
+					"id": "netflix-is-a-joke",
+					"type": "youtube",
+					"name": "Netflix Is A Joke",
+					"url": "https://www.youtube.com/@netflixisajoke",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Clips from Netflix stand-up specials",
+					"why": "Short clips from the world's top comedians",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "gabriel-iglesias",
+					"type": "youtube",
+					"name": "Gabriel Iglesias",
+					"url": "https://www.youtube.com/results?search_query=Gabriel%20Iglesias",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "\"Fluffy\": family-friendly stories with funny voices",
+					"why": "Clean, story-based comedy you can watch with family",
+					"like": [
+						"ali-qandil"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "reactions",
+			"emoji": "👀",
+			"name": "Reactions & internet commentary",
+			"ar": "رياكشن وتعليق على الترند",
+			"arab": [
+				"eyad-el-mogy",
+				"omar-kato",
+				"khaled-hossam",
+				"abo-hafiza"
+			],
+			"en": [
+				{
+					"id": "penguinz0-cr1tikal",
+					"type": "youtube",
+					"name": "Penguinz0 (Cr1TiKaL)",
+					"url": "https://www.youtube.com/@penguinz0",
+					"level": "B2",
+					"speech": "slow",
+					"captions": "auto",
+					"lens": true,
+					"what": "Dry, funny commentary on internet news and games",
+					"why": "His voice is slow and flat — easy to follow, very funny",
+					"like": [
+						"omar-kato"
+					],
+					"start": true
+				},
+				{
+					"id": "danny-gonzalez",
+					"type": "youtube",
+					"name": "Danny Gonzalez",
+					"url": "https://www.youtube.com/@Danny-Gonzalez",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Reacts to strange internet videos",
+					"why": "If you love Mogzz reacting to TikTok clips",
+					"like": [
+						"eyad-el-mogy"
+					],
+					"start": true
+				},
+				{
+					"id": "drew-gooden",
+					"type": "youtube",
+					"name": "Drew Gooden",
+					"url": "https://www.youtube.com/@DrewGooden",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Funny commentary on trends and internet culture",
+					"why": "Like Khaled Hossam: smart comments on what everyone is watching",
+					"like": [
+						"khaled-hossam"
+					],
+					"start": false
+				},
+				{
+					"id": "jarvis-johnson",
+					"type": "youtube",
+					"name": "Jarvis Johnson",
+					"url": "https://www.youtube.com/@JarvisJohnson",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Commentary on online scams, apps and trends",
+					"why": "Internet culture with jokes, like Abo Hafiza",
+					"like": [
+						"abo-hafiza"
+					],
+					"start": false
+				},
+				{
+					"id": "the-try-guys",
+					"type": "youtube",
+					"name": "The Try Guys",
+					"url": "https://www.youtube.com/@tryguys",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Four friends try everything and react",
+					"why": "Group reactions and challenges with clear, friendly English",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "pranks",
+			"emoji": "🤡",
+			"name": "Pranks & challenges",
+			"ar": "مقالب وتحديات",
+			"arab": [
+				"aboflah",
+				"hamdy-wafaa",
+				"shawar",
+				"abo-rany"
+			],
+			"en": [
+				{
+					"id": "mrbeast",
+					"type": "youtube",
+					"name": "MrBeast",
+					"url": "https://www.youtube.com/@MrBeast",
+					"level": "A2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Giant challenges and giveaways",
+					"why": "The world's biggest challenge channel — simple words, great captions",
+					"like": [
+						"aboflah",
+						"shawar"
+					],
+					"start": true
+				},
+				{
+					"id": "sidemen",
+					"type": "youtube",
+					"name": "Sidemen",
+					"url": "https://www.youtube.com/@Sidemen",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "British friends: challenges, Tinder in Real Life, football",
+					"why": "Group challenges like AboFlah's, with British slang",
+					"like": [
+						"aboflah"
+					],
+					"start": false
+				},
+				{
+					"id": "dude-perfect",
+					"type": "youtube",
+					"name": "Dude Perfect",
+					"url": "https://www.youtube.com/@DudePerfect",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Trick shots, sports battles and challenges",
+					"why": "Easy to understand — the action tells the story",
+					"like": [
+						"abo-rany"
+					],
+					"start": true
+				},
+				{
+					"id": "airrack",
+					"type": "youtube",
+					"name": "Airrack",
+					"url": "https://www.youtube.com/@airrack",
+					"level": "B1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Huge stunts and challenges",
+					"why": "If you like big, crazy challenge ideas",
+					"like": [
+						"shawar"
+					],
+					"start": false
+				},
+				{
+					"id": "yes-theory",
+					"type": "youtube",
+					"name": "Yes Theory",
+					"url": "https://www.youtube.com/@YesTheory",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "\"Seek discomfort\": friendly adventures and challenges",
+					"why": "Challenges with heart — and clear English",
+					"like": [
+						"hamdy-wafaa"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "rap",
+			"emoji": "🎧",
+			"name": "Rap & hip-hop",
+			"ar": "راب وهيب هوب",
+			"arab": [
+				"abyusif",
+				"marwan-pablo",
+				"wegz",
+				"marwan-moussa",
+				"afroto",
+				"elgrandetoto"
+			],
+			"en": [
+				{
+					"id": "j-cole",
+					"type": "music",
+					"name": "J. Cole",
+					"url": "https://www.youtube.com/results?search_query=J.%20Cole%20lyrics",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Thoughtful lyrics about life, family and money",
+					"why": "If you like Abyusif's writing: deep lyrics, clear voice, real stories",
+					"like": [
+						"abyusif",
+						"marwan-moussa"
+					],
+					"start": true
+				},
+				{
+					"id": "kendrick-lamar",
+					"type": "music",
+					"name": "Kendrick Lamar",
+					"url": "https://www.youtube.com/results?search_query=Kendrick%20Lamar%20lyrics",
+					"level": "C1",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "The most respected rapper of his generation",
+					"why": "Abyusif fans love wordplay — Kendrick is the king of it",
+					"like": [
+						"abyusif"
+					],
+					"start": false
+				},
+				{
+					"id": "xxxtentacion",
+					"type": "music",
+					"name": "XXXTentacion",
+					"url": "https://www.youtube.com/results?search_query=XXXTentacion%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Emotional songs mixing rap, rock and sad melodies",
+					"why": "Dark, emotional trap like Marwan Pablo — and his lyrics are short and simple",
+					"like": [
+						"marwan-pablo"
+					],
+					"start": true
+				},
+				{
+					"id": "travis-scott",
+					"type": "music",
+					"name": "Travis Scott",
+					"url": "https://www.youtube.com/results?search_query=Travis%20Scott%20lyrics",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Heavy, atmospheric trap",
+					"why": "Pablo's heavy beats and auto-tune energy, American style",
+					"like": [
+						"marwan-pablo",
+						"elgrandetoto"
+					],
+					"start": false
+				},
+				{
+					"id": "drake",
+					"type": "music",
+					"name": "Drake",
+					"url": "https://www.youtube.com/results?search_query=Drake%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Melodic rap and R&B hits",
+					"why": "Like Wegz: catchy hooks between rapping and singing",
+					"like": [
+						"wegz"
+					],
+					"start": true
+				},
+				{
+					"id": "eminem",
+					"type": "music",
+					"name": "Eminem",
+					"url": "https://www.youtube.com/results?search_query=Eminem%20lyrics",
+					"level": "C1",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Fast, angry, brilliant storytelling",
+					"why": "Marwan Moussa's storytelling, at 200 words a minute",
+					"like": [
+						"marwan-moussa",
+						"afroto"
+					],
+					"start": false
+				},
+				{
+					"id": "nf",
+					"type": "music",
+					"name": "NF",
+					"url": "https://www.youtube.com/results?search_query=NF%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Honest rap about mental health, very clear voice",
+					"why": "The easiest rapper to understand — perfect to start",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "genius",
+					"type": "youtube",
+					"name": "Genius",
+					"url": "https://www.youtube.com/@genius",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Artists explain the meaning of their own lyrics",
+					"why": "Learn the slang behind your favourite songs",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "pop",
+			"emoji": "🎶",
+			"name": "Pop music",
+			"ar": "بوب وأغاني",
+			"arab": [
+				"amr-diab",
+				"tamer-hosny",
+				"elissa",
+				"nancy-ajram",
+				"mohamed-hamaki",
+				"bessan-ismail"
+			],
+			"en": [
+				{
+					"id": "ed-sheeran",
+					"type": "music",
+					"name": "Ed Sheeran",
+					"url": "https://www.youtube.com/results?search_query=Ed%20Sheeran%20lyrics",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Love songs with simple, clear lyrics",
+					"why": "The easiest pop to learn from — slow, clear, every word understood. For Amr Diab and Hamaki fans",
+					"like": [
+						"amr-diab",
+						"mohamed-hamaki"
+					],
+					"start": true
+				},
+				{
+					"id": "bruno-mars",
+					"type": "music",
+					"name": "Bruno Mars",
+					"url": "https://www.youtube.com/results?search_query=Bruno%20Mars%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Happy dance-pop and love songs",
+					"why": "Big, fun hits like Tamer Hosny",
+					"like": [
+						"tamer-hosny"
+					],
+					"start": true
+				},
+				{
+					"id": "adele",
+					"type": "music",
+					"name": "Adele",
+					"url": "https://www.youtube.com/results?search_query=Adele%20lyrics",
+					"level": "B1",
+					"speech": "slow",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Powerful ballads about love and heartbreak",
+					"why": "If Elissa's sad songs are your favourite",
+					"like": [
+						"elissa"
+					],
+					"start": false
+				},
+				{
+					"id": "taylor-swift",
+					"type": "music",
+					"name": "Taylor Swift",
+					"url": "https://www.youtube.com/results?search_query=Taylor%20Swift%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Stories about love and growing up",
+					"why": "Lyrics that tell a story — great for learning everyday English",
+					"like": [
+						"nancy-ajram",
+						"bessan-ismail"
+					],
+					"start": false
+				},
+				{
+					"id": "dua-lipa",
+					"type": "music",
+					"name": "Dua Lipa",
+					"url": "https://www.youtube.com/results?search_query=Dua%20Lipa%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Dance-pop hits",
+					"why": "Catchy and modern, like Nancy Ajram's upbeat songs",
+					"like": [
+						"nancy-ajram"
+					],
+					"start": false
+				},
+				{
+					"id": "justin-bieber",
+					"type": "music",
+					"name": "Justin Bieber",
+					"url": "https://www.youtube.com/results?search_query=Justin%20Bieber%20lyrics",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Pop and R&B love songs",
+					"why": "Simple lyrics you'll remember after one listen",
+					"like": [
+						"bessan-ismail"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "shaabi",
+			"emoji": "🔊",
+			"name": "Mahraganat & party music",
+			"ar": "مهرجانات وشعبي",
+			"arab": [
+				"essam-sasa",
+				"hassan-shakosh",
+				"mohamed-ramadan",
+				"oka-ortega"
+			],
+			"en": [
+				{
+					"id": "pitbull",
+					"type": "music",
+					"name": "Pitbull",
+					"url": "https://www.youtube.com/results?search_query=Pitbull%20lyrics",
+					"level": "B1",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Party anthems",
+					"why": "Wedding-and-party energy like Mahraganat",
+					"like": [
+						"hassan-shakosh",
+						"oka-ortega"
+					],
+					"start": false
+				},
+				{
+					"id": "burna-boy",
+					"type": "music",
+					"name": "Burna Boy",
+					"url": "https://www.youtube.com/results?search_query=Burna%20Boy%20lyrics",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Afrobeats star from Nigeria",
+					"why": "Street rhythm and big crowds — Afrobeats is the Mahraganat of Africa",
+					"like": [
+						"essam-sasa",
+						"hassan-shakosh"
+					],
+					"start": false
+				},
+				{
+					"id": "rema",
+					"type": "music",
+					"name": "Rema",
+					"url": "https://www.youtube.com/results?search_query=Rema%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Afrobeats hits like \"Calm Down\"",
+					"why": "Catchy and simple — you'll sing along fast",
+					"like": [
+						"essam-sasa"
+					],
+					"start": true
+				},
+				{
+					"id": "sean-paul",
+					"type": "music",
+					"name": "Sean Paul",
+					"url": "https://www.youtube.com/results?search_query=Sean%20Paul%20lyrics",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Dancehall party classics",
+					"why": "If you like loud beats and dancing",
+					"like": [
+						"mohamed-ramadan"
+					],
+					"start": false
+				},
+				{
+					"id": "david-guetta",
+					"type": "music",
+					"name": "David Guetta",
+					"url": "https://www.youtube.com/results?search_query=David%20Guetta%20lyrics",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "EDM hits with famous singers",
+					"why": "Electronic party music with simple, repeated lyrics",
+					"like": [
+						"essam-sasa"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "indie",
+			"emoji": "🎸",
+			"name": "Bands, indie & rock",
+			"ar": "باندات وإندي وروك",
+			"arab": [
+				"cairokee",
+				"massar-egbari",
+				"sharmoofers",
+				"mashrou-leila",
+				"ahmed-saad"
+			],
+			"en": [
+				{
+					"id": "coldplay",
+					"type": "music",
+					"name": "Coldplay",
+					"url": "https://www.youtube.com/results?search_query=Coldplay%20lyrics",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Big, emotional band songs",
+					"why": "Slow, clear singing — like Cairokee's anthems that everyone sings",
+					"like": [
+						"cairokee"
+					],
+					"start": true
+				},
+				{
+					"id": "imagine-dragons",
+					"type": "music",
+					"name": "Imagine Dragons",
+					"url": "https://www.youtube.com/results?search_query=Imagine%20Dragons%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Energetic rock-pop",
+					"why": "Loud and inspiring, like Massar Egbari live",
+					"like": [
+						"massar-egbari",
+						"ahmed-saad"
+					],
+					"start": true
+				},
+				{
+					"id": "arctic-monkeys",
+					"type": "music",
+					"name": "Arctic Monkeys",
+					"url": "https://www.youtube.com/results?search_query=Arctic%20Monkeys%20lyrics",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "British indie rock",
+					"why": "Clever, poetic lyrics like Mashrou' Leila",
+					"like": [
+						"mashrou-leila"
+					],
+					"start": false
+				},
+				{
+					"id": "linkin-park",
+					"type": "music",
+					"name": "Linkin Park",
+					"url": "https://www.youtube.com/results?search_query=Linkin%20Park%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Rock mixed with rap",
+					"why": "If you like strong voices and emotional rock",
+					"like": [
+						"ahmed-saad"
+					],
+					"start": false
+				},
+				{
+					"id": "twenty-one-pilots",
+					"type": "music",
+					"name": "Twenty One Pilots",
+					"url": "https://www.youtube.com/results?search_query=Twenty%20One%20Pilots%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Indie-pop with honest lyrics",
+					"why": "Fun and creative, like Sharmoofers",
+					"like": [
+						"sharmoofers"
+					],
+					"start": false
+				},
+				{
+					"id": "tiny-desk-concerts-npr-music",
+					"type": "youtube",
+					"name": "Tiny Desk Concerts (NPR Music)",
+					"url": "https://www.youtube.com/@nprmusic",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Bands play small live shows in an office",
+					"why": "Live music plus short talks between songs",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "oud",
+			"emoji": "🎻",
+			"name": "Classic Arabic music & tarab",
+			"ar": "طرب وأغاني كلاسيك",
+			"arab": [
+				"umm-kulthum",
+				"abdel-halim-hafez",
+				"fairuz",
+				"mohamed-mounir"
+			],
+			"en": [
+				{
+					"id": "frank-sinatra",
+					"type": "music",
+					"name": "Frank Sinatra",
+					"url": "https://www.youtube.com/results?search_query=Frank%20Sinatra%20lyrics",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Classic love songs from the 1950s–60s",
+					"why": "The \"Abdel Halim\" of America: slow, clear and romantic",
+					"like": [
+						"abdel-halim-hafez"
+					],
+					"start": true
+				},
+				{
+					"id": "nat-king-cole",
+					"type": "music",
+					"name": "Nat King Cole",
+					"url": "https://www.youtube.com/results?search_query=Nat%20King%20Cole%20lyrics",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Smooth classic songs",
+					"why": "Very slow and clear — great for listening practice",
+					"like": [
+						"fairuz"
+					],
+					"start": false
+				},
+				{
+					"id": "louis-armstrong",
+					"type": "music",
+					"name": "Louis Armstrong",
+					"url": "https://www.youtube.com/results?search_query=Louis%20Armstrong%20lyrics",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "\"What a Wonderful World\" and jazz classics",
+					"why": "Calm classics with simple words",
+					"like": [
+						"fairuz"
+					],
+					"start": false
+				},
+				{
+					"id": "ella-fitzgerald",
+					"type": "music",
+					"name": "Ella Fitzgerald",
+					"url": "https://www.youtube.com/results?search_query=Ella%20Fitzgerald%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "The First Lady of Song",
+					"why": "A legendary voice, like Umm Kulthum",
+					"like": [
+						"umm-kulthum"
+					],
+					"start": false
+				},
+				{
+					"id": "bob-marley",
+					"type": "music",
+					"name": "Bob Marley",
+					"url": "https://www.youtube.com/results?search_query=Bob%20Marley%20lyrics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "lyrics",
+					"lens": true,
+					"what": "Reggae songs about love and freedom",
+					"why": "Soulful songs with a message, like Mohamed Mounir",
+					"like": [
+						"mohamed-mounir"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "football",
+			"emoji": "⚽",
+			"name": "Football",
+			"ar": "كورة",
+			"arab": [
+				"mohamed-aboutrika",
+				"essam-el-shawaly",
+				"hafeez-darraji",
+				"ahmed-hossam-mido",
+				"mohamed-salah"
+			],
+			"en": [
+				{
+					"id": "the-overlap",
+					"type": "youtube",
+					"name": "The Overlap",
+					"url": "https://www.youtube.com/@TheOverlap",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Gary Neville, Jamie Carragher and Roy Keane talk football",
+					"why": "Former players discussing matches — like Aboutrika and Mido in the studio",
+					"like": [
+						"mohamed-aboutrika",
+						"ahmed-hossam-mido"
+					],
+					"start": true
+				},
+				{
+					"id": "tifo-football",
+					"type": "youtube",
+					"name": "Tifo Football",
+					"url": "https://www.youtube.com/@TifoFootball_",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Tactics explained with simple drawings",
+					"why": "Learn football words: pressing, formation, counter-attack",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "liverpool-fc",
+					"type": "youtube",
+					"name": "Liverpool FC",
+					"url": "https://www.youtube.com/@LiverpoolFC",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Highlights, Mo Salah interviews and behind the scenes",
+					"why": "Hear Salah speak English after every match",
+					"like": [
+						"mohamed-salah"
+					],
+					"start": true
+				},
+				{
+					"id": "premier-league",
+					"type": "youtube",
+					"name": "Premier League",
+					"url": "https://www.youtube.com/@premierleague",
+					"level": "B1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Official highlights with English commentary",
+					"why": "Watch the goals with the English commentary — like Shawaly, in English",
+					"like": [
+						"essam-el-shawaly",
+						"hafeez-darraji"
+					],
+					"start": false
+				},
+				{
+					"id": "442oons",
+					"type": "youtube",
+					"name": "442oons",
+					"url": "https://www.youtube.com/@442oons",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Funny football cartoons about players and clubs",
+					"why": "Football + comedy, short and easy",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "rio-ferdinand-presents",
+					"type": "youtube",
+					"name": "Rio Ferdinand Presents",
+					"url": "https://www.youtube.com/@RioFerdinandPresents",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Interviews and debates with players",
+					"why": "Real dressing-room English",
+					"like": [
+						"ahmed-hossam-mido"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "fight",
+			"emoji": "🥊",
+			"name": "Boxing, MMA & WWE",
+			"ar": "ملاكمة وMMA ومصارعة",
+			"arab": [
+				"pfl-mena",
+				"bein-sports",
+				"khabib-nurmagomedov"
+			],
+			"en": [
+				{
+					"id": "ufc",
+					"type": "youtube",
+					"name": "UFC",
+					"url": "https://www.youtube.com/@UFC",
+					"level": "B1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Fights, highlights and press conferences",
+					"why": "Fighters talking before and after fights — real, simple English",
+					"like": [
+						"khabib-nurmagomedov",
+						"pfl-mena"
+					],
+					"start": true
+				},
+				{
+					"id": "wwe",
+					"type": "youtube",
+					"name": "WWE",
+					"url": "https://www.youtube.com/@WWE",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Matches and promos",
+					"why": "Big voices, slow dramatic speeches — great listening practice",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "the-mma-guru",
+					"type": "youtube",
+					"name": "The MMA Guru",
+					"url": "https://www.youtube.com/@TheMMAGuru",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "auto",
+					"lens": true,
+					"what": "Funny, loud fight breakdowns",
+					"why": "For fans who watch every fight",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "mike-tyson-hotboxin",
+					"type": "youtube",
+					"name": "Mike Tyson (Hotboxin)",
+					"url": "https://www.youtube.com/results?search_query=Mike%20Tyson%20(Hotboxin)",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "auto",
+					"lens": true,
+					"what": "Tyson interviews fighters and celebrities",
+					"why": "Legendary stories from the ring",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "fitness",
+			"emoji": "🏋️",
+			"name": "Gym & fitness",
+			"ar": "جيم ولياقة",
+			"arab": [
+				"big-ramy",
+				"alaa-al-metwally",
+				"shankoty"
+			],
+			"en": [
+				{
+					"id": "jeff-nippard",
+					"type": "youtube",
+					"name": "Jeff Nippard",
+					"url": "https://www.youtube.com/@JeffNippard",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Science-based training and diet",
+					"why": "Training explained step by step, like Alaa Al-Metwally",
+					"like": [
+						"alaa-al-metwally"
+					],
+					"start": true
+				},
+				{
+					"id": "athlean-x",
+					"type": "youtube",
+					"name": "Athlean-X",
+					"url": "https://www.youtube.com/@athleanx",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "A physio explains exercises and injuries",
+					"why": "Learn body and exercise words in English",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "chris-bumstead",
+					"type": "youtube",
+					"name": "Chris Bumstead",
+					"url": "https://www.youtube.com/@ChrisBumstead",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Classic Physique Mr. Olympia: training vlogs",
+					"why": "Like Big Ramy: life of an Olympia champion",
+					"like": [
+						"big-ramy"
+					],
+					"start": true
+				},
+				{
+					"id": "chloe-ting",
+					"type": "youtube",
+					"name": "Chloe Ting",
+					"url": "https://www.youtube.com/@ChloeTing",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Home workouts with short instructions",
+					"why": "Short, simple sentences while you train",
+					"like": [
+						"shankoty"
+					],
+					"start": false
+				},
+				{
+					"id": "will-tennyson",
+					"type": "youtube",
+					"name": "Will Tennyson",
+					"url": "https://www.youtube.com/@WillTennyson",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Funny fitness challenges and diets",
+					"why": "Fitness + comedy",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "cars",
+			"emoji": "🚗",
+			"name": "Cars",
+			"ar": "عربيات",
+			"arab": [
+				"taleek",
+				"mo-vlogs",
+				"six-gears",
+				"arabgt"
+			],
+			"en": [
+				{
+					"id": "top-gear",
+					"type": "youtube",
+					"name": "Top Gear",
+					"url": "https://www.youtube.com/@TopGear",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "The world's most famous car show",
+					"why": "Car reviews with jokes and beautiful filming",
+					"like": [
+						"taleek",
+						"arabgt"
+					],
+					"start": true
+				},
+				{
+					"id": "doug-demuro",
+					"type": "youtube",
+					"name": "Doug DeMuro",
+					"url": "https://www.youtube.com/@DougDeMuro",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "\"Quirks and features\" of every car",
+					"why": "Slow, careful reviews — great car vocabulary",
+					"like": [
+						"six-gears"
+					],
+					"start": true
+				},
+				{
+					"id": "supercar-blondie",
+					"type": "youtube",
+					"name": "Supercar Blondie",
+					"url": "https://www.youtube.com/@supercarblondie",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Supercars and crazy cars, short videos",
+					"why": "Like Mo Vlogs: the most expensive cars in the world",
+					"like": [
+						"mo-vlogs"
+					],
+					"start": false
+				},
+				{
+					"id": "donut-media",
+					"type": "youtube",
+					"name": "Donut Media",
+					"url": "https://www.youtube.com/@donutmedia",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Fun car culture and history",
+					"why": "Car facts with comedy",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "formula-1",
+					"type": "youtube",
+					"name": "Formula 1",
+					"url": "https://www.youtube.com/@Formula1",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "F1 highlights and driver interviews",
+					"why": "If you watch F1 on Sunday",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "gaming",
+			"emoji": "🎮",
+			"name": "Gaming",
+			"ar": "جيمنج",
+			"arab": [
+				"aboflah",
+				"banderitax",
+				"ossy-marwah",
+				"7amoda-gaming"
+			],
+			"en": [
+				{
+					"id": "markiplier",
+					"type": "youtube",
+					"name": "Markiplier",
+					"url": "https://www.youtube.com/@markiplier",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Let's plays, horror games and comedy",
+					"why": "Like BanderitaX: big reactions while playing",
+					"like": [
+						"banderitax",
+						"ossy-marwah"
+					],
+					"start": true
+				},
+				{
+					"id": "mrbeast-gaming",
+					"type": "youtube",
+					"name": "MrBeast Gaming",
+					"url": "https://www.youtube.com/@MrBeastGaming",
+					"level": "A2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Minecraft and gaming challenges with prizes",
+					"why": "AboFlah-style challenges in games",
+					"like": [
+						"aboflah"
+					],
+					"start": true
+				},
+				{
+					"id": "jacksepticeye",
+					"type": "youtube",
+					"name": "Jacksepticeye",
+					"url": "https://www.youtube.com/@jacksepticeye",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Energetic Irish gamer",
+					"why": "Lots of energy — and an Irish accent",
+					"like": [
+						"7amoda-gaming"
+					],
+					"start": false
+				},
+				{
+					"id": "game-theory",
+					"type": "youtube",
+					"name": "Game Theory",
+					"url": "https://www.youtube.com/@GameTheory",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Crazy theories about games",
+					"why": "For players who love the story behind the game",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "ign",
+					"type": "youtube",
+					"name": "IGN",
+					"url": "https://www.youtube.com/@IGN",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Game news, trailers and reviews",
+					"why": "Short reviews of the new games",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "dream",
+					"type": "youtube",
+					"name": "Dream",
+					"url": "https://www.youtube.com/@dream",
+					"level": "B1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Minecraft manhunts",
+					"why": "If you play Minecraft",
+					"like": [
+						"7amoda-gaming"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "tech",
+			"emoji": "📱",
+			"name": "Tech reviews & gadgets",
+			"ar": "تك ومراجعات",
+			"arab": [
+				"faisal-al-saif",
+				"abdullah-al-sabaa",
+				"adel-samir"
+			],
+			"en": [
+				{
+					"id": "marques-brownlee-mkbhd",
+					"type": "youtube",
+					"name": "Marques Brownlee (MKBHD)",
+					"url": "https://www.youtube.com/@mkbhd",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "The most trusted phone and tech reviews",
+					"why": "Like Faisal Al Saif: calm, beautiful, honest reviews",
+					"like": [
+						"faisal-al-saif"
+					],
+					"start": true
+				},
+				{
+					"id": "mrwhosetheboss",
+					"type": "youtube",
+					"name": "Mrwhosetheboss",
+					"url": "https://www.youtube.com/@Mrwhosetheboss",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Fun phone comparisons and gadget tests",
+					"why": "Clear British English and fun experiments",
+					"like": [
+						"abdullah-al-sabaa"
+					],
+					"start": true
+				},
+				{
+					"id": "linus-tech-tips",
+					"type": "youtube",
+					"name": "Linus Tech Tips",
+					"url": "https://www.youtube.com/@LinusTechTips",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "PCs, building computers and tech news",
+					"why": "If you love computers and gaming PCs",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "unbox-therapy",
+					"type": "youtube",
+					"name": "Unbox Therapy",
+					"url": "https://www.youtube.com/@unboxtherapy",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Unboxing new and weird gadgets",
+					"why": "Short, easy videos about cool things",
+					"like": [
+						"abdullah-al-sabaa"
+					],
+					"start": false
+				},
+				{
+					"id": "matt-wolfe",
+					"type": "youtube",
+					"name": "Matt Wolfe",
+					"url": "https://www.youtube.com/@mreflow",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "The newest AI tools explained",
+					"why": "Like Adel Samir: AI tools you can use today",
+					"like": [
+						"adel-samir"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "programming",
+			"emoji": "💻",
+			"name": "Programming",
+			"ar": "برمجة",
+			"arab": [
+				"elzero-web-school",
+				"adel-nasim",
+				"codezilla"
+			],
+			"en": [
+				{
+					"id": "freecodecamp",
+					"type": "youtube",
+					"name": "freeCodeCamp",
+					"url": "https://www.youtube.com/@freecodecamp",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Free full courses: Python, JavaScript, web",
+					"why": "The English Elzero: full free courses from zero",
+					"like": [
+						"elzero-web-school"
+					],
+					"start": true
+				},
+				{
+					"id": "traversy-media",
+					"type": "youtube",
+					"name": "Traversy Media",
+					"url": "https://www.youtube.com/@TraversyMedia",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Web development crash courses",
+					"why": "Clear, practical, step by step",
+					"like": [
+						"adel-nasim"
+					],
+					"start": true
+				},
+				{
+					"id": "fireship",
+					"type": "youtube",
+					"name": "Fireship",
+					"url": "https://www.youtube.com/@Fireship",
+					"level": "C1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "\"100 seconds\" of every technology",
+					"why": "Very fast and funny — for later",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "cs50-harvard",
+					"type": "youtube",
+					"name": "CS50 (Harvard)",
+					"url": "https://www.youtube.com/@cs50",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Harvard's famous intro to computer science",
+					"why": "A great teacher with perfect captions",
+					"like": [
+						"codezilla"
+					],
+					"start": false
+				},
+				{
+					"id": "mdn-web-docs",
+					"type": "site",
+					"name": "MDN Web Docs",
+					"url": "https://developer.mozilla.org/",
+					"level": "B2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "The reference for HTML, CSS and JavaScript",
+					"why": "Read docs in English with Language Lens — every programmer must",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "ai",
+			"emoji": "🤖",
+			"name": "AI & the future",
+			"ar": "ذكاء اصطناعي ومستقبل",
+			"arab": [
+				"adel-samir",
+				"faisal-al-saif",
+				"el-daheeh"
+			],
+			"en": [
+				{
+					"id": "two-minute-papers",
+					"type": "youtube",
+					"name": "Two Minute Papers",
+					"url": "https://www.youtube.com/@TwoMinutePapers",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "New AI research in short videos",
+					"why": "Short and exciting: \"What a time to be alive!\"",
+					"like": [
+						"adel-samir"
+					],
+					"start": true
+				},
+				{
+					"id": "3blue1brown",
+					"type": "youtube",
+					"name": "3Blue1Brown",
+					"url": "https://www.youtube.com/@3blue1brown",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "How neural networks and AI really work, with animations",
+					"why": "Beautiful explanations, like El Daheeh for math",
+					"like": [
+						"el-daheeh"
+					],
+					"start": false
+				},
+				{
+					"id": "ai-explained",
+					"type": "youtube",
+					"name": "AI Explained",
+					"url": "https://www.youtube.com/@aiexplained-official",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Careful news about the newest AI models",
+					"why": "For people who follow every AI update",
+					"like": [
+						"faisal-al-saif"
+					],
+					"start": false
+				},
+				{
+					"id": "matt-wolfe",
+					"type": "youtube",
+					"name": "Matt Wolfe",
+					"url": "https://www.youtube.com/@mreflow",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "AI tools you can use",
+					"why": "Practical and easy",
+					"like": [
+						"adel-samir"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "science",
+			"emoji": "🔬",
+			"name": "Science & space",
+			"ar": "علوم وفضاء",
+			"arab": [
+				"el-daheeh",
+				"mustafa-mahmoud",
+				"essam-heggy"
+			],
+			"en": [
+				{
+					"id": "kurzgesagt-in-a-nutshell",
+					"type": "youtube",
+					"name": "Kurzgesagt – In a Nutshell",
+					"url": "https://www.youtube.com/@kurzgesagt",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Beautiful animated science",
+					"why": "If you love El Daheeh: big ideas, beautiful drawings, 10 minutes",
+					"like": [
+						"el-daheeh"
+					],
+					"start": true
+				},
+				{
+					"id": "veritasium",
+					"type": "youtube",
+					"name": "Veritasium",
+					"url": "https://www.youtube.com/@veritasium",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Science experiments and surprising facts",
+					"why": "Science you can see, explained clearly",
+					"like": [
+						"el-daheeh"
+					],
+					"start": false
+				},
+				{
+					"id": "mark-rober",
+					"type": "youtube",
+					"name": "Mark Rober",
+					"url": "https://www.youtube.com/@MarkRober",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A former NASA engineer builds amazing things",
+					"why": "Fun, clear and simple — a great first science channel",
+					"like": [
+						"essam-heggy"
+					],
+					"start": true
+				},
+				{
+					"id": "nasa",
+					"type": "youtube",
+					"name": "NASA",
+					"url": "https://www.youtube.com/@NASA",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Space missions and astronauts",
+					"why": "Like Essam Heggy: real space science",
+					"like": [
+						"essam-heggy"
+					],
+					"start": false
+				},
+				{
+					"id": "ted-ed",
+					"type": "youtube",
+					"name": "TED-Ed",
+					"url": "https://www.youtube.com/@TEDEd",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "5-minute animated lessons on everything",
+					"why": "Short, clear and perfectly captioned",
+					"like": [
+						"mustafa-mahmoud"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "history",
+			"emoji": "🏛",
+			"name": "History",
+			"ar": "تاريخ",
+			"arab": [
+				"el-daheeh",
+				"zahi-hawass",
+				"ahmed-amer",
+				"al-jazeera-documentary"
+			],
+			"en": [
+				{
+					"id": "oversimplified",
+					"type": "youtube",
+					"name": "OverSimplified",
+					"url": "https://www.youtube.com/@OverSimplified",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Wars and revolutions as funny cartoons",
+					"why": "History with jokes, like El Daheeh",
+					"like": [
+						"el-daheeh"
+					],
+					"start": true
+				},
+				{
+					"id": "kings-and-generals",
+					"type": "youtube",
+					"name": "Kings and Generals",
+					"url": "https://www.youtube.com/@KingsandGenerals",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Battles and empires on animated maps",
+					"why": "For Islamic and world history — Arab empires included",
+					"like": [
+						"ahmed-amer",
+						"al-jazeera-documentary"
+					],
+					"start": false
+				},
+				{
+					"id": "history-matters",
+					"type": "youtube",
+					"name": "History Matters",
+					"url": "https://www.youtube.com/@HistoryMatters",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short history questions answered",
+					"why": "Every video is about 3 minutes — easy to finish",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "smithsonian-channel",
+					"type": "youtube",
+					"name": "Smithsonian Channel",
+					"url": "https://www.youtube.com/@SmithsonianChannel",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Ancient Egypt, pyramids and lost worlds",
+					"why": "Like Zahi Hawass: pharaohs and tombs, in English",
+					"like": [
+						"zahi-hawass"
+					],
+					"start": false
+				},
+				{
+					"id": "sapiens",
+					"type": "book",
+					"name": "Sapiens",
+					"url": "https://www.goodreads.com/search?q=Sapiens",
+					"level": "B2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Yuval Noah Harari's short history of humankind",
+					"why": "A bestseller about the story of all humans",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "explainers",
+			"emoji": "💡",
+			"name": "Explainers & \"how the world works\"",
+			"ar": "شرح وتحليل",
+			"arab": [
+				"el-daheeh",
+				"al-mokhbir-al-eqtesadi",
+				"joe-hattab"
+			],
+			"en": [
+				{
+					"id": "johnny-harris",
+					"type": "youtube",
+					"name": "Johnny Harris",
+					"url": "https://www.youtube.com/@johnnyharris",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Maps, borders and world mysteries",
+					"why": "If you like Al Mokhbir: how the world really works",
+					"like": [
+						"al-mokhbir-al-eqtesadi",
+						"joe-hattab"
+					],
+					"start": true
+				},
+				{
+					"id": "vox",
+					"type": "youtube",
+					"name": "Vox",
+					"url": "https://www.youtube.com/@Vox",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Explainers on news, design and culture",
+					"why": "Clear visual explanations",
+					"like": [
+						"el-daheeh"
+					],
+					"start": false
+				},
+				{
+					"id": "wendover-productions",
+					"type": "youtube",
+					"name": "Wendover Productions",
+					"url": "https://www.youtube.com/@Wendoverproductions",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "How airlines, shipping and cities work",
+					"why": "For curious people who ask \"why?\"",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "half-as-interesting",
+					"type": "youtube",
+					"name": "Half as Interesting",
+					"url": "https://www.youtube.com/@halfasinteresting",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short, funny weird facts",
+					"why": "Short and funny",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "ted-ed",
+					"type": "youtube",
+					"name": "TED-Ed",
+					"url": "https://www.youtube.com/@TEDEd",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "5-minute animated lessons",
+					"why": "The easiest to start with",
+					"like": [
+						"el-daheeh"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "documentaries",
+			"emoji": "🌍",
+			"name": "Documentaries & nature",
+			"ar": "وثائقيات وطبيعة",
+			"arab": [
+				"al-jazeera-documentary",
+				"dw-arabic",
+				"national-geographic-abu-dhabi"
+			],
+			"en": [
+				{
+					"id": "dw-documentary",
+					"type": "youtube",
+					"name": "DW Documentary",
+					"url": "https://www.youtube.com/@DWDocumentary",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Full documentaries on every topic",
+					"why": "The English channel of DW — same quality, clear narrators",
+					"like": [
+						"dw-arabic",
+						"al-jazeera-documentary"
+					],
+					"start": true
+				},
+				{
+					"id": "bbc-earth",
+					"type": "youtube",
+					"name": "BBC Earth",
+					"url": "https://www.youtube.com/@bbcearth",
+					"level": "B1",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Nature with David Attenborough",
+					"why": "The slowest, clearest English on YouTube — beautiful animals",
+					"like": [
+						"national-geographic-abu-dhabi"
+					],
+					"start": true
+				},
+				{
+					"id": "national-geographic",
+					"type": "youtube",
+					"name": "National Geographic",
+					"url": "https://www.youtube.com/@NatGeo",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Nature, science and exploration",
+					"why": "The English original of Nat Geo Abu Dhabi",
+					"like": [
+						"national-geographic-abu-dhabi"
+					],
+					"start": false
+				},
+				{
+					"id": "real-stories",
+					"type": "youtube",
+					"name": "Real Stories",
+					"url": "https://www.youtube.com/@RealStories",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Free full documentaries about real people",
+					"why": "Long documentaries for the weekend",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "our-planet-netflix",
+					"type": "series",
+					"name": "Our Planet (Netflix)",
+					"url": "https://www.netflix.com/title/80049832",
+					"level": "B1",
+					"speech": "slow",
+					"captions": "subs",
+					"lens": false,
+					"what": "Nature series by David Attenborough",
+					"why": "Watch with English subtitles",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "truecrime",
+			"emoji": "🕵️",
+			"name": "True crime & mysteries",
+			"ar": "جرائم حقيقية وألغاز",
+			"arab": [
+				"ahraz",
+				"arab-true-crime",
+				"el-daheeh"
+			],
+			"en": [
+				{
+					"id": "mrballen",
+					"type": "youtube",
+					"name": "MrBallen",
+					"url": "https://www.youtube.com/@MrBallen",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Strange, dark and mysterious true stories",
+					"why": "A great storyteller — slow, dramatic and clear",
+					"like": [
+						"ahraz",
+						"arab-true-crime"
+					],
+					"start": true
+				},
+				{
+					"id": "jcs-criminal-psychology",
+					"type": "youtube",
+					"name": "JCS – Criminal Psychology",
+					"url": "https://www.youtube.com/@JCSCriminalPsychology",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Real police interrogations explained",
+					"why": "Like Ahraz: one case, every detail",
+					"like": [
+						"ahraz"
+					],
+					"start": false
+				},
+				{
+					"id": "casefile",
+					"type": "podcast",
+					"name": "Casefile",
+					"url": "https://casefilepodcast.com/",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "none",
+					"lens": false,
+					"what": "Calm Australian narrator, real cases",
+					"why": "For listening on the go",
+					"like": [
+						"arab-true-crime"
+					],
+					"start": false
+				},
+				{
+					"id": "bailey-sarian",
+					"type": "youtube",
+					"name": "Bailey Sarian",
+					"url": "https://www.youtube.com/@BaileySarian",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Murder, Mystery & Makeup",
+					"why": "Chatty storytelling",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "nexpo",
+					"type": "youtube",
+					"name": "Nexpo",
+					"url": "https://www.youtube.com/@Nexpo",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Internet mysteries and creepy stories",
+					"why": "Mysteries from the internet",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "horror",
+			"emoji": "👻",
+			"name": "Horror & scary stories",
+			"ar": "رعب وقصص مخيفة",
+			"arab": [
+				"ahmed-khaled-tawfik",
+				"paranormal-netflix",
+				"arabic-horror-podcasts"
+			],
+			"en": [
+				{
+					"id": "mrballen",
+					"type": "youtube",
+					"name": "MrBallen",
+					"url": "https://www.youtube.com/@MrBallen",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Strange, dark and mysterious true stories",
+					"why": "If you love scary stories at night",
+					"like": [
+						"arabic-horror-podcasts"
+					],
+					"start": true
+				},
+				{
+					"id": "mr-nightmare",
+					"type": "youtube",
+					"name": "Mr. Nightmare",
+					"url": "https://www.youtube.com/@MrNightmare",
+					"level": "B1",
+					"speech": "slow",
+					"captions": "auto",
+					"lens": true,
+					"what": "Scary true stories read slowly",
+					"why": "Slow, deep voice — easy listening (if you dare)",
+					"like": [
+						"arabic-horror-podcasts"
+					],
+					"start": false
+				},
+				{
+					"id": "markiplier",
+					"type": "youtube",
+					"name": "Markiplier",
+					"url": "https://www.youtube.com/@markiplier",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Plays horror games and screams",
+					"why": "Horror + comedy",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "goosebumps",
+					"type": "book",
+					"name": "Goosebumps",
+					"url": "https://www.goodreads.com/search?q=Goosebumps",
+					"level": "A2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "R.L. Stine's short scary books",
+					"why": "Like Ahmed Khaled Tawfik's short books: easy, quick and scary",
+					"like": [
+						"ahmed-khaled-tawfik"
+					],
+					"start": true
+				},
+				{
+					"id": "stranger-things-netflix",
+					"type": "series",
+					"name": "Stranger Things (Netflix)",
+					"url": "https://www.netflix.com/title/80057281",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "subs",
+					"lens": false,
+					"what": "Kids, monsters and the 1980s",
+					"why": "If you watched Paranormal (Ma Wara' El Tabi'a) on Netflix",
+					"like": [
+						"paranormal-netflix"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "news",
+			"emoji": "📰",
+			"name": "News & world politics",
+			"ar": "أخبار وسياسة",
+			"arab": [
+				"al-jazeera",
+				"al-arabiya",
+				"bbc-arabic",
+				"bassem-youssef"
+			],
+			"en": [
+				{
+					"id": "bbc-news",
+					"type": "youtube",
+					"name": "BBC News",
+					"url": "https://www.youtube.com/@BBCNews",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "World news",
+					"why": "The English channel behind BBC Arabic — same stories, clear British English",
+					"like": [
+						"bbc-arabic"
+					],
+					"start": true
+				},
+				{
+					"id": "al-jazeera-english",
+					"type": "youtube",
+					"name": "Al Jazeera English",
+					"url": "https://www.youtube.com/@aljazeeraenglish",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "News from the Middle East and the world",
+					"why": "The news you already follow, in English",
+					"like": [
+						"al-jazeera"
+					],
+					"start": true
+				},
+				{
+					"id": "news-in-levels",
+					"type": "site",
+					"name": "News in Levels",
+					"url": "https://www.newsinlevels.com/",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "text",
+					"lens": false,
+					"what": "The same news written at 3 levels",
+					"why": "Real news made easy — start with level 2",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "voa-learning-english",
+					"type": "site",
+					"name": "VOA Learning English",
+					"url": "https://learningenglish.voanews.com/",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": false,
+					"what": "News in slow, simple English with audio",
+					"why": "Made for learners",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "last-week-tonight",
+					"type": "youtube",
+					"name": "Last Week Tonight",
+					"url": "https://www.youtube.com/@LastWeekTonight",
+					"level": "C1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "John Oliver: comedy about the news",
+					"why": "Like Bassem Youssef: news through comedy",
+					"like": [
+						"bassem-youssef"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "islam",
+			"emoji": "🕌",
+			"name": "Islamic talks",
+			"ar": "دروس ودين",
+			"arab": [
+				"mostafa-hosny",
+				"omar-abdelkafy",
+				"amr-khaled",
+				"ahmad-al-shugairi"
+			],
+			"en": [
+				{
+					"id": "mufti-menk",
+					"type": "youtube",
+					"name": "Mufti Menk",
+					"url": "https://www.youtube.com/@muftimenk",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short reminders in very slow, clear English",
+					"why": "The easiest Islamic speaker to understand in English — like Mostafa Hosny's gentle style",
+					"like": [
+						"mostafa-hosny"
+					],
+					"start": true
+				},
+				{
+					"id": "omar-suleiman",
+					"type": "youtube",
+					"name": "Omar Suleiman",
+					"url": "https://www.youtube.com/@OmarSuleimanYI",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Stories of the Prophets and companions",
+					"why": "Beautiful stories, like Omar Abdelkafy",
+					"like": [
+						"omar-abdelkafy"
+					],
+					"start": true
+				},
+				{
+					"id": "nouman-ali-khan",
+					"type": "youtube",
+					"name": "Nouman Ali Khan",
+					"url": "https://www.youtube.com/@bayyinah",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "The meaning of Quran verses, explained in English",
+					"why": "Deep reflections on the Arabic of the Quran",
+					"like": [
+						"amr-khaled"
+					],
+					"start": false
+				},
+				{
+					"id": "yaqeen-institute",
+					"type": "youtube",
+					"name": "Yaqeen Institute",
+					"url": "https://www.youtube.com/@YaqeenInstitute",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Research and short animations on Islam",
+					"why": "Clear answers to big questions",
+					"like": [
+						"ahmad-al-shugairi"
+					],
+					"start": false
+				},
+				{
+					"id": "belal-assaad",
+					"type": "youtube",
+					"name": "Belal Assaad",
+					"url": "https://www.youtube.com/results?search_query=Belal%20Assaad",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Motivating talks for young Muslims",
+					"why": "Simple, warm talks",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "psychology",
+			"emoji": "🧠",
+			"name": "Psychology & mental health",
+			"ar": "علم نفس",
+			"arab": [
+				"ahmed-emara",
+				"mohamed-taha",
+				"karim-esmail"
+			],
+			"en": [
+				{
+					"id": "psych2go",
+					"type": "youtube",
+					"name": "Psych2Go",
+					"url": "https://www.youtube.com/@Psych2Go",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short cartoons about feelings and relationships",
+					"why": "Easy English about feelings — perfect start",
+					"like": [
+						"ahmed-emara"
+					],
+					"start": true
+				},
+				{
+					"id": "the-school-of-life",
+					"type": "youtube",
+					"name": "The School of Life",
+					"url": "https://www.youtube.com/@theschooloflifetv",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short films about love, work and the mind",
+					"why": "Like Mohamed Taha: understand yourself and others",
+					"like": [
+						"mohamed-taha"
+					],
+					"start": true
+				},
+				{
+					"id": "healthygamergg",
+					"type": "youtube",
+					"name": "HealthyGamerGG",
+					"url": "https://www.youtube.com/@HealthyGamerGG",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A psychiatrist talks to young people and gamers",
+					"why": "Mental health for our generation",
+					"like": [
+						"ahmed-emara"
+					],
+					"start": false
+				},
+				{
+					"id": "mel-robbins",
+					"type": "youtube",
+					"name": "Mel Robbins",
+					"url": "https://www.youtube.com/@melrobbins",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Anxiety, habits and confidence",
+					"why": "Practical and kind",
+					"like": [
+						"karim-esmail"
+					],
+					"start": false
+				},
+				{
+					"id": "huberman-lab",
+					"type": "youtube",
+					"name": "Huberman Lab",
+					"url": "https://www.youtube.com/@hubermanlab",
+					"level": "C1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A neuroscientist on sleep, focus and stress",
+					"why": "Long and detailed — for advanced listeners",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "philosophy",
+			"emoji": "🤔",
+			"name": "Philosophy & big questions",
+			"ar": "فلسفة وأسئلة كبيرة",
+			"arab": [
+				"mustafa-mahmoud",
+				"el-daheeh",
+				"ahmad-al-shugairi"
+			],
+			"en": [
+				{
+					"id": "einzelga-nger",
+					"type": "youtube",
+					"name": "Einzelgänger",
+					"url": "https://www.youtube.com/@Einzelganger",
+					"level": "B2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Stoicism and calm philosophy",
+					"why": "Slow, calm voice — big ideas",
+					"like": [
+						"mustafa-mahmoud"
+					],
+					"start": true
+				},
+				{
+					"id": "daily-stoic",
+					"type": "youtube",
+					"name": "Daily Stoic",
+					"url": "https://www.youtube.com/@DailyStoic",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Ryan Holiday: Stoic ideas for daily life",
+					"why": "Short videos with practical wisdom",
+					"like": [
+						"ahmad-al-shugairi"
+					],
+					"start": false
+				},
+				{
+					"id": "crashcourse",
+					"type": "youtube",
+					"name": "CrashCourse",
+					"url": "https://www.youtube.com/@crashcourse",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Philosophy (and everything else) in 10-minute lessons",
+					"why": "Fast but clear, with great captions",
+					"like": [
+						"el-daheeh"
+					],
+					"start": false
+				},
+				{
+					"id": "the-alchemist",
+					"type": "book",
+					"name": "The Alchemist",
+					"url": "https://www.goodreads.com/search?q=The%20Alchemist",
+					"level": "A2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Paulo Coelho's short novel about following your dream",
+					"why": "Simple English, big ideas — many students' first novel",
+					"like": [],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "cooking",
+			"emoji": "🍳",
+			"name": "Cooking",
+			"ar": "طبخ",
+			"arab": [
+				"chef-hassan",
+				"mohamed-hamed",
+				"fatma-abu-haty",
+				"mohammed-hazem"
+			],
+			"en": [
+				{
+					"id": "gordon-ramsay",
+					"type": "youtube",
+					"name": "Gordon Ramsay",
+					"url": "https://www.youtube.com/@gordonramsay",
+					"level": "B1",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Quick recipes from the famous chef",
+					"why": "Like Chef Hassan: a TV chef — but louder",
+					"like": [
+						"chef-hassan"
+					],
+					"start": true
+				},
+				{
+					"id": "joshua-weissman",
+					"type": "youtube",
+					"name": "Joshua Weissman",
+					"url": "https://www.youtube.com/@JoshuaWeissman",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Funny \"but better\" homemade versions of fast food",
+					"why": "Cooking with jokes, like Mohammed Hazem",
+					"like": [
+						"mohammed-hazem"
+					],
+					"start": false
+				},
+				{
+					"id": "preppy-kitchen",
+					"type": "youtube",
+					"name": "Preppy Kitchen",
+					"url": "https://www.youtube.com/@PreppyKitchen",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Cakes and desserts, step by step",
+					"why": "If you love Mohamed Hamed's pastry",
+					"like": [
+						"mohamed-hamed"
+					],
+					"start": true
+				},
+				{
+					"id": "nick-digiovanni",
+					"type": "youtube",
+					"name": "Nick DiGiovanni",
+					"url": "https://www.youtube.com/@NickDiGiovanni",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short, fun cooking videos",
+					"why": "Short videos — easy to finish",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "tasty",
+					"type": "youtube",
+					"name": "Tasty",
+					"url": "https://www.youtube.com/@buzzfeedtasty",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Easy recipes for every day",
+					"why": "Simple recipes with simple words, like Fatma Abu Haty",
+					"like": [
+						"fatma-abu-haty"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "food",
+			"emoji": "🍔",
+			"name": "Food reviews & street food",
+			"ar": "ريفيوهات أكل",
+			"arab": [
+				"nina-diaries",
+				"mohammed-hazem",
+				"joe-hattab"
+			],
+			"en": [
+				{
+					"id": "mark-wiens",
+					"type": "youtube",
+					"name": "Mark Wiens",
+					"url": "https://www.youtube.com/@MarkWiens",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Street food around the world",
+					"why": "Happy food reviews — he even visited Egypt",
+					"like": [
+						"nina-diaries"
+					],
+					"start": true
+				},
+				{
+					"id": "best-ever-food-review-show",
+					"type": "youtube",
+					"name": "Best Ever Food Review Show",
+					"url": "https://www.youtube.com/@BestEverFoodReviewShow",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Sonny tries strange food everywhere",
+					"why": "Food + travel adventures",
+					"like": [
+						"joe-hattab"
+					],
+					"start": false
+				},
+				{
+					"id": "hot-ones",
+					"type": "youtube",
+					"name": "Hot Ones",
+					"url": "https://www.youtube.com/@FirstWeFeast",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Celebrities answer questions while eating hot wings",
+					"why": "Famous people, spicy food, funny interviews",
+					"like": [
+						"mohammed-hazem"
+					],
+					"start": false
+				},
+				{
+					"id": "nick-digiovanni",
+					"type": "youtube",
+					"name": "Nick DiGiovanni",
+					"url": "https://www.youtube.com/@NickDiGiovanni",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Food challenges and records",
+					"why": "Short and fun",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "travel",
+			"emoji": "✈️",
+			"name": "Travel vlogs",
+			"ar": "سفر وفلوجات",
+			"arab": [
+				"joe-hattab",
+				"ahmad-al-shugairi",
+				"abo-rany"
+			],
+			"en": [
+				{
+					"id": "drew-binsky",
+					"type": "youtube",
+					"name": "Drew Binsky",
+					"url": "https://www.youtube.com/@drewbinsky",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "He visited every country in the world",
+					"why": "Like Joe Hattab: real people in every country",
+					"like": [
+						"joe-hattab"
+					],
+					"start": true
+				},
+				{
+					"id": "yes-theory",
+					"type": "youtube",
+					"name": "Yes Theory",
+					"url": "https://www.youtube.com/@YesTheory",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Adventures with strangers",
+					"why": "Travel with heart",
+					"like": [
+						"ahmad-al-shugairi"
+					],
+					"start": false
+				},
+				{
+					"id": "kara-and-nate",
+					"type": "youtube",
+					"name": "Kara and Nate",
+					"url": "https://www.youtube.com/@KaraandNate",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A couple traveling the world",
+					"why": "Calm, clear travel vlogs",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "peter-santenello",
+					"type": "youtube",
+					"name": "Peter Santenello",
+					"url": "https://www.youtube.com/@petersantenello",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Visits communities you've never seen",
+					"why": "Slow, real conversations",
+					"like": [
+						"joe-hattab"
+					],
+					"start": false
+				},
+				{
+					"id": "rick-steves-europe",
+					"type": "youtube",
+					"name": "Rick Steves' Europe",
+					"url": "https://www.youtube.com/@RickStevesEurope",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Gentle guides to European cities",
+					"why": "Very slow and clear",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "family",
+			"emoji": "👨‍👩‍👧",
+			"name": "Family vlogs",
+			"ar": "فلوجات عائلية",
+			"arab": [
+				"hamdy-wafaa",
+				"noor-stars",
+				"osratouna-tv",
+				"anas-asala"
+			],
+			"en": [
+				{
+					"id": "the-ohana-adventure",
+					"type": "youtube",
+					"name": "The Ohana Adventure",
+					"url": "https://www.youtube.com/@TheOhanaAdventure",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A big family's fun days and challenges",
+					"why": "Like Osratouna: family life and kids",
+					"like": [
+						"osratouna-tv"
+					],
+					"start": true
+				},
+				{
+					"id": "jordan-matter",
+					"type": "youtube",
+					"name": "Jordan Matter",
+					"url": "https://www.youtube.com/@JordanMatter",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Fun family challenges",
+					"why": "Like Noor Stars: challenges with friends and family",
+					"like": [
+						"noor-stars"
+					],
+					"start": false
+				},
+				{
+					"id": "the-anazala-family",
+					"type": "youtube",
+					"name": "The Anazala Family",
+					"url": "https://www.youtube.com/@TheAnazalaFamily",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Family vlogs from the US",
+					"why": "Like Anas & Asala: a couple and their kids",
+					"like": [
+						"anas-asala",
+						"hamdy-wafaa"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "fashion",
+			"emoji": "👟",
+			"name": "Fashion & sneakers",
+			"ar": "موضة وسنيكرز",
+			"arab": [
+				"joelle-mardinian",
+				"karen-wazen",
+				"ahmed-hamdy-style"
+			],
+			"en": [
+				{
+					"id": "alex-costa",
+					"type": "youtube",
+					"name": "Alex Costa",
+					"url": "https://www.youtube.com/@AlexCosta",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Men's style and grooming",
+					"why": "Simple style rules for men",
+					"like": [
+						"ahmed-hamdy-style"
+					],
+					"start": true
+				},
+				{
+					"id": "vogue",
+					"type": "youtube",
+					"name": "Vogue",
+					"url": "https://www.youtube.com/@Vogue",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "\"73 Questions\", celebrity fashion",
+					"why": "Short celebrity interviews",
+					"like": [
+						"karen-wazen"
+					],
+					"start": true
+				},
+				{
+					"id": "complex-sneaker-shopping",
+					"type": "youtube",
+					"name": "Complex (Sneaker Shopping)",
+					"url": "https://www.youtube.com/@Complex",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Celebrities go sneaker shopping",
+					"why": "For sneakerheads",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "brooke-miccio",
+					"type": "youtube",
+					"name": "Brooke Miccio",
+					"url": "https://www.youtube.com/@BrookeMiccio",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Outfit ideas and style tips",
+					"why": "Easy outfit ideas",
+					"like": [
+						"karen-wazen"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "beauty",
+			"emoji": "💄",
+			"name": "Beauty & skincare",
+			"ar": "ميكب وعناية بالبشرة",
+			"arab": [
+				"joelle-mardinian",
+				"huda-kattan",
+				"nina-diaries"
+			],
+			"en": [
+				{
+					"id": "huda-beauty",
+					"type": "youtube",
+					"name": "Huda Beauty",
+					"url": "https://www.youtube.com/@hudabeauty",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Makeup tutorials in English",
+					"why": "You know Huda — her channel is in English!",
+					"like": [
+						"huda-kattan"
+					],
+					"start": true
+				},
+				{
+					"id": "hyram",
+					"type": "youtube",
+					"name": "Hyram",
+					"url": "https://www.youtube.com/@Hyram",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Skincare reviews and routines",
+					"why": "Learn skincare words",
+					"like": [
+						"joelle-mardinian"
+					],
+					"start": false
+				},
+				{
+					"id": "nikkie-tutorials",
+					"type": "youtube",
+					"name": "Nikkie Tutorials",
+					"url": "https://www.youtube.com/@NikkieTutorials",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Makeup transformations",
+					"why": "Fun and clear",
+					"like": [
+						"joelle-mardinian"
+					],
+					"start": false
+				},
+				{
+					"id": "dr-dray",
+					"type": "youtube",
+					"name": "Dr. Dray",
+					"url": "https://www.youtube.com/@DrDrayzday",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "A dermatologist explains skincare",
+					"why": "Real science for your skin",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "movies",
+			"emoji": "🎥",
+			"name": "Film & series reviews",
+			"ar": "ريفيوهات أفلام ومسلسلات",
+			"arab": [
+				"fil-fan",
+				"akhdar-cinema",
+				"el-daheeh"
+			],
+			"en": [
+				{
+					"id": "cinemawins",
+					"type": "youtube",
+					"name": "CinemaWins",
+					"url": "https://www.youtube.com/@CinemaWins",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Everything good about famous movies",
+					"why": "Positive, funny reviews",
+					"like": [
+						"fil-fan"
+					],
+					"start": false
+				},
+				{
+					"id": "screen-junkies-honest-trailers",
+					"type": "youtube",
+					"name": "Screen Junkies (Honest Trailers)",
+					"url": "https://www.youtube.com/@screenjunkies",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Honest, funny trailers for famous films",
+					"why": "Movie jokes you'll get if you saw the film",
+					"like": [
+						"akhdar-cinema"
+					],
+					"start": false
+				},
+				{
+					"id": "every-frame-a-painting",
+					"type": "youtube",
+					"name": "Every Frame a Painting",
+					"url": "https://www.youtube.com/@everyframeapainting",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "How great directors tell stories",
+					"why": "Deep film analysis",
+					"like": [
+						"akhdar-cinema"
+					],
+					"start": false
+				},
+				{
+					"id": "netflix",
+					"type": "youtube",
+					"name": "Netflix",
+					"url": "https://www.youtube.com/@Netflix",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Trailers and behind the scenes",
+					"why": "Short trailers: perfect 2-minute listening",
+					"like": [],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "series",
+			"emoji": "📺",
+			"name": "Series & TV drama",
+			"ar": "مسلسلات",
+			"arab": [
+				"paranormal-netflix",
+				"el-kebeer-awi",
+				"turkish-series"
+			],
+			"en": [
+				{
+					"id": "friends",
+					"type": "series",
+					"name": "Friends",
+					"url": "https://www.netflix.com/title/70153404",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "subs",
+					"lens": false,
+					"what": "The classic sitcom about six friends",
+					"why": "The #1 series for learning English — everyday words, funny situations",
+					"like": [
+						"el-kebeer-awi"
+					],
+					"start": true
+				},
+				{
+					"id": "the-big-bang-theory",
+					"type": "series",
+					"name": "The Big Bang Theory",
+					"url": "https://www.youtube.com/results?search_query=The%20Big%20Bang%20Theory",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "subs",
+					"lens": true,
+					"what": "Funny science nerds and their neighbour",
+					"why": "Comedy like El Kebeer Awi, with geeky jokes",
+					"like": [
+						"el-kebeer-awi"
+					],
+					"start": false
+				},
+				{
+					"id": "game-of-thrones",
+					"type": "series",
+					"name": "Game of Thrones",
+					"url": "https://www.youtube.com/results?search_query=Game%20of%20Thrones",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "subs",
+					"lens": true,
+					"what": "Kings, wars and dragons",
+					"why": "If you love Ertugrul's battles and politics",
+					"like": [
+						"turkish-series"
+					],
+					"start": false
+				},
+				{
+					"id": "the-last-kingdom",
+					"type": "series",
+					"name": "The Last Kingdom",
+					"url": "https://www.youtube.com/results?search_query=The%20Last%20Kingdom",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "subs",
+					"lens": true,
+					"what": "Vikings and kings in old England",
+					"why": "Historical battles, like Kurulus Osman",
+					"like": [
+						"turkish-series"
+					],
+					"start": false
+				},
+				{
+					"id": "stranger-things",
+					"type": "series",
+					"name": "Stranger Things",
+					"url": "https://www.netflix.com/title/80057281",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "subs",
+					"lens": false,
+					"what": "Kids, monsters and the 1980s",
+					"why": "If you watched Paranormal",
+					"like": [
+						"paranormal-netflix"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "anime",
+			"emoji": "🍥",
+			"name": "Anime",
+			"ar": "أنمي",
+			"arab": [
+				"spacetoon",
+				"anime-reviewers-in-arabic"
+			],
+			"en": [
+				{
+					"id": "gigguk",
+					"type": "youtube",
+					"name": "Gigguk",
+					"url": "https://www.youtube.com/@gigguk",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Funny anime reviews and news",
+					"why": "The most famous anime YouTuber",
+					"like": [
+						"anime-reviewers-in-arabic"
+					],
+					"start": true
+				},
+				{
+					"id": "crunchyroll",
+					"type": "youtube",
+					"name": "Crunchyroll",
+					"url": "https://www.youtube.com/@Crunchyroll",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Trailers and clips in English dub",
+					"why": "Watch the English dub of anime you already know",
+					"like": [
+						"spacetoon"
+					],
+					"start": true
+				},
+				{
+					"id": "the-anime-man",
+					"type": "youtube",
+					"name": "The Anime Man",
+					"url": "https://www.youtube.com/@TheAnimeMan",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Anime news and reactions",
+					"why": "Australian accent, lots of energy",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "mother-s-basement",
+					"type": "youtube",
+					"name": "Mother's Basement",
+					"url": "https://www.youtube.com/@MothersBasement",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Anime openings and deep analysis",
+					"why": "For serious fans",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "podcasts",
+			"emoji": "🎙",
+			"name": "Talk shows & long podcasts",
+			"ar": "بودكاست ولقاءات",
+			"arab": [
+				"fnjan",
+				"big-time-podcast",
+				"ehab-musallam",
+				"amr-adeeb"
+			],
+			"en": [
+				{
+					"id": "the-diary-of-a-ceo",
+					"type": "podcast",
+					"name": "The Diary Of A CEO",
+					"url": "https://www.youtube.com/@TheDiaryOfACEO",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Deep interviews with famous people",
+					"why": "The English Fnjan — long, honest conversations",
+					"like": [
+						"fnjan",
+						"big-time-podcast"
+					],
+					"start": true
+				},
+				{
+					"id": "jay-shetty-podcast",
+					"type": "podcast",
+					"name": "Jay Shetty Podcast",
+					"url": "https://www.youtube.com/@JayShettyPodcast",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Calm talks with celebrities and experts",
+					"why": "Slow and clear — a good first podcast",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "the-joe-rogan-experience",
+					"type": "podcast",
+					"name": "The Joe Rogan Experience",
+					"url": "https://www.youtube.com/@joerogan",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "The world's biggest podcast",
+					"why": "Very long, very natural English",
+					"like": [
+						"big-time-podcast"
+					],
+					"start": false
+				},
+				{
+					"id": "the-tonight-show",
+					"type": "youtube",
+					"name": "The Tonight Show",
+					"url": "https://www.youtube.com/@fallontonight",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Jimmy Fallon: celebrity games and interviews",
+					"why": "Like Amr Adeeb's show — but with games",
+					"like": [
+						"amr-adeeb"
+					],
+					"start": false
+				},
+				{
+					"id": "6-minute-english-bbc",
+					"type": "podcast",
+					"name": "6 Minute English (BBC)",
+					"url": "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "text",
+					"lens": false,
+					"what": "Six-minute chats for learners, with transcripts",
+					"why": "Made for learners — start here if podcasts feel too fast",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "asmr",
+			"emoji": "😴",
+			"name": "ASMR & relaxing",
+			"ar": "ASMR واسترخاء",
+			"arab": [
+				"arabic-asmr",
+				"quran-recitations-for-sleep"
+			],
+			"en": [
+				{
+					"id": "gibi-asmr",
+					"type": "youtube",
+					"name": "Gibi ASMR",
+					"url": "https://www.youtube.com/@GibiASMR",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "auto",
+					"lens": true,
+					"what": "Whispered roleplays",
+					"why": "Slow whispering = very slow English",
+					"like": [
+						"arabic-asmr"
+					],
+					"start": false
+				},
+				{
+					"id": "lofi-girl",
+					"type": "youtube",
+					"name": "Lofi Girl",
+					"url": "https://www.youtube.com/@LofiGirl",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "none",
+					"lens": false,
+					"what": "Relaxing music for study",
+					"why": "Music while you study English",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "sleepy-nothing-much-happens",
+					"type": "podcast",
+					"name": "Sleepy (Nothing Much Happens)",
+					"url": "https://www.nothingmuchhappens.com/",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "none",
+					"lens": false,
+					"what": "Calm bedtime stories in slow English",
+					"why": "Slow stories to fall asleep — your English grows while you rest",
+					"like": [
+						"quran-recitations-for-sleep"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "design",
+			"emoji": "🎨",
+			"name": "Design & drawing",
+			"ar": "ديزاين ورسم",
+			"arab": [
+				"adobe-arabia",
+				"arabic-illustrators"
+			],
+			"en": [
+				{
+					"id": "the-futur",
+					"type": "youtube",
+					"name": "The Futur",
+					"url": "https://www.youtube.com/@thefutur",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Design business and branding",
+					"why": "Design + earning money from it",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "satori-graphics",
+					"type": "youtube",
+					"name": "Satori Graphics",
+					"url": "https://www.youtube.com/@SatoriGraphics",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Logo and graphic design tips",
+					"why": "Practical design tips",
+					"like": [
+						"adobe-arabia"
+					],
+					"start": true
+				},
+				{
+					"id": "proko",
+					"type": "youtube",
+					"name": "Proko",
+					"url": "https://www.youtube.com/@ProkoTV",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "How to draw people and anatomy",
+					"why": "Step-by-step drawing lessons",
+					"like": [
+						"arabic-illustrators"
+					],
+					"start": false
+				},
+				{
+					"id": "jazza",
+					"type": "youtube",
+					"name": "Jazza",
+					"url": "https://www.youtube.com/@Jazza",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Fun art challenges",
+					"why": "Art + fun challenges",
+					"like": [
+						"arabic-illustrators"
+					],
+					"start": true
+				}
+			]
+		},
+		{
+			"id": "filmmaking",
+			"emoji": "📸",
+			"name": "Photography & video editing",
+			"ar": "تصوير ومونتاج",
+			"arab": [
+				"arabic-editing-tutorials",
+				"joe-hattab"
+			],
+			"en": [
+				{
+					"id": "peter-mckinnon",
+					"type": "youtube",
+					"name": "Peter McKinnon",
+					"url": "https://www.youtube.com/@PeterMcKinnon",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Photo and video tips, beautiful shots",
+					"why": "The most famous creator for photographers",
+					"like": [
+						"joe-hattab"
+					],
+					"start": true
+				},
+				{
+					"id": "justin-odisho",
+					"type": "youtube",
+					"name": "Justin Odisho",
+					"url": "https://www.youtube.com/@JustinOdisho",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Quick video editing tricks",
+					"why": "Short editing lessons",
+					"like": [
+						"arabic-editing-tutorials"
+					],
+					"start": false
+				},
+				{
+					"id": "casey-neistat",
+					"type": "youtube",
+					"name": "Casey Neistat",
+					"url": "https://www.youtube.com/@casey",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "The vlog legend: storytelling with a camera",
+					"why": "Learn to tell stories with video",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "matti-haapoja",
+					"type": "youtube",
+					"name": "Matti Haapoja",
+					"url": "https://www.youtube.com/@MattiHaapoja",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Cameras and filmmaking",
+					"why": "Gear and creative tips",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "study",
+			"emoji": "📚",
+			"name": "Study tips & school",
+			"ar": "مذاكرة ودراسة",
+			"arab": [
+				"elmoasser",
+				"nafham",
+				"ahmed-abo-zaid"
+			],
+			"en": [
+				{
+					"id": "ali-abdaal",
+					"type": "youtube",
+					"name": "Ali Abdaal",
+					"url": "https://www.youtube.com/@aliabdaal",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "How to study smarter (he studied at Cambridge)",
+					"why": "Study techniques that really work",
+					"like": [],
+					"start": true
+				},
+				{
+					"id": "khan-academy",
+					"type": "youtube",
+					"name": "Khan Academy",
+					"url": "https://www.youtube.com/@khanacademy",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Free lessons: math, science, everything",
+					"why": "Like Nafham — every school subject, free",
+					"like": [
+						"nafham",
+						"elmoasser"
+					],
+					"start": true
+				},
+				{
+					"id": "crashcourse",
+					"type": "youtube",
+					"name": "CrashCourse",
+					"url": "https://www.youtube.com/@crashcourse",
+					"level": "B2",
+					"speech": "fast",
+					"captions": "yes",
+					"lens": true,
+					"what": "Every subject in 10-minute lessons",
+					"why": "Review school subjects in English",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "thomas-frank",
+					"type": "youtube",
+					"name": "Thomas Frank",
+					"url": "https://www.youtube.com/@Thomasfrank",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Study and productivity tips",
+					"why": "Clear, practical tips",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "languages",
+			"emoji": "🗣",
+			"name": "Learning languages",
+			"ar": "تعلم لغات",
+			"arab": [
+				"sawa-english",
+				"arabic-english-teachers"
+			],
+			"en": [
+				{
+					"id": "english-with-lucy",
+					"type": "youtube",
+					"name": "English with Lucy",
+					"url": "https://www.youtube.com/@EnglishwithLucy",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "British English, pronunciation and vocabulary",
+					"why": "Clear, friendly lessons",
+					"like": [
+						"arabic-english-teachers"
+					],
+					"start": true
+				},
+				{
+					"id": "rachel-s-english",
+					"type": "youtube",
+					"name": "Rachel's English",
+					"url": "https://www.youtube.com/@rachelsenglish",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "American pronunciation, slow and detailed",
+					"why": "The best channel for sounding natural",
+					"like": [
+						"sawa-english"
+					],
+					"start": false
+				},
+				{
+					"id": "easy-english",
+					"type": "youtube",
+					"name": "Easy English",
+					"url": "https://www.youtube.com/@EasyEnglishVideos",
+					"level": "A2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Street interviews with real people",
+					"why": "Real English from the street — with subtitles",
+					"like": [
+						"sawa-english"
+					],
+					"start": true
+				},
+				{
+					"id": "xiaomanyc",
+					"type": "youtube",
+					"name": "Xiaomanyc",
+					"url": "https://www.youtube.com/@xiaomanyc",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "An American surprises people by speaking their language",
+					"why": "Fun — he even speaks Arabic!",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "books",
+			"emoji": "📖",
+			"name": "Books & reading",
+			"ar": "كتب وقراءة",
+			"arab": [
+				"ahmed-khaled-tawfik",
+				"naguib-mahfouz",
+				"ahmed-mourad",
+				"osama-moslem",
+				"abajora"
+			],
+			"en": [
+				{
+					"id": "harry-potter-and-the-philosopher-s-stone",
+					"type": "book",
+					"name": "Harry Potter and the Philosopher's Stone",
+					"url": "https://www.goodreads.com/search?q=Harry%20Potter%20and%20the%20Philosopher's%20Stone",
+					"level": "B1",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "The magic school story",
+					"why": "If you loved Osama Moslem's fantasy worlds — the first book is easy English",
+					"like": [
+						"osama-moslem"
+					],
+					"start": true
+				},
+				{
+					"id": "the-alchemist",
+					"type": "book",
+					"name": "The Alchemist",
+					"url": "https://www.goodreads.com/search?q=The%20Alchemist",
+					"level": "A2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "A short novel about following your dream",
+					"why": "Short, simple and beautiful — a great first novel",
+					"like": [
+						"naguib-mahfouz"
+					],
+					"start": true
+				},
+				{
+					"id": "sherlock-holmes-stories",
+					"type": "book",
+					"name": "Sherlock Holmes stories",
+					"url": "https://www.goodreads.com/search?q=Sherlock%20Holmes%20stories",
+					"level": "B2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Short detective stories",
+					"why": "Mystery and clues, like Ahmed Mourad's thrillers",
+					"like": [
+						"ahmed-mourad"
+					],
+					"start": false
+				},
+				{
+					"id": "diary-of-a-wimpy-kid",
+					"type": "book",
+					"name": "Diary of a Wimpy Kid",
+					"url": "https://www.goodreads.com/search?q=Diary%20of%20a%20Wimpy%20Kid",
+					"level": "A2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "A funny kid's diary with drawings",
+					"why": "Very easy and funny — finish a whole English book!",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "goosebumps",
+					"type": "book",
+					"name": "Goosebumps",
+					"url": "https://www.goodreads.com/search?q=Goosebumps",
+					"level": "A2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Short scary books",
+					"why": "Like Ahmed Khaled Tawfik's short books",
+					"like": [
+						"ahmed-khaled-tawfik"
+					],
+					"start": false
+				},
+				{
+					"id": "jack-edwards",
+					"type": "youtube",
+					"name": "Jack Edwards",
+					"url": "https://www.youtube.com/@jackedwards",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "BookTube: reading vlogs and reviews",
+					"why": "Like Abajora: someone who loves books talks about them",
+					"like": [
+						"abajora"
+					],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "poetry",
+			"emoji": "✍️",
+			"name": "Poetry & spoken word",
+			"ar": "شعر",
+			"arab": [
+				"hisham-el-gakh",
+				"tamim-al-barghouti",
+				"mahmoud-darwish"
+			],
+			"en": [
+				{
+					"id": "button-poetry",
+					"type": "youtube",
+					"name": "Button Poetry",
+					"url": "https://www.youtube.com/@ButtonPoetry",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Spoken-word poets performing live",
+					"why": "Poetry performed with emotion, like Hisham El Gakh on stage",
+					"like": [
+						"hisham-el-gakh"
+					],
+					"start": true
+				},
+				{
+					"id": "rudy-francisco",
+					"type": "youtube",
+					"name": "Rudy Francisco",
+					"url": "https://www.youtube.com/results?search_query=Rudy%20Francisco",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Spoken-word poems about life and love",
+					"why": "Clear and powerful",
+					"like": [
+						"tamim-al-barghouti"
+					],
+					"start": false
+				},
+				{
+					"id": "poetry-foundation",
+					"type": "site",
+					"name": "Poetry Foundation",
+					"url": "https://www.poetryfoundation.org/",
+					"level": "B2",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Thousands of English poems, many with audio",
+					"why": "Read poems with Language Lens",
+					"like": [
+						"mahmoud-darwish"
+					],
+					"start": false
+				},
+				{
+					"id": "rumi-in-english-coleman-barks",
+					"type": "book",
+					"name": "Rumi in English (Coleman Barks)",
+					"url": "https://www.goodreads.com/search?q=Rumi%20in%20English%20(Coleman%20Barks)",
+					"level": "B1",
+					"speech": "",
+					"captions": "text",
+					"lens": false,
+					"what": "Rumi's poems in simple English",
+					"why": "You know Rumi — read him in English",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "animals",
+			"emoji": "🐾",
+			"name": "Animals & pets",
+			"ar": "حيوانات",
+			"arab": [
+				"cat-videos",
+				"national-geographic-abu-dhabi"
+			],
+			"en": [
+				{
+					"id": "the-dodo",
+					"type": "youtube",
+					"name": "The Dodo",
+					"url": "https://www.youtube.com/@TheDodo",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Short, happy animal rescue stories",
+					"why": "Short, emotional and easy",
+					"like": [
+						"cat-videos"
+					],
+					"start": true
+				},
+				{
+					"id": "bbc-earth",
+					"type": "youtube",
+					"name": "BBC Earth",
+					"url": "https://www.youtube.com/@bbcearth",
+					"level": "B1",
+					"speech": "slow",
+					"captions": "yes",
+					"lens": true,
+					"what": "Wild animals with David Attenborough",
+					"why": "Slow, clear and beautiful",
+					"like": [
+						"national-geographic-abu-dhabi"
+					],
+					"start": true
+				},
+				{
+					"id": "brave-wilderness",
+					"type": "youtube",
+					"name": "Brave Wilderness",
+					"url": "https://www.youtube.com/@BraveWilderness",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Coyote Peterson meets wild animals",
+					"why": "Adventure with animals",
+					"like": [],
+					"start": false
+				}
+			]
+		},
+		{
+			"id": "diy",
+			"emoji": "🔧",
+			"name": "DIY, making & fixing",
+			"ar": "صنايع وتصليح",
+			"arab": [
+				"arabic-diy",
+				"adel-samir"
+			],
+			"en": [
+				{
+					"id": "mark-rober",
+					"type": "youtube",
+					"name": "Mark Rober",
+					"url": "https://www.youtube.com/@MarkRober",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Engineering projects and crazy builds",
+					"why": "Building cool things, explained clearly",
+					"like": [
+						"arabic-diy"
+					],
+					"start": true
+				},
+				{
+					"id": "stuff-made-here",
+					"type": "youtube",
+					"name": "Stuff Made Here",
+					"url": "https://www.youtube.com/@StuffMadeHere",
+					"level": "B2",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Very clever inventions",
+					"why": "For makers and engineers",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "hand-tool-rescue",
+					"type": "youtube",
+					"name": "Hand Tool Rescue",
+					"url": "https://www.youtube.com/@HandToolRescue",
+					"level": "A2",
+					"speech": "slow",
+					"captions": "none",
+					"lens": false,
+					"what": "Restoring old tools (almost no talking)",
+					"why": "Relaxing — few words",
+					"like": [],
+					"start": false
+				},
+				{
+					"id": "jerryrigeverything",
+					"type": "youtube",
+					"name": "JerryRigEverything",
+					"url": "https://www.youtube.com/@JerryRigEverything",
+					"level": "B1",
+					"speech": "clear",
+					"captions": "yes",
+					"lens": true,
+					"what": "Opens and tests phones",
+					"why": "Phones + fixing",
+					"like": [
+						"adel-samir"
+					],
+					"start": false
+				}
+			]
+		}
+	]
+}

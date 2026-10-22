@@ -125,6 +125,7 @@
 		if (view === 'review') return review();
 		if (view === 'library') return library();
 		if (view === 'watch') return watch(arg);
+		if (view === 'interests') return interests(arg);
 	}
 
 	function loadTree() {
@@ -535,11 +536,12 @@
 
 	/* ── Start here: a guided path that unlocks features step by step ── */
 	var STAGES = [
-		{ n: 1, title: 'Find your level & collect words', ar: 'اعرف مستواك واجمع كلمات', tabs: ['start', 'read', 'scan'],
+		{ n: 1, title: 'Find your level & collect words', ar: 'اعرف مستواك واجمع كلمات', tabs: ['start', 'read', 'scan', 'interests'],
 			intro: 'Two small steps. Everything works on your phone.',
 			steps: [
 				{ k: 'vocabTest', t: 'Take the quick level check (about 8 minutes)', ar: 'اختبار سريع لتحديد المستوى', how: 'It finds your level and vocabulary size, so everything fits you. You can take the full test later.', done: function (j) { return j.vocabTest; }, link: function () { return ['Start the level check', '/placement/']; } },
 				{ k: 'learning', t: 'Save 5 words you want to learn', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'On your phone: Learn → Scan a page, tap a word → "+ Learning". On a computer: Language Lens on YouTube.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
+				{ k: 'interests', optional: true, t: 'Find English content you\'ll love', ar: 'اكتشف محتوى إنجليزي هيعجبك', how: 'Tell us what you watch in Arabic (comedy, rap, football…) and get English creators, music and books to match. 2 minutes.', done: function (j) { return j.interests; }, go: 'interests' },
 				{ k: 'extension', optional: true, t: 'On a computer: add Language Lens to Chrome', ar: 'على الكمبيوتر: ثبّت إضافة Language Lens', how: 'Meanings on YouTube and any website. Click its icon → "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['Install Language Lens', j.store] : null; } }
 			] },
 		{ n: 2, title: 'Review a little every day', ar: 'راجع قليلًا كل يوم', tabs: ['review', 'library'],
@@ -625,8 +627,9 @@
 	/** Today: a short plan with the next step highlighted, then today's stats and quest from the tracker. */
 	function today() {
 		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
-		shell('<section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card" id="expo" hidden></section><section class="stack" id="prog"></section>' + meTiles());
+		shell('<section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card stack" id="ilove" hidden></section><section class="card" id="expo" hidden></section><section class="stack" id="prog"></section>' + meTiles());
 		paintExposure();
+		paintInterestCard();
 		bindMeTiles();
 		paintProgress($app.querySelector('#prog'));
 		api('review/settings', { body: {} }).then(function (x) { S.reviewStats = x; }).catch(function () {});
@@ -664,6 +667,7 @@
 			['review', 'Review', 'Your words and sentences come back before you forget them', 2],
 			['read', 'Read a text', 'Paste any English text → tap words, listen to it', 1],
 			['scan', 'Scan a page', 'Photo or screenshot of a page → tap words for meanings', 1],
+			['interests', 'Find content you\'ll love', 'What you enjoy in Arabic → English creators, music and books', 1],
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
 		];
@@ -1667,6 +1671,166 @@
 		}, function (e) { toast(e.message); });
 	}
 
+	/* ── Find English content you'll love ────────────────
+	 * An interests quiz: what you enjoy in Arabic (categories, then creators) → English creators, music,
+	 * podcasts and books that match, tagged by how hard their English is. Data: data/interests.json.
+	 */
+	var IN = { sel: {}, liked: {}, saved: {} };
+	var LV = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+	var IN_TYPE = { youtube: ['▶', 'YouTube'], podcast: ['🎙', 'Podcast'], music: ['🎵', 'Music'], book: ['📖', 'Book'], site: ['🌐', 'Website'], series: ['📺', 'Series'] };
+	var IN_CC = { yes: 'CC captions', auto: 'Auto captions', lyrics: 'Lyric videos', subs: 'Subtitles', text: 'Text', none: 'No captions' };
+	ICONS.interests = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+	function inLoad() {
+		if (IN.data) return Promise.resolve();
+		return api('interests').then(function (r) {
+			var p = r.picks;
+			if (p) { IN.picks = p; IN.sel = {}; IN.liked = {}; IN.saved = {}; p.cats.forEach(function (k) { IN.sel[k] = 1; }); p.liked.forEach(function (k) { IN.liked[k] = 1; }); (p.saved || []).forEach(function (k) { IN.saved[k] = 1; }); }
+			return fetch(r.data).then(function (x) { if (!x.ok) throw new Error('Couldn\'t load the list. Try again.'); return x.json(); });
+		}).then(function (d) { IN.data = d; IN.byCat = {}; d.categories.forEach(function (c) { IN.byCat[c.id] = c; }); });
+	}
+	function inSave() {
+		return api('interests', { body: { cats: Object.keys(IN.sel), liked: Object.keys(IN.liked), saved: Object.keys(IN.saved) } }).then(function (r) { IN.picks = r.picks; if (S.J) S.J.interests = true; });
+	}
+	function inMyLevel() { var p = S.J && S.J.placement; return p && LV[p.level] ? LV[p.level] : 2; }
+	/** Every English pick for the chosen categories, best first: creators you like count most, then a level that fits you (i+1), then Language Lens. */
+	function inRecs() {
+		var me = inMyLevel(), by = {};
+		Object.keys(IN.sel).forEach(function (k) {
+			var c = IN.byCat[k]; if (!c) return;
+			c.en.forEach(function (e) {
+				var hits = e.like.filter(function (a) { return IN.liked[a]; });
+				var d = (LV[e.level] || 3) - me;
+				var sc = 1 + hits.length * 4 + (e.start ? 1 : 0) + (d <= 0 ? 1 : d === 1 ? 0.6 : -1) + (e.lens ? 0.8 : 0) + (IN.saved[e.id] ? 2 : 0);
+				var cur = by[e.id];
+				if (!cur || sc > cur.sc) by[e.id] = { e: e, c: c, sc: sc, hits: hits, cats: (cur ? cur.cats : []).concat(k) };
+				else cur.cats.push(k);
+			});
+		});
+		return Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, b) { return b.sc - a.sc; });
+	}
+	/** "Start here": the best few, at most 2 from one category. */
+	function inStart(all, n) {
+		var per = {}, out = [];
+		all.forEach(function (r) { if (out.length < n && (per[r.c.id] || 0) < 2) { per[r.c.id] = (per[r.c.id] || 0) + 1; out.push(r); } });
+		return out;
+	}
+	function inAvatar(name) {
+		var w = name.replace(/[^A-Za-z0-9؀-ۿ ]/g, ' ').trim().split(/\s+/), h = 0;
+		for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+		return '<span class="in-av" aria-hidden="true" style="background:hsl(' + h + ' 45% 88%);color:hsl(' + h + ' 45% 28%)">' + esc(((w[0] || '?').charAt(0) + (w[1] ? w[1].charAt(0) : '')).toUpperCase()) + '</span>';
+	}
+	function inBar(step, label) {
+		return '<div class="in-steps" aria-label="Step ' + step + ' of 3">' + [1, 2, 3].map(function (i) { return '<i class="' + (i <= step ? 'on' : '') + '"></i>'; }).join('') + '</div><p class="small muted">Step ' + step + ' of 3 · ' + label + '</p>';
+	}
+	function interests(arg) {
+		if (!IN.data) { shell('<p class="loading">Loading…</p>'); return inLoad().then(function () { if (S.view === 'interests') interests(arg || (IN.picks ? 'recs' : '')); }, fail); }
+		if (arg === 'deeper') return inDeeper();
+		if (arg === 'recs' && IN.picks) return inShow();
+		inCats();
+	}
+	function inSticky(html) { return '<div class="in-go">' + html + '</div>'; }
+	function inCats() {
+		var cats = IN.data.categories;
+		shell('<section class="stack"><h1>Find English content you\'ll love</h1>' + inBar(1, 'what you enjoy')
+			+ '<p>What do you watch, listen to or read <b>in Arabic</b>? Pick everything you like — we\'ll find the English version.</p><p class="ar small muted">إيه اللي بتحب تتفرج عليه أو تسمعه بالعربي؟ اختار كل اللي يعجبك.</p></section>'
+			+ '<div class="in-cats" role="group" aria-label="Interests">' + cats.map(function (c) {
+				return '<button class="in-cat" data-c="' + esc(c.id) + '" aria-pressed="' + (IN.sel[c.id] ? 'true' : 'false') + '"><span class="in-e" aria-hidden="true">' + c.emoji + '</span><b>' + esc(c.name) + '</b><span class="ar small">' + esc(c.ar) + '</span></button>';
+			}).join('') + '</div>'
+			+ inSticky('<span class="small" id="in-n"></span><button class="btn" id="in-next">Next →</button>'));
+		var upd = function () { var n = Object.keys(IN.sel).length; $app.querySelector('#in-n').textContent = n ? n + ' picked' : 'Pick at least one'; $app.querySelector('#in-next').disabled = !n; };
+		$app.querySelectorAll('.in-cat').forEach(function (b) {
+			b.onclick = function () { var k = b.dataset.c; if (IN.sel[k]) delete IN.sel[k]; else IN.sel[k] = 1; b.setAttribute('aria-pressed', IN.sel[k] ? 'true' : 'false'); upd(); };
+		});
+		$app.querySelector('#in-next').onclick = function () { go('interests', 'deeper'); };
+		upd();
+	}
+	function inDeeper() {
+		var cr = IN.data.creators, cats = IN.data.categories.filter(function (c) { return IN.sel[c.id]; });
+		if (!cats.length) return inCats();
+		var seen = {};
+		shell('<section class="stack"><button class="link small" id="back">← Back</button><h1>Do you like these creators?</h1>' + inBar(2, 'go deeper')
+			+ '<p>Tap the ones you watch or listen to. We\'ll match them with English creators in the same style. Not sure? Skip it.</p><p class="ar small muted">دوس على اللي بتتابعهم — هنلاقيلك زيهم بالإنجليزي.</p></section>'
+			+ cats.map(function (c) {
+				var list = c.arab.filter(function (a) { return cr[a]; });
+				return '<section class="stack"><h2 class="in-h"><span aria-hidden="true">' + c.emoji + '</span> ' + esc(c.name) + '</h2><div class="in-creators">' + list.map(function (a) {
+					var x = cr[a], dup = seen[a]; seen[a] = 1;
+					return '<div class="in-cr"><button class="in-crb" data-a="' + esc(a) + '" aria-pressed="' + (IN.liked[a] ? 'true' : 'false') + '"' + (dup ? ' data-dup' : '') + '>' + inAvatar(x.name) + '<span class="in-crt"><b>' + esc(x.name) + '</b> <span class="ar">' + esc(x.ar) + '</span><span class="small muted">' + esc(x.what) + '</span></span><span class="in-tick" aria-hidden="true">✓</span></button>'
+						+ '<a class="small in-yt" href="' + esc(x.url) + '" target="_blank" rel="noopener">Find on YouTube ↗</a></div>';
+				}).join('') + '</div></section>';
+			}).join('')
+			+ inSticky('<span class="small" id="in-n"></span><button class="btn" id="in-next">Show my English picks →</button>'));
+		var upd = function () { var n = Object.keys(IN.liked).length; $app.querySelector('#in-n').textContent = n ? n + ' liked' : 'Optional'; };
+		$app.querySelectorAll('.in-crb').forEach(function (b) {
+			b.onclick = function () {
+				var a = b.dataset.a; if (IN.liked[a]) delete IN.liked[a]; else IN.liked[a] = 1;
+				$app.querySelectorAll('.in-crb[data-a="' + a + '"]').forEach(function (x) { x.setAttribute('aria-pressed', IN.liked[a] ? 'true' : 'false'); });
+				upd();
+			};
+		});
+		$app.querySelector('#back').onclick = function () { go('interests', 'cats'); };
+		$app.querySelector('#in-next').onclick = function () {
+			var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+			// Liked creators only count for the categories still picked.
+			var keep = {}; cats.forEach(function (c) { c.arab.forEach(function (a) { if (IN.liked[a]) keep[a] = 1; }); }); IN.liked = keep;
+			inSave().then(function () { toast('Saved ✓'); go('interests', 'recs'); }, function (e) { btn.disabled = false; btn.textContent = 'Show my English picks →'; toast(e.message); });
+		};
+		upd();
+	}
+	function inCard(r, big) {
+		var e = r.e, t = IN_TYPE[e.type] || IN_TYPE.site, cr = IN.data.creators;
+		var because = r.hits.length ? 'Because you like ' + r.hits.map(function (a) { return cr[a].name; }).join(' & ') : 'For ' + r.c.emoji + ' ' + r.c.name;
+		return '<article class="in-rec' + (big ? ' big' : '') + '"><div class="in-rh"><span class="in-ty" aria-hidden="true">' + t[0] + '</span><div><b>' + esc(e.name) + '</b><span class="small muted">' + t[1] + ' · ' + esc(because) + '</span></div>'
+			+ '<button class="in-star" data-s="' + esc(e.id) + '" aria-pressed="' + (IN.saved[e.id] ? 'true' : 'false') + '" aria-label="Save ' + esc(e.name) + '">' + (IN.saved[e.id] ? '★' : '☆') + '</button></div>'
+			+ '<p class="small">' + esc(e.what) + '</p><p class="small in-why">💡 ' + esc(e.why) + '</p>'
+			+ '<div class="in-tags"><span class="pill lv">' + esc(e.level) + '</span>' + (e.speech ? '<span class="pill">' + ({ slow: '🐢 slow speech', clear: '🗣 clear speech', fast: '⚡ fast speech' }[e.speech] || '') + '</span>' : '') + '<span class="pill">' + (IN_CC[e.captions] || '') + '</span>' + (e.lens ? '<span class="pill open">🔍 Works with Language Lens</span>' : '') + '</div>'
+			+ '<a class="btn sm' + (big ? '' : ' ghost') + '" href="' + esc(e.url) + '" target="_blank" rel="noopener">' + (e.type === 'book' ? 'Find the book ↗' : e.type === 'music' ? 'Listen ↗' : e.type === 'site' ? 'Open ↗' : 'Watch ↗') + '</a></article>';
+	}
+	function inShow() {
+		var all = inRecs(), start = inStart(all, 5), me = inMyLevel(), lvName = Object.keys(LV).filter(function (k) { return LV[k] === me; })[0];
+		var used = {}; start.forEach(function (r) { used[r.e.id] = 1; });
+		var saved = all.filter(function (r) { return IN.saved[r.e.id]; });
+		var groups = IN.data.categories.filter(function (c) { return IN.sel[c.id]; }).map(function (c) {
+			var rest = all.filter(function (r) { return r.cats.indexOf(c.id) >= 0 && !used[r.e.id]; });
+			rest.forEach(function (r) { used[r.e.id] = 1; });
+			return rest.length ? '<section class="stack in-grp"><h3 class="in-h"><span aria-hidden="true">' + c.emoji + '</span> ' + esc(c.name) + '</h3><div class="in-recs">' + rest.map(function (r, i) { return '<div' + (i >= 2 ? ' class="in-more" hidden' : '') + '>' + inCard(r) + '</div>'; }).join('') + '</div>' + (rest.length > 2 ? '<button class="link small" data-more>Show ' + (rest.length - 2) + ' more</button>' : '') + '</section>' : '';
+		}).join('');
+		shell('<section class="stack"><h1>Your English picks</h1>' + inBar(3, 'your picks')
+			+ '<p class="muted">Matched to what you love' + (S.J && S.J.placement ? ' and your level (' + esc(lvName) + ')' : '') + '. Watch 10 minutes a day — with captions on.</p>'
+			+ '<p class="small muted">🔍 On a computer, YouTube picks work with <b>Language Lens</b>: tap any word in the captions for its meaning.</p></section>'
+			+ '<section class="stack"><h2>⭐ Start here</h2><div class="in-recs">' + start.map(function (r) { return inCard(r, true); }).join('') + '</div></section>'
+			+ (saved.length ? '<details class="card"><summary><b>★ Saved (' + saved.length + ')</b></summary><div class="in-recs" style="margin-top:12px">' + saved.map(function (r) { return inCard(r); }).join('') + '</div></details>' : '')
+			+ (groups ? '<section class="stack"><h2>More for you</h2>' + groups + '</section>' : '')
+			+ '<section class="card stack"><b>Want different picks?</b><p class="small muted">Change what you like any time — your picks update.</p><div class="ra-btns"><button class="btn ghost sm" id="in-edit">Edit my interests</button><button class="btn ghost sm" id="in-cr">Change creators</button><button class="link small" id="in-redo">Start over</button></div></section>');
+		$app.querySelectorAll('[data-more]').forEach(function (b) { b.onclick = function () { b.parentNode.querySelectorAll('.in-more').forEach(function (x) { x.hidden = false; }); b.remove(); }; });
+		$app.querySelectorAll('.in-star').forEach(function (b) {
+			b.onclick = function () {
+				var k = b.dataset.s; if (IN.saved[k]) delete IN.saved[k]; else IN.saved[k] = 1;
+				$app.querySelectorAll('.in-star[data-s="' + k + '"]').forEach(function (x) { x.setAttribute('aria-pressed', IN.saved[k] ? 'true' : 'false'); x.textContent = IN.saved[k] ? '★' : '☆'; });
+				inSave().then(function () { toast(IN.saved[k] ? '★ Saved' : 'Removed'); }, function (e) { toast(e.message); });
+			};
+		});
+		$app.querySelector('#in-edit').onclick = function () { go('interests', 'cats'); };
+		$app.querySelector('#in-cr').onclick = function () { go('interests', 'deeper'); };
+		$app.querySelector('#in-redo').onclick = function () { if (!window.confirm('Clear your picks and start again?')) return; IN.sel = {}; IN.liked = {}; IN.saved = {}; go('interests', 'cats'); };
+	}
+	/** Home: today's pick (a YouTube video that works with Language Lens), or an invitation to take the quiz. */
+	function paintInterestCard() {
+		var box = $app.querySelector('#ilove'); if (!box) return;
+		inLoad().then(function () {
+			if (S.view !== 'today' || !box.isConnected) return;
+			box.hidden = false;
+			if (!IN.picks) {
+				box.innerHTML = '<div class="in-home"><span class="in-e" aria-hidden="true">💛</span><div><h3>Find English content you\'ll love</h3><p class="small muted">Tell us what you enjoy in Arabic — comedy, rap, football, business… — and get English creators, music and books that match your level.</p></div></div><button class="btn sm" data-in="">Take the 2-minute quiz</button>';
+			} else {
+				var yt = inRecs().filter(function (r) { return r.e.lens && r.e.type !== 'music'; });
+				var day = Math.floor(Date.now() / 864e5), r = yt.length ? yt[day % Math.min(yt.length, 8)] : null;
+				box.innerHTML = r ? '<div class="row-between"><h3>🎬 Watch today</h3><button class="link small" data-in="recs">All your picks</button></div><p><b>Watch 10 minutes of ' + esc(r.e.name) + '</b></p><p class="small muted">' + esc(r.e.why) + '</p><div class="in-tags"><span class="pill lv">' + esc(r.e.level) + '</span><span class="pill open">🔍 Works with Language Lens</span></div><a class="btn sm" href="' + esc(r.e.url) + '" target="_blank" rel="noopener">Open on YouTube ↗</a>'
+					: '<div class="row-between"><h3>Your English picks</h3></div><button class="btn sm" data-in="recs">See your picks</button>';
+			}
+			box.querySelectorAll('[data-in]').forEach(function (b) { b.onclick = function () { go('interests', b.dataset.in || undefined); }; });
+		}).catch(function () {});
+	}
+
 	function fail(e) {
 		shell('<p class="err">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</p><button class="btn ghost" id="re">Reload</button>');
 		$app.querySelector('#re').onclick = function () { location.reload(); };
@@ -1686,7 +1850,7 @@
 			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
 		});
 		var hv = h0.split('-')[0], ha = h0.split('-')[1];
-		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
+		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
 		return;
 	}
 	loadJourney().then(function () { go(['review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start'].indexOf(h0) >= 0 ? h0 : S.stage < 5 ? 'start' : 'skills'); }, function () { S.stage = 5; go('skills'); });
