@@ -79,8 +79,16 @@ final class Sawa_Lens_Review {
 	private static function sources( $uid ) {
 		global $wpdb;
 		$out = array();
+		// A saved expression ("put off") is one card: its sentence card (with the phrase, its type and the video
+		// moment). The phrase is also a Learning item, for highlighting, but doesn't get a second card of its own.
+		$phrases = array();
+		foreach ( (array) $wpdb->get_col( $wpdb->prepare( 'SELECT LOWER(focus) FROM ' . Sawa_Lens_Store::t( 'sentences' ) . " WHERE user_id = %d AND deleted = 0 AND focus LIKE '%% %%'", $uid ) ) as $f ) { // phpcs:ignore
+			$phrases[ trim( $f ) ] = 1;
+		}
 		foreach ( (array) $wpdb->get_col( $wpdb->prepare( 'SELECT lemma FROM ' . Sawa_Lens_Store::t( 'words' ) . " WHERE user_id = %d AND status = 'learning' ORDER BY learning_on, lemma", $uid ) ) as $l ) { // phpcs:ignore
-			$out[ 'w:' . $l ] = 1;
+			if ( ! isset( $phrases[ $l ] ) ) {
+				$out[ 'w:' . $l ] = 1;
+			}
 		}
 		foreach ( (array) $wpdb->get_col( $wpdb->prepare( 'SELECT uuid FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0 ORDER BY id', $uid ) ) as $u ) { // phpcs:ignore
 			$out[ 's:' . $u ] = 1;
@@ -318,6 +326,13 @@ final class Sawa_Lens_Review {
 		if ( 0 === strpos( $key, 'w:' ) && $ivl >= self::KNOWN_AFTER ) {
 			Sawa_Lens_Store::put_words( $uid, array( array( 'lemma' => substr( $key, 2 ), 'status' => 'known', 't' => (int) round( microtime( true ) * 1000 ) ) ) );
 			$known = true;
+		} elseif ( 0 === strpos( $key, 's:' ) && $ivl >= self::KNOWN_AFTER ) {
+			// An expression's card reached long-term memory: the phrase becomes known too.
+			$focus = strtolower( trim( (string) $wpdb->get_var( $wpdb->prepare( 'SELECT focus FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND uuid = %s', $uid, substr( $key, 2 ) ) ) ) ); // phpcs:ignore
+			if ( false !== strpos( $focus, ' ' ) ) {
+				Sawa_Lens_Store::put_words( $uid, array( array( 'lemma' => $focus, 'status' => 'known', 't' => (int) round( microtime( true ) * 1000 ) ) ) );
+				$known = true;
+			}
 		}
 		do_action( 'sawa_lens_card_reviewed', $uid, $key, $grade );
 		Sawa_Lens_Activity::add( $uid, 'card' );
