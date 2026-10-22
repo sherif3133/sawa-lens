@@ -3,6 +3,11 @@
  * Bridge to the Sawa Tracker chat: transcripts of voice messages and private feedback on a learner's own
  * messages. Feedback errors go into the same error log as the writing checker (source "chat" or "voice"),
  * so the skill tree and the "are my mistakes going down" trends include what learners say and write in chat.
+ *
+ * Chat English is also checked automatically, without the learner asking: English messages queue up per learner,
+ * and once a day an hourly job checks them in one batch (one AI call per learner per day, with a daily cap for the
+ * whole site). Errors go to the error log (source "chat"), right uses pay the improvement bonus, and the learner gets
+ * a private notification. Nothing is shown in the room.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,6 +27,98 @@ final class Sawa_Lens_Chat {
 		add_filter( 'sawa_tracker_words_since', function ( $n, $uid, $from ) { global $wpdb; return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . Sawa_Lens_Store::t( 'words' ) . ' WHERE user_id = %d AND learning_on >= %s', $uid, $from ) ); }, 10, 3 ); // phpcs:ignore
 		add_action( 'sawa_tracker_missed_card', array( __CLASS__, 'missed_card' ), 10, 2 );
 		add_filter( 'sawa_tracker_mastery', function ( $m, $uid ) { return Sawa_Lens_Skills::mastery_counts( $uid ); }, 10, 2 );
+		add_action( 'sawa_tracker_message_sent', array( __CLASS__, 'queue' ), 30, 5 );
+		add_filter( 'sawa_tracker_feedback_summary', function ( $out, $notes ) { return Sawa_Lens_AI::ready() ? Sawa_Lens_AI::feedback_summary( $notes ) : new WP_Error( 'off', 'Add the Claude API key in Sawa Lens settings first.' ); }, 10, 2 );
+		add_action( 'sawa_lens_chat_review', array( __CLASS__, 'review_all' ) );
+		if ( ! wp_next_scheduled( 'sawa_lens_chat_review' ) ) {
+			wp_schedule_event( time() + 300, 'hourly', 'sawa_lens_chat_review' );
+		}
+	}
+
+	const QUEUE_MAX  = 30;   // messages kept per learner until the next check
+	const BATCH_MIN  = 3;    // a check needs at least this many messages (or one day of waiting)
+	const BATCH_CHARS = 900; // text sent in one check
+	const SITE_DAY   = 150;  // checks a day for the whole site
+
+	/** A chat message in English (5+ words) waits for the daily check. */
+	public static function queue( $uid, $room_id, $msg_id, $body, $audio ) {
+		$text = trim( wp_strip_all_tags( (string) $body ) );
+		if ( '' === $text || '0' === (string) get_option( 'sawa_lens_chat_auto', '1' ) || ! Sawa_Lens_Auth::allowed( $uid ) ) {
+			return;
+		}
+		if ( count( preg_split( '/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY ) ) < 5 || preg_match( '/[\x{0600}-\x{06FF}]/u', $text ) || ! preg_match( '/[a-z]{2}/i', $text ) ) {
+			return;
+		}
+		$q = get_user_meta( $uid, 'sawa_lens_chatq', true );
+		$q = is_array( $q ) ? $q : array( 'since' => time(), 'msgs' => array() );
+		if ( in_array( $text, $q['msgs'], true ) ) {
+			return; // the same text twice is checked once
+		}
+		$q['msgs'][] = mb_substr( $text, 0, 400 );
+		$q['msgs']   = array_slice( $q['msgs'], -self::QUEUE_MAX );
+		update_user_meta( $uid, 'sawa_lens_chatq', $q );
+	}
+
+	/** The hourly job: learners with enough waiting messages, not checked today, until the site's daily cap. */
+	public static function review_all() {
+		global $wpdb;
+		if ( ! Sawa_Lens_AI::ready() || '0' === (string) get_option( 'sawa_lens_chat_auto', '1' ) ) {
+			return 0;
+		}
+		$day  = Sawa_Lens_Store::today();
+		$used = get_option( 'sawa_lens_chatq_day', array() );
+		$used = is_array( $used ) && ( $used['day'] ?? '' ) === $day ? $used : array( 'day' => $day, 'n' => 0 );
+		$done = 0;
+		foreach ( $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s LIMIT 200", 'sawa_lens_chatq' ) ) as $uid ) { // phpcs:ignore
+			if ( $used['n'] >= self::SITE_DAY ) {
+				break;
+			}
+			if ( self::review( (int) $uid ) ) {
+				++$used['n'];
+				++$done;
+			}
+		}
+		update_option( 'sawa_lens_chatq_day', $used, false );
+		return $done;
+	}
+
+	/** One learner's waiting chat English, checked in one call. Returns true when a check ran. */
+	public static function review( $uid, $force = false ) {
+		global $wpdb;
+		$q = get_user_meta( $uid, 'sawa_lens_chatq', true );
+		if ( ! is_array( $q ) || ! $q['msgs'] ) {
+			return false;
+		}
+		$day = Sawa_Lens_Store::today();
+		if ( ! $force && ( get_user_meta( $uid, 'sawa_lens_chatq_last', true ) === $day || ( count( $q['msgs'] ) < self::BATCH_MIN && time() - (int) $q['since'] < DAY_IN_SECONDS ) ) ) {
+			return false;
+		}
+		$text = '';
+		foreach ( $q['msgs'] as $m ) {
+			if ( strlen( $text ) + strlen( $m ) > self::BATCH_CHARS ) {
+				break;
+			}
+			$text .= ( '' === $text ? '' : "\n" ) . $m;
+		}
+		$res = Sawa_Lens_AI::check_writing( $uid, $text, 'chat' );
+		if ( is_wp_error( $res ) ) {
+			return false;
+		}
+		delete_user_meta( $uid, 'sawa_lens_chatq' );
+		update_user_meta( $uid, 'sawa_lens_chatq_last', $day );
+		$wpdb->insert( Sawa_Lens_Store::t( 'writing' ), array( 'user_id' => $uid, 'source' => 'chat', 'body' => $text, 'result' => wp_json_encode( $res ), 'words' => count( preg_split( '/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY ) ), 'errors' => count( $res['errors'] ), 'created_at' => current_time( 'mysql' ) ) ); // phpcs:ignore
+		Sawa_Lens_Skills::log_errors( $uid, $res['errors'], 'chat', (int) $wpdb->insert_id );
+		Sawa_Lens_Skills::record_uses( $uid, $res['good'] ); // right uses of points you got wrong before pay a bonus
+		if ( class_exists( 'Sawa_Tracker_Game' ) ) {
+			$names = array();
+			foreach ( Sawa_Lens_Skills::tree( $uid ) as $n ) {
+				$names[ $n['id'] ] = $n['name'];
+			}
+			$top = array_count_values( array_map( function ( $e ) { return $e['skill']; }, $res['errors'] ) );
+			arsort( $top );
+			Sawa_Tracker_Game::event( 0, 'chat_review', $uid, array( 'msgs' => count( $q['msgs'] ), 'errors' => count( $res['errors'] ), 'good' => array_sum( (array) $res['good'] ), 'focus' => $top ? ( $names[ key( $top ) ] ?? key( $top ) ) : '' ) );
+		}
+		return true;
 	}
 
 	public static function features( $f, $uid ) {

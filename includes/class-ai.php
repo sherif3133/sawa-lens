@@ -643,6 +643,30 @@ final class Sawa_Lens_AI {
 	}
 
 	/** Placement test writing: a CEFR level for a short text, with a one-line reason. */
+	/**
+	 * Beta feedback, summed up for Sherif: notes in Arabic or English (with the screen each came from) become a short
+	 * report in English: themes with counts and an example, the screens with the most trouble, and what to do first.
+	 */
+	public static function feedback_summary( $notes ) {
+		$lines = array();
+		foreach ( array_slice( (array) $notes, 0, 300 ) as $n ) {
+			$lines[] = '[' . $n['kind'] . ' · ' . $n['area'] . ( $n['target'] ? ' · tapped: ' . $n['target'] : '' ) . '] ' . mb_substr( (string) $n['body'], 0, 300 );
+		}
+		if ( ! $lines ) {
+			return new WP_Error( 'empty', 'No feedback to sum up yet.' );
+		}
+		$out = self::call(
+			'You help the founder of an English-learning app for Arabic-speaking A2–B1 learners read beta-test feedback. Notes are in Arabic (often Egyptian), English or Franco-Arabic; each starts with its reaction type and the screen it came from. '
+			. 'Translate as needed and group the notes into themes (problems and praise). Be concrete and short; never invent things the notes do not say. '
+			. 'Return ONLY JSON: {"summary":"2-3 sentences","themes":[{"title":"short","kind":"problem|praise|idea","count":0,"screens":["..."],"example":"one note, translated to English","fix":"one concrete suggestion (problems only)"}],"first":"the one thing to fix first, and why"}. At most 8 themes, most common first.',
+			implode( "
+", $lines ),
+			3000,
+			90
+		);
+		return is_wp_error( $out ) ? $out : array( 'summary' => (string) ( $out['summary'] ?? '' ), 'themes' => array_slice( (array) ( $out['themes'] ?? array() ), 0, 8 ), 'first' => (string) ( $out['first'] ?? '' ) );
+	}
+
 	public static function grade_writing( $uid, $text, $prompt ) {
 		$limit = self::limit( $uid );
 		if ( is_wp_error( $limit ) ) {

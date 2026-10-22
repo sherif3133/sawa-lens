@@ -598,6 +598,11 @@ self.addEventListener('fetch', function () {});
 		$items[] = array( 'k' => 'use', 'done' => ! empty( $why['chat'] ) || ! empty( $why['voice'] ) || ! empty( $why['write'] ) || ! empty( $why['speak'] ), 't' => 'Write or say something in English', 'sub' => 'A message in the chat, or a few sentences in Write', 'go' => 'chat' );
 		$items[] = array( 'k' => 'log', 'done' => $studied, 't' => $studied ? 'Study day counted' : 'Count today as a study day', 'sub' => 'Anything above counts automatically · or log other study', 'go' => 'log' );
 
+		if ( class_exists( 'Sawa_Tracker_Replies' ) ) { // the chat's reply goal: an extra step that doesn't decide a perfect day
+			$g       = Sawa_Tracker_Replies::goal( $uid );
+			$items[] = array( 'k' => 'reply', 'optional' => true, 'done' => (bool) $g['done'], 't' => 'Reply to ' . $g['goal'] . ' messages in the chat', 'sub' => min( $g['n'], $g['goal'] ) . ' / ' . $g['goal'] . ' today · ' . $g['min'] . '+ English words each · optional, +' . $g['bonus'] . ' XP bonus', 'go' => 'chat' );
+		}
+
 		// Rewards, once per day.
 		$paid = get_user_meta( $uid, 'sawa_lens_plan', true );
 		if ( ! is_array( $paid ) || ( $paid['day'] ?? '' ) !== $today ) {
@@ -612,7 +617,7 @@ self.addEventListener('fetch', function () {});
 				do_action( 'sawa_lens_plan_step', $uid, $it['k'] );
 			}
 		}
-		$all = ! array_filter( $items, function ( $it ) { return ! $it['done']; } );
+		$all = ! array_filter( $items, function ( $it ) { return ! $it['done'] && empty( $it['optional'] ); } );
 		if ( $all && ! $paid['bonus'] ) {
 			$paid['bonus'] = true;
 			$gained       += Sawa_Lens_Skills::xp( $uid, 30, 'plan', false );

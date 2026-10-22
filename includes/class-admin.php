@@ -54,6 +54,7 @@ final class Sawa_Lens_Admin {
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
 		update_option( Sawa_Lens_AI::OPT, $s, false );
 		update_option( 'sawa_lens_app_open', empty( $_POST['app_open'] ) ? 0 : 1, true );
+		update_option( 'sawa_lens_chat_auto', empty( $_POST['chat_auto'] ) ? '0' : '1', false );
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&saved=1' ) );
 		exit;
 	}
@@ -121,6 +122,13 @@ final class Sawa_Lens_Admin {
 									Closed: approved students see "You're on the list! Please wait for Sherif to publish the Sawa App." You (admins) can still use <a href="<?php echo esc_url( home_url( '/app/' ) ); ?>">the app</a> to test it.
 								<?php endif; ?>
 							</p>
+						</td>
+					</tr>
+					<tr>
+						<th>Chat English</th>
+						<td>
+							<label><input type="checkbox" name="chat_auto" value="1" <?php checked( '0' !== (string) get_option( 'sawa_lens_chat_auto', '1' ) ); ?>> <b>Check students' chat English automatically</b></label>
+							<p class="description">Once a day per student, all their English chat messages are checked in one AI call (at most 150 checks a day for the whole site). Mistakes feed the skill tree and the progress trends; the student gets a private notification. Nothing is shown in the chat.</p>
 						</td>
 					</tr>
 					<tr>
