@@ -407,6 +407,84 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
+	 * A whole song's lines for 🎵 Music in Language Lens: each line translated into Arabic by what it actually means
+	 * (slang, metaphors and idioms resolved, not word by word), and its slang explained: the literal meaning and the
+	 * real one ("quesería": literally "cheese shop"; cheese = money). Notes in English (default) or Arabic.
+	 * One request per song, cached and shared by every student.
+	 */
+	public static function song_lines( $uid, $song, $lines, $lang = 'en' ) {
+		$lang  = 'ar' === $lang ? 'ar' : 'en';
+		$song  = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $song ) ) ), 0, 120 );
+		$clean = array();
+		foreach ( array_slice( (array) $lines, 0, 120 ) as $l ) {
+			$clean[] = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $l ) ) ), 0, 200 );
+		}
+		if ( ! array_filter( $clean ) ) {
+			return new WP_Error( 'empty', 'No lyrics.' );
+		}
+		$key = hash( 'sha256', 'songlines|v2|' . $lang . '|' . strtolower( $song ) . '|' . implode( "\n", $clean ) );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$notes  = 'ar' === $lang ? 'clear, short Modern Standard Arabic' : 'simple English (B1)';
+		$system = 'You translate English song lyrics for Arabic-speaking learners of English (A2–B2). '
+			. 'For EVERY numbered line, write "ar": a natural Modern Standard Arabic translation of what the singer actually means: resolve slang, metaphors, idioms and wordplay; do not translate word by word. '
+			. 'Then, only for lines that have them, list "slang": the slang, idioms, metaphors, wordplay, non-English words, or words used with a non-standard meaning. '
+			. 'For each: "text" (the exact words from the line), "literal" (the literal, word-for-word meaning, in ' . $notes . '), "meaning" (what it really means in this song, in ' . $notes . ', max 20 words). '
+			. 'Example: "My block made of quesería" → slang [{"text":"quesería","literal":"a cheese shop (Spanish)","meaning":"lots of money: cheese is slang for money"}]. '
+			. 'Rude, vulgar or sexual words and insults (e.g. asshole, fuck, bitch, pussy, dick, slurs) are ALWAYS listed: "literal" and "meaning" are said politely and formally (no rude words in Arabic or English, e.g. “an insult for a mean person”); "severity" is one of "mild" (common, not very rude, often casual), "moderate", "strong" or "slur" (hurtful to a group: never use it); "context" (in ' . $notes . ', max 30 words) says how the meaning and strength change with context and tone, e.g. jokingly between close friends vs said in anger to a stranger. Other notes have "severity":"" and no context. '
+			. 'The "ar" line translation stays polite and formal too, while keeping the real meaning. '
+			. 'Use the other lines for context. Be faithful; do not invent a story. '
+			. 'Return ONLY a JSON object, no markdown: {"lines":[{"i":0,"ar":"…","slang":[…]}, …]} with every line once, in order.';
+		$user = ( $song ? "Song: {$song}\n" : '' ) . "Lines:\n";
+		foreach ( $clean as $i => $l ) {
+			$user .= $i . ': ' . $l . "\n";
+		}
+		$out = self::call( $system, $user, 8000, 120 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$res = array();
+		foreach ( (array) ( $out['lines'] ?? array() ) as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['i'] ) || ! isset( $clean[ (int) $row['i'] ] ) ) {
+				continue;
+			}
+			$slang = array();
+			foreach ( array_slice( (array) ( $row['slang'] ?? array() ), 0, 4 ) as $s ) {
+				if ( is_array( $s ) && ! empty( $s['text'] ) ) {
+					$sev     = (string) ( $s['severity'] ?? '' );
+					$slang[] = array(
+						'severity' => in_array( $sev, array( 'mild', 'moderate', 'strong', 'slur' ), true ) ? $sev : '',
+						'context'  => mb_substr( (string) ( $s['context'] ?? '' ), 0, 300 ),
+						'text'    => mb_substr( (string) $s['text'], 0, 80 ),
+						'literal' => mb_substr( (string) ( $s['literal'] ?? '' ), 0, 160 ),
+						'meaning' => mb_substr( (string) ( $s['meaning'] ?? '' ), 0, 240 ),
+					);
+				}
+			}
+			$res[ (int) $row['i'] ] = array(
+				'ar'    => mb_substr( (string) ( $row['ar'] ?? '' ), 0, 400 ),
+				'slang' => $slang,
+			);
+		}
+		if ( ! $res ) {
+			return new WP_Error( 'ai', 'Could not translate the song. Try again.' );
+		}
+		$lines_out = array();
+		foreach ( $clean as $i => $l ) {
+			$lines_out[] = $res[ $i ] ?? array( 'ar' => '', 'slang' => array() );
+		}
+		$res = array( 'lang' => $lang, 'lines' => $lines_out );
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/**
 	 * Lyrics breakdown: one line of a song explained for a learner (🎵 Music in Language Lens).
 	 * English (default) or Arabic. Shared cache: each line of a song is paid for once per language.
 	 * Only the line and the lines around it are sent, never the whole song.
@@ -422,7 +500,7 @@ final class Sawa_Lens_AI {
 		if ( '' === $line ) {
 			return new WP_Error( 'empty', 'Nothing to explain.' );
 		}
-		$key = hash( 'sha256', 'lyric|v1|' . $lang . '|' . strtolower( $song . '|' . $line ) );
+		$key = hash( 'sha256', 'lyric|v2|' . $lang . '|' . strtolower( $song . '|' . $line ) );
 		$hit = self::cached( $key );
 		if ( $hit ) {
 			return $hit;
@@ -436,7 +514,7 @@ final class Sawa_Lens_AI {
 			: 'Write every explanation in simple, clear English (B1 level, short sentences). ';
 		$system = 'You explain English song lyrics to Arabic-speaking learners of English (A2–B2). ' . $in
 			. 'Explain what the line means in the song, and the language in it: slang, idioms, metaphors, informal grammar (gonna, ain\'t, dropped words), and words used in an unusual way. '
-			. 'Be faithful to the line; do not invent a story that is not in the lyrics. Keep it respectful and neutral; if a line is crude, explain it briefly and plainly without repeating vulgar words. '
+			. 'Be faithful to the line; do not invent a story that is not in the lyrics. Rude, vulgar or sexual words and insults are explained politely and formally (no rude words in your explanation), and each such part also gets "severity" ("mild" = common, not very rude; "moderate"; "strong"; "slur" = hurtful to a group, never use it) and "context" (max 30 words: how its meaning and strength change with context and tone, e.g. joking with close friends vs angry at a stranger). '
 			. 'Return ONLY a JSON object, no markdown, with keys: '
 			. '"meaning": what the line means, said simply (max 30 words); '
 			. '"parts": an array (max 4) of {"text": the exact words from the line, "why": a short explanation (max 25 words)} for the slang, idioms, metaphors or grammar worth noticing (empty array if none); '
@@ -449,9 +527,12 @@ final class Sawa_Lens_AI {
 		$parts = array();
 		foreach ( array_slice( (array) ( $out['parts'] ?? array() ), 0, 4 ) as $p ) {
 			if ( is_array( $p ) && ! empty( $p['text'] ) ) {
+				$sev     = (string) ( $p['severity'] ?? '' );
 				$parts[] = array(
-					'text' => mb_substr( (string) $p['text'], 0, 80 ),
-					'why'  => mb_substr( (string) ( $p['why'] ?? '' ), 0, 300 ),
+					'text'     => mb_substr( (string) $p['text'], 0, 80 ),
+					'why'      => mb_substr( (string) ( $p['why'] ?? '' ), 0, 300 ),
+					'severity' => in_array( $sev, array( 'mild', 'moderate', 'strong', 'slur' ), true ) ? $sev : '',
+					'context'  => mb_substr( (string) ( $p['context'] ?? '' ), 0, 300 ),
 				);
 			}
 		}

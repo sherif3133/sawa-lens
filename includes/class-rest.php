@@ -59,6 +59,7 @@ final class Sawa_Lens_Rest {
 		$r( '/to-english', 'POST', array( __CLASS__, 'to_english' ) );
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
 		$r( '/lyric', 'POST', array( __CLASS__, 'lyric' ) );
+		$r( '/song-lines', 'POST', array( __CLASS__, 'song_lines' ) );
 		$r( '/proof', 'POST', array( __CLASS__, 'proof' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
 		$r( '/video/(?P<vid>[\w-]{11})', 'GET', array( __CLASS__, 'video' ) );
@@ -277,6 +278,12 @@ final class Sawa_Lens_Rest {
 
 	public static function sound( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::sound( get_current_user_id(), $r->get_param( 'text' ), (string) $r->get_param( 'lang' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** 🎵 Music: a whole song translated by meaning, with its slang (literal + real meaning). {song, lines[], lang: en|ar} */
+	public static function song_lines( WP_REST_Request $r ) {
+		$res = Sawa_Lens_AI::song_lines( get_current_user_id(), (string) $r->get_param( 'song' ), (array) $r->get_param( 'lines' ), (string) $r->get_param( 'lang' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
