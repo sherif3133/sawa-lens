@@ -29,12 +29,17 @@ final class Sawa_Lens_Auth {
 
 	private static function redirect_ok( $uri ) {
 		// Chrome/Edge extension redirect (chrome.identity), or the Sawa web app later.
+		// Phones (Firefox for Android, Safari): the extension signs in in a normal tab and reads the token on our own "connected" page.
 		return (bool) preg_match( '~^https://[a-p]{32}\.chromiumapp\.org/[\w/-]*$~', $uri )
 			|| (bool) preg_match( '~^https://[a-z0-9-]+\.allizom\.org/~', $uri )
-			|| 0 === strpos( $uri, home_url( '/lens/' ) );
+			|| 0 === strpos( $uri, home_url( '/lens/' ) )
+			|| home_url( '/?sawa_lens=connected' ) === $uri;
 	}
 
 	public static function connect() {
+		if ( isset( $_GET['sawa_lens'] ) && 'connected' === $_GET['sawa_lens'] ) { // phpcs:ignore
+			self::connected();
+		}
 		if ( ! isset( $_GET['sawa_lens'] ) || 'connect' !== $_GET['sawa_lens'] ) { // phpcs:ignore
 			return;
 		}
@@ -63,6 +68,16 @@ final class Sawa_Lens_Auth {
 			)
 		);
 		wp_redirect( $redirect . '#token=' . $token . '&state=' . rawurlencode( $state ) ); // phpcs:ignore
+		exit;
+	}
+
+	/** Where phone sign-in lands. The token is in the #fragment, so it never reaches the server; the extension reads it here. */
+	private static function connected() {
+		nocache_headers();
+		echo '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Language Lens</title>'
+			. '<style>body{font:18px/1.7 "IBM Plex Sans Arabic",system-ui,sans-serif;background:#F6F5F3;color:#0F0F10;display:grid;place-items:center;min-height:100vh;margin:0;padding:24px}div{max-width:440px;background:#fff;border:1px solid #E6E3DF;border-radius:14px;padding:28px}h1{font-size:22px;margin:0 0 10px}p{margin:0;color:#4A4847}.ok{color:#15803D;font-weight:600}.bad{color:#E3262B;font-weight:600}</style>'
+			. '<body><div><h1>Language Lens · Sawa English</h1><p id="sawa-lens-status">جارٍ الربط… · Connecting…</p></div>'
+			. '<script>setTimeout(function(){var e=document.getElementById("sawa-lens-status");if(!e.className){e.className="bad";e.textContent="لم يتم الربط. افتح هذه الصفحة في المتصفح الذي ثبّتّ فيه Language Lens، ثم اضغط Sign in مرة أخرى. · Not connected: sign in again from the Language Lens icon in the browser where it is installed.";}},5000);</script></body></html>';
 		exit;
 	}
 
