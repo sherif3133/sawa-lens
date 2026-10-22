@@ -58,6 +58,7 @@ final class Sawa_Lens_Rest {
 		$r( '/translate', 'POST', array( __CLASS__, 'translate' ) );
 		$r( '/to-english', 'POST', array( __CLASS__, 'to_english' ) );
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
+		$r( '/lyric', 'POST', array( __CLASS__, 'lyric' ) );
 		$r( '/proof', 'POST', array( __CLASS__, 'proof' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
 		$r( '/video/(?P<vid>[\w-]{11})', 'GET', array( __CLASS__, 'video' ) );
@@ -264,6 +265,12 @@ final class Sawa_Lens_Rest {
 
 	public static function sound( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::sound( get_current_user_id(), $r->get_param( 'text' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** 🎵 Music: one lyric line explained ({line, song?, context?, lang: en|ar}). */
+	public static function lyric( WP_REST_Request $r ) {
+		$res = Sawa_Lens_AI::lyric( get_current_user_id(), $r->get_param( 'line' ), (string) $r->get_param( 'song' ), (string) $r->get_param( 'context' ), (string) $r->get_param( 'lang' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 

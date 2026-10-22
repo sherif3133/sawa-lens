@@ -278,6 +278,65 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
+	 * Lyrics breakdown: one line of a song explained for a learner (🎵 Music in Language Lens).
+	 * English (default) or Arabic. Shared cache: each line of a song is paid for once per language.
+	 * Only the line and the lines around it are sent, never the whole song.
+	 */
+	public static function lyric( $uid, $line, $song = '', $context = '', $lang = 'en' ) {
+		$lang    = 'ar' === $lang ? 'ar' : 'en';
+		$clean   = function ( $s, $n ) {
+			return mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $s ) ) ), 0, $n );
+		};
+		$line    = $clean( $line, 300 );
+		$song    = $clean( $song, 120 );
+		$context = $clean( $context, 600 );
+		if ( '' === $line ) {
+			return new WP_Error( 'empty', 'Nothing to explain.' );
+		}
+		$key = hash( 'sha256', 'lyric|v1|' . $lang . '|' . strtolower( $song . '|' . $line ) );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$in     = 'ar' === $lang
+			? 'Write every explanation in clear, short Modern Standard Arabic (فصحى); keep quoted English words in English. '
+			: 'Write every explanation in simple, clear English (B1 level, short sentences). ';
+		$system = 'You explain English song lyrics to Arabic-speaking learners of English (A2–B2). ' . $in
+			. 'Explain what the line means in the song, and the language in it: slang, idioms, metaphors, informal grammar (gonna, ain\'t, dropped words), and words used in an unusual way. '
+			. 'Be faithful to the line; do not invent a story that is not in the lyrics. Keep it respectful and neutral; if a line is crude, explain it briefly and plainly without repeating vulgar words. '
+			. 'Return ONLY a JSON object, no markdown, with keys: '
+			. '"meaning": what the line means, said simply (max 30 words); '
+			. '"parts": an array (max 4) of {"text": the exact words from the line, "why": a short explanation (max 25 words)} for the slang, idioms, metaphors or grammar worth noticing (empty array if none); '
+			. '"plain": the line said again in plain, standard English (max 25 words, always in English).';
+		$user   = ( $song ? "Song: {$song}\n" : '' ) . ( $context ? "Lines around it: {$context}\n" : '' ) . "Line to explain: {$line}";
+		$out    = self::call( $system, $user, 1200 );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$parts = array();
+		foreach ( array_slice( (array) ( $out['parts'] ?? array() ), 0, 4 ) as $p ) {
+			if ( is_array( $p ) && ! empty( $p['text'] ) ) {
+				$parts[] = array(
+					'text' => mb_substr( (string) $p['text'], 0, 80 ),
+					'why'  => mb_substr( (string) ( $p['why'] ?? '' ), 0, 300 ),
+				);
+			}
+		}
+		$res = array(
+			'lang'    => $lang,
+			'meaning' => mb_substr( (string) ( $out['meaning'] ?? '' ), 0, 400 ),
+			'parts'   => $parts,
+			'plain'   => mb_substr( (string) ( $out['plain'] ?? '' ), 0, 300 ),
+		);
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/**
 	 * A practice set for one skill-tree point. Sets are shared by every learner and cached
 	 * (variant 0–5), so each one is paid for once.
 	 */
