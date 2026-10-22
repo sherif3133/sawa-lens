@@ -43,6 +43,7 @@ final class Sawa_Lens_Admin {
 		$s['daily_limit'] = isset( $_POST['daily_limit'] ) ? max( 0, (int) $_POST['daily_limit'] ) : $s['daily_limit'];
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
 		update_option( Sawa_Lens_AI::OPT, $s, false );
+		update_option( 'sawa_lens_app_open', empty( $_POST['app_open'] ) ? 0 : 1, true );
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-lens&saved=1' ) );
 		exit;
 	}
@@ -99,6 +100,19 @@ final class Sawa_Lens_Admin {
 				<input type="hidden" name="action" value="sawa_lens_save">
 				<?php wp_nonce_field( 'sawa_lens_save' ); ?>
 				<table class="form-table">
+					<tr>
+						<th>Sawa App</th>
+						<td>
+							<label><input type="checkbox" name="app_open" value="1" <?php checked( Sawa_Lens_App::is_open() ); ?>> <b>Open the Sawa App to students</b></label>
+							<p class="description">
+								<?php if ( Sawa_Lens_App::is_open() ) : ?>
+									Open: approved students can use <a href="<?php echo esc_url( home_url( '/app/' ) ); ?>">the app</a>.
+								<?php else : ?>
+									Closed: approved students see "You're on the list! Please wait for Sherif to publish the Sawa App." You (admins) can still use <a href="<?php echo esc_url( home_url( '/app/' ) ); ?>">the app</a> to test it.
+								<?php endif; ?>
+							</p>
+						</td>
+					</tr>
 					<tr>
 						<th><label for="api_key">Claude API key</label></th>
 						<td>

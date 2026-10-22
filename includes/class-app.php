@@ -69,6 +69,9 @@ final class Sawa_Lens_App {
 		if ( ! Sawa_Lens_Auth::allowed( $uid ) ) {
 			Sawa_Lens_Auth::page( 'Language Lens is for Sawa English members', 'Your account is not approved in the Sawa English tracker yet. Once Sherif approves your request, come back to this page.' );
 		}
+		if ( ! self::is_open_for( $uid ) ) {
+			self::waiting_page();
+		}
 		$lessons = array();
 		foreach ( array_keys( Sawa_Lens_Skills::all() ) as $id ) {
 			$lessons[ $id ] = Sawa_Lens_Skills::lesson( $id );
@@ -160,6 +163,31 @@ self.addEventListener('fetch', function () {});
 	}
 
 	/** /app for guests and people not approved yet: the tracker's sign-in, join and waiting screens. */
+	/** The app is open to students (Settings → Language Lens). Until then only admins get in; approved students wait. */
+	public static function is_open() {
+		return (bool) get_option( 'sawa_lens_app_open', 0 );
+	}
+
+	public static function is_open_for( $uid ) {
+		return self::is_open() || user_can( $uid, 'manage_options' );
+	}
+
+	/** What approved students see while the app is closed. */
+	private static function waiting_page() {
+		header( 'Content-Type: text/html; charset=utf-8' );
+		echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0F0F10"><title>Sawa App · You\'re on the list</title>'
+			. '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@800&family=IBM+Plex+Sans:wght@400;600&display=swap">'
+			. '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#F6F5F3;color:#2B2A29;font:17px/1.7 "IBM Plex Sans",system-ui,sans-serif}'
+			. '.box{max-width:480px;background:#fff;border:1px solid #E6E3DF;border-radius:16px;padding:36px 30px;text-align:center}'
+			. '.tick{width:64px;height:64px;border-radius:50%;background:#0F0F10;color:#fff;display:grid;place-items:center;font-size:30px;margin:0 auto 18px}'
+			. 'h1{font:800 30px/1.2 Changa,"IBM Plex Sans",sans-serif;color:#0F0F10;margin:0 0 12px}p{margin:0 0 8px}.muted{color:#8A8584;font-size:15px}a{color:#0F0F10}</style></head><body>'
+			. '<div class="box"><div class="tick" aria-hidden="true">✓</div><h1>You\'re on the list!</h1>'
+			. '<p>Please wait for Sherif to publish the Sawa App.</p>'
+			. '<p class="muted">Your account is ready. When the app opens, come back to this page and sign in.</p>'
+			. '<p class="muted" style="margin-top:18px"><a href="' . esc_url( home_url( '/' ) ) . '">Back to Sawa English</a></p></div></body></html>';
+		exit;
+	}
+
 	private static function join_page() {
 		$html = do_shortcode( '[sawa_tracker]' );
 		header( 'Content-Type: text/html; charset=utf-8' );
@@ -172,7 +200,8 @@ self.addEventListener('fetch', function () {});
 
 	public static function routes() {
 		$can = function () {
-			return is_user_logged_in() && Sawa_Lens_Auth::allowed( get_current_user_id() );
+			$uid = get_current_user_id();
+			return $uid && Sawa_Lens_Auth::allowed( $uid ) && self::is_open_for( $uid );
 		};
 		$r   = function ( $path, $method, $cb ) use ( $can ) {
 			register_rest_route(
