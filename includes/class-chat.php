@@ -360,6 +360,9 @@ final class Sawa_Lens_Chat {
 				$e['why']    = '';
 				$e['why_ar'] = '';
 			}
+			if ( 'ar' !== Sawa_Lens_AI::explain_lang( $uid ) ) {
+				$e['why_ar'] = ''; // English by default; Arabic only for students who chose العربية
+			}
 		}
 		unset( $e );
 		$res['app'] = Sawa_Lens_App::url();

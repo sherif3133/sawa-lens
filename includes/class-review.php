@@ -198,7 +198,7 @@ final class Sawa_Lens_Review {
 				'wrong'     => $e['wrong'],
 				'fix'       => $e['fix'],
 				'why'       => $e['why'],
-				'why_ar'    => $e['why_ar'],
+				'why_ar'    => 'ar' === Sawa_Lens_AI::explain_lang( $uid ) ? $e['why_ar'] : '', // English by default
 				'skill'     => $e['skill'],
 				'skillName' => $k ? $k['name'] : '',
 				'source'    => $e['source'],
