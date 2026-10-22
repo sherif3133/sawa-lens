@@ -388,3 +388,8 @@ main:has(.in-creators) { padding-bottom: 76px; }
 .sg-tag{font:700 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
 .sg-line{margin:2px 0}.sg-gap{display:inline-block;min-width:60px;border-bottom:2px solid #6250d6;text-align:center;font-weight:700}.sg-gap.ok{color:#15803D;border-color:#15803D}.sg-gap.bad{color:#B91C1C;border-color:#B91C1C}
 .sg-bank{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+/* Stories for you (beta) */
+.st-chips{display:flex;flex-wrap:wrap;gap:8px}.st-chips .btn{min-height:44px}
+.st-q{padding:10px 0;border-top:1px solid var(--line)}.st-q:first-of-type{border-top:0}
+.st-end{margin-top:10px}.st-mine{border-color:#6250d6;background:#F5F3FF}
+.toast{pointer-events:none}

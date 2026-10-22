@@ -289,6 +289,70 @@ final class Sawa_Lens_AI {
 	}
 
 	/**
+	 * "Stories for you" (beta): an original graded reader about a learner's interest, at their level (i+1).
+	 * $b: level, next, words (length), topic, format (story|explainer|series), chapter, of, story (chapters so far),
+	 * name (series name), avoid (titles already written), use (Learning words to weave in), seed.
+	 * Returns { title, paragraphs, targets: [{word, en, ar}], used, questions: [{q, options, answer, ar}], recap, teaser }.
+	 */
+	public static function reader( $uid, $b ) {
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$lv     = sanitize_text_field( (string) $b['level'] );
+		$low    = in_array( $lv, array( 'A1', 'A2' ), true );
+		$use    = array_slice( array_values( array_filter( array_map( 'sanitize_text_field', (array) $b['use'] ) ) ), 0, 6 );
+		$format = array(
+			'story'     => 'a short story with one original main character (an Egyptian or Arab young person is a good choice) and a clear beginning, problem and ending. Show feelings and small real-life details',
+			'explainer' => 'a true-to-life explainer: how something in this topic works, or why it happens, told with one everyday example. Only well-known, general facts; if you are not sure a fact is true, leave it out',
+			'series'    => 'chapter ' . (int) $b['chapter'] . ' of ' . (int) $b['of'] . ' of a story series with one original main character. ' . ( (int) $b['chapter'] < (int) $b['of'] ? 'End on a small cliffhanger so the reader wants the next chapter tomorrow' : 'This is the last chapter: give the story a satisfying ending' ),
+		)[ $b['format'] ] ?? 'a short story';
+		$system = 'You write original graded readers for Arabic-speaking learners of English (mostly young Egyptians). '
+			. 'Write ' . $format . ', about this topic the learner loves: ' . sanitize_text_field( (string) $b['topic'] ) . '. Make it fun and gripping for a fan of this topic, with the topic as the hook. '
+			. 'Level: CEFR ' . $lv . ', following Krashen\'s i+1: about 95–98% of the running words are words a ' . $lv . ' learner knows, plus about 2 useful new words per 100 words just above that level (' . sanitize_text_field( (string) $b['next'] ) . '), each one understandable from the sentence around it. '
+			. 'Length: ' . sanitize_text_field( (string) $b['words'] ) . ' words, in short paragraphs (2–5 sentences each). '
+			. ( $low ? 'Use short sentences (about 8–14 words), mostly present and past simple, and clear linking words. ' : 'Use clear sentences (about 12–20 words) with natural, varied grammar. ' )
+			. ( $use ? 'Weave in these words the learner is studying, only where they fit the story naturally, each once or twice, never as a list or a vocabulary lesson: ' . implode( ', ', $use ) . '. ' : '' )
+			. 'Rules: everything is original. Never copy or quote song lyrics, books, articles, films or speeches. Never use real people as characters and never say anything about a real, named person (no footballers, rappers, YouTubers, actors or politicians): invent original characters, teams, bands and shops inspired by the topic. Real places, countries and cities are fine. '
+			. 'Keep it family-friendly and respectful of Egyptian and Muslim culture: no romance, alcohol, swearing, gambling or graphic violence. '
+			. ( $b['story'] ? 'The story so far: ' . implode( ' ', array_map( 'sanitize_text_field', (array) $b['story'] ) ) . ' Continue it with the same characters and names. ' : '' )
+			. ( $b['avoid'] ? 'Other readers on this topic already have these titles; write something clearly different: ' . implode( ' | ', array_map( 'sanitize_text_field', array_slice( (array) $b['avoid'], 0, 15 ) ) ) . '. ' : '' )
+			. 'Then write 4 quick comprehension questions about the text (who, what, why, and one about the meaning of a word), each with 3 short answer options and exactly one right answer' . ( $low ? ', plus the question in simple Arabic' : '' ) . '. '
+			. 'Return ONLY a JSON object: {"title": a short catchy title (no chapter number), "paragraphs": [the text, as strings], "targets": [each new above-level word you used: {"word": base form, "en": a very simple English meaning, "ar": its Arabic meaning}], "used": [the words from the learner\'s list that you used], "questions": [{"q": the question, "options": [3 answers], "answer": the index (0–2) of the right one, "ar": the question in Arabic or ""}], "recap": 2 sentences that sum up what happened (for writing the next chapter), "teaser": one short sentence in English that makes someone want to read it}. Plain JSON, no markdown.';
+		$out    = self::call( $system, 'Write it now. (Variation #' . (int) $b['seed'] . ')', 9000, 120, self::ADAPT_MODEL );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$paras = array_values( array_filter( array_map( function ( $p ) { return mb_substr( trim( (string) $p ), 0, 3000 ); }, (array) ( $out['paragraphs'] ?? array() ) ) ) );
+		if ( count( $paras ) < 2 || '' === trim( (string) ( $out['title'] ?? '' ) ) ) {
+			return new WP_Error( 'ai', 'The story came back incomplete. Try again.', array( 'status' => 502 ) );
+		}
+		$targets = array();
+		foreach ( array_slice( (array) ( $out['targets'] ?? array() ), 0, 25 ) as $t ) {
+			if ( ! empty( $t['word'] ) ) {
+				$targets[] = array( 'word' => mb_substr( strtolower( (string) $t['word'] ), 0, 40 ), 'en' => mb_substr( (string) ( $t['en'] ?? '' ), 0, 160 ), 'ar' => mb_substr( (string) ( $t['ar'] ?? '' ), 0, 120 ) );
+			}
+		}
+		$qs = array();
+		foreach ( array_slice( (array) ( $out['questions'] ?? array() ), 0, 6 ) as $q ) {
+			$opts = array_values( array_map( function ( $o ) { return mb_substr( (string) $o, 0, 160 ); }, (array) ( $q['options'] ?? array() ) ) );
+			$a    = (int) ( $q['answer'] ?? -1 );
+			if ( ! empty( $q['q'] ) && count( $opts ) >= 2 && $a >= 0 && $a < count( $opts ) ) {
+				$qs[] = array( 'q' => mb_substr( (string) $q['q'], 0, 240 ), 'options' => $opts, 'answer' => $a, 'ar' => mb_substr( (string) ( $q['ar'] ?? '' ), 0, 240 ) );
+			}
+		}
+		return array(
+			'title'      => mb_substr( trim( (string) $out['title'] ), 0, 120 ),
+			'paragraphs' => $paras,
+			'targets'    => $targets,
+			'used'       => array_slice( array_values( array_intersect( array_map( 'strtolower', (array) ( $out['used'] ?? array() ) ), array_map( 'strtolower', $use ) ) ), 0, 6 ),
+			'questions'  => $qs,
+			'recap'      => mb_substr( (string) ( $out['recap'] ?? '' ), 0, 600 ),
+			'teaser'     => mb_substr( (string) ( $out['teaser'] ?? '' ), 0, 200 ),
+		);
+	}
+
+	/**
 	 * How a phrase or sentence sounds in natural, fast American English, and why:
 	 * linking, flap t, weak forms, elision, assimilation, contractions.
 	 */

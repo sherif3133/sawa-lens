@@ -87,6 +87,7 @@ final class Sawa_Lens_App {
 			'lessons' => $lessons,
 			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
 			'songs'   => class_exists( 'Sawa_Lens_Songs' ) && Sawa_Lens_Songs::allowed( get_current_user_id() ), // My songs beta
+			'readers' => class_exists( 'Sawa_Lens_Readers' ) && Sawa_Lens_Readers::allowed( get_current_user_id() ), // Stories for you beta
 			'appMode' => $app_mode,
 			'progress' => esc_url_raw( rest_url( self::NS . '/web/progress' ) ),
 			'explainLang' => Sawa_Lens_AI::explain_lang( $u->ID ), // same setting as in Language Lens
@@ -594,7 +595,7 @@ self.addEventListener('fetch', function () {});
 		} else {
 			$items[] = array( 'k' => 'collect', 'done' => $new_words + $new_sents >= 3, 't' => 'Save 3 new words', 'sub' => 'From a video, a page you scan, or a quiz · they become review cards', 'go' => 'scan' );
 		}
-		$items[] = array( 'k' => 'watch', 'done' => $quizzes > 0 || $new_words + $new_sents > 0, 't' => 'Read something in English and save new words', 'sub' => 'Learn → Read a text (paste any text) or Scan a page · or mark words with Language Lens', 'go' => 'read' );
+		$items[] = array( 'k' => 'watch', 'done' => $quizzes > 0 || $new_words + $new_sents > 0 || ( class_exists( 'Sawa_Lens_Readers' ) && Sawa_Lens_Readers::read_today( $uid ) ), 't' => 'Read something in English and save new words', 'sub' => 'Learn → Read a text (paste any text) or Scan a page · or mark words with Language Lens', 'go' => 'read' );
 		$items[] = array( 'k' => 'use', 'done' => ! empty( $why['chat'] ) || ! empty( $why['voice'] ) || ! empty( $why['write'] ) || ! empty( $why['speak'] ), 't' => 'Write or say something in English', 'sub' => 'A message in the chat, or a few sentences in Write', 'go' => 'chat' );
 		$items[] = array( 'k' => 'log', 'done' => $studied, 't' => $studied ? 'Study day counted' : 'Count today as a study day', 'sub' => 'Anything above counts automatically · or log other study', 'go' => 'log' );
 

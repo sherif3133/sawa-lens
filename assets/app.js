@@ -127,6 +127,8 @@
 		if (view === 'watch') return watch(arg);
 		if (view === 'interests') return interests(arg);
 		if (view === 'songs') return songsView(arg);
+		if (view === 'stories') return storiesView();
+		if (view === 'story') return storyView(arg);
 	}
 
 	function loadTree() {
@@ -603,6 +605,7 @@
 	}
 	function unlocked(tab) {
 		if (tab === 'songs') return !!B.songs; // My songs: beta testers only
+		if (tab === 'stories' || tab === 'story') return !!B.readers; // Stories for you: beta testers only
 		if (!S.J) return true;
 		for (var i = 0; i < S.stage; i++) if (STAGES[i].tabs.indexOf(tab) >= 0) return true;
 		return ['skill', 'practice'].indexOf(tab) >= 0 ? S.stage >= 3 : false;
@@ -649,8 +652,9 @@
 	/** Today: a short plan with the next step highlighted, then today's stats and quest from the tracker. */
 	function today() {
 		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
-		shell('<section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card stack" id="ilove" hidden></section><section class="card" id="expo" hidden></section><section class="stack" id="prog"></section>' + meTiles());
+		shell('<section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card stack" id="story" hidden></section><section class="card stack" id="ilove" hidden></section><section class="card" id="expo" hidden></section><section class="stack" id="prog"></section>' + meTiles());
 		paintExposure();
+		paintStoryCard();
 		paintInterestCard();
 		bindMeTiles();
 		paintProgress($app.querySelector('#prog'));
@@ -692,7 +696,8 @@
 			['interests', 'Find content you\'ll love', 'What you enjoy in Arabic → English creators, music and books', 1],
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
-		].concat(B.songs ? [['songs', '🎵 My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1]] : []);
+		].concat(B.songs ? [['songs', '🎵 My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1]] : [])
+			.concat(B.readers ? [['stories', '📖 Stories for you <i class="beta-tag">BETA</i>', 'Short stories about what you love, at your level', 1]] : []);
 		shell('<section class="stack"><div class="row-between"><h1>Learn</h1>' + langSwitch() + '</div></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
 			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
@@ -1182,6 +1187,7 @@
 			}).join('') + '</ul>' : '') + '</section>';
 	}
 	function scanView() {
+		if (SCAN && SCAN.story) SCAN = null; // a story from Stories for you isn't a scanned page
 		try { SCAN = SCAN || JSON.parse(localStorage.getItem('lensScan') || 'null'); } catch (e) { /* storage blocked */ }
 		shell(modeSeg('scan') + '<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learning, or save the sentence.</p></section>'
 			+ '<div class="scan-in" id="drop"><div class="ra-btns"><label class="btn" for="cam">📷 Take a photo</label><label class="btn" for="pick">🖼 Upload an image</label><button class="btn ghost" id="pastebtn">📋 Paste a screenshot</button></div>'
@@ -1270,7 +1276,7 @@
 			var tg = {}; (SCAN.targets || []).forEach(function (t) { tg[t.word] = 1; });
 			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + adaptedHead() + '<div class="ra-btns"><button class="btn" id="readall">🔊 Listen to the whole text</button><label class="small">Speed <select id="readrate"><option value="0.75">Slow</option><option value="0.9" selected>Normal</option><option value="1.05">Fast</option></select></label></div><p class="small muted">Tap a word for its meaning · select words to save a phrase or a sentence</p><div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
 				var idx = pi++;
-				return '<p data-p="' + idx + '">' + esc(p).replace(/[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { return '<span class="sw' + (tg[w.toLowerCase()] || tg[lemmaOf(w)] ? ' tg' : '') + '">' + w + '</span>'; }) + '</p>';
+				return '<p data-p="' + idx + '">' + esc(p).replace(/&(?:[a-z]+|#\d+);|[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { if (w.charAt(0) === '&') return w; /* keep &quot; &amp; … whole */ return '<span class="sw' + (tg[w.toLowerCase()] || tg[lemmaOf(w)] ? ' tg' : '') + '">' + w + '</span>'; }) + '</p>';
 			}).join('') + '</div><div id="wcard"></div>';
 			box.querySelector('#readall').onclick = function () { readAll(this); };
 			box.querySelectorAll('[data-tgl]').forEach(function (b) {
@@ -1945,6 +1951,144 @@
 		}).catch(function () {});
 	}
 
+	/* ── Stories for you (beta): graded readers about what you love ───── */
+	ICONS.stories = '<svg viewBox="0 0 24 24"><path d="M4 5c3-1 6-1 8 1v14c-2-2-5-2-8-1z"/><path d="M20 5c-3-1-6-1-8 1v14c2-2 5-2 8-1z"/></svg>';
+	var ST_FMT = { story: ['📖', 'Story'], explainer: ['💡', 'Explainer'], series: ['📚', 'Series'] };
+	function stCat(c) { return c ? (c.emoji ? c.emoji + ' ' : '') + c.name : ''; }
+	function storiesView() {
+		shell('<section class="stack"><h1>📖 Stories for you <i class="beta-tag">BETA</i></h1><p class="muted">Short stories and explainers about what you love, written at your level: almost every word one you know, plus a few new ones. Tap any word for its meaning, and listen along.</p></section><section id="st" class="stack"><p class="loading">Loading…</p></section>');
+		api('readers').then(function (h) {
+			var box = $app.querySelector('#st'); if (!box || S.view !== 'stories') return;
+			var t = h.today, sr = h.series, p = h.personal;
+			box.innerHTML = (h.streak ? '<p><span class="pill mastered">🔥 ' + h.streak + '-day reading streak</span>' + (h.readToday ? ' <span class="pill">✓ Read today</span>' : '') + '</p>' : '')
+				+ (!h.quiz ? '<div class="card stack"><p><b>💛 Tell us what you love first</b></p><p class="small muted">Take the 2-minute interest quiz (football, rap, business, gaming…) and your stories will be about it. Until then, you get stories on popular topics.</p><button class="btn sm" data-in>Take the quiz</button></div>' : '')
+				+ (sr ? '<div class="card stack"><div class="row-between"><h3>📚 ' + esc(sr.title) + '</h3><span class="pill">Chapter ' + sr.next + ' of ' + sr.of + '</span></div>'
+					+ (sr.tomorrow ? '<p class="small muted">Chapter ' + sr.next + ' opens tomorrow. Come back to see what happens next!</p>' : '<button class="btn" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>') + '</div>' : '')
+				+ (t && t.cat ? '<div class="card stack"><div class="row-between"><h3>Today\'s pick</h3><span class="pill">' + ST_FMT[t.format][0] + ' ' + (t.format === 'series' ? 'A new series' : ST_FMT[t.format][1]) + '</span></div><p><b>' + esc(stCat(t.cat)) + '</b> <span class="ar small muted">' + esc(t.cat.ar) + '</span></p>'
+					+ '<div class="ra-btns"><button class="btn" data-cat="' + esc(t.cat.id) + '" data-fmt="' + t.format + '">Read it</button>' + (h.cats.some(function (c) { return c.id === t.cat.id; }) ? '<button class="btn ghost sm" data-skip="' + esc(t.cat.id) + '">👎 Not this topic</button>' : '') + '</div></div>' : '')
+				+ (h.cats.length ? '<h3>Or pick a topic</h3><div class="st-chips">' + h.cats.map(function (c) { return '<button class="btn ghost sm" data-cat="' + esc(c.id) + '">' + esc(stCat(c)) + '</button>'; }).join('') + '</div>' : '')
+				+ (p.why !== 'off' ? '<div class="card stack st-mine"><h3>✨ A story made just for you</h3><p class="small muted">Built around the words you are learning, about something you love. One a day.</p>'
+					+ (p.can ? '<button class="btn" data-mine>Write my story</button>' : '<p class="small">' + ({ today: 'You got today\'s personal story. Come back tomorrow!', words: 'Mark at least 3 words as Learning first (tap words while you read or watch).', budget: 'Personal stories are paused until next month.' }[p.why] || '') + '</p>') + '</div>' : '')
+				+ (h.library.length ? '<h2>My stories</h2><div class="sg-list">' + h.library.map(function (x) {
+					return '<button class="card sg-item" data-open="' + x.id + '"><span class="sg-ic">' + ST_FMT[x.format][0] + '</span><span><b>' + esc(x.title) + '</b><span class="small muted">' + esc(stCat(x.cat)) + ' · ' + x.level + (x.mine ? ' · ✨ for you' : '') + ' · ' + (x.done ? '✓ Read' + (x.total ? ' · ' + x.score + '/' + x.total : '') : 'Not finished') + (x.fav ? ' · ★' : '') + '</span></span></button>';
+				}).join('') + '</div>' : '');
+			box.querySelectorAll('[data-cat]').forEach(function (b) { b.onclick = function () { storyNext({ cat: b.dataset.cat, format: b.dataset.fmt || '' }); }; });
+			box.querySelectorAll('[data-series]').forEach(function (b) { b.onclick = function () { storyNext({ series: +b.dataset.series }); }; });
+			box.querySelectorAll('[data-open]').forEach(function (b) { b.onclick = function () { go('story', +b.dataset.open); }; });
+			box.querySelectorAll('[data-skip]').forEach(function (b) { b.onclick = function () { b.disabled = true; api('readers/skip', { body: { cat: b.dataset.skip } }).then(function () { toast('OK — less of that topic for a while'); storiesView(); }, function (e) { toast(e.message); }); }; });
+			var mi = box.querySelector('[data-mine]'); if (mi) mi.onclick = function () { storyNext({ personal: 1, cat: t && t.cat ? t.cat.id : '' }); };
+			var qz = box.querySelector('[data-in]'); if (qz) qz.onclick = function () { go('interests'); };
+		}, function (e) { var box = $app.querySelector('#st'); if (box) box.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+	}
+	/** Finds (or writes) the next reader. A new one takes the AI about half a minute. */
+	function storyNext(params) {
+		var from = S.view;
+		stopClip(); stopReading();
+		S.view = 'story';
+		shell('<section class="stack"><h1>📖 Your story</h1></section><section class="card stack"><p><b>✍️ Getting your story ready…</b></p><div class="sg-bar"><i></i></div><p class="small muted">If it is a new one, writing it at your level takes about half a minute.</p></section>');
+		api('readers/next', { body: params }).then(function (r) {
+			if (S.view !== 'story') return; // they moved on; the story waits in My stories
+			try { history.replaceState(null, '', '#story-' + r.id); } catch (e) { /* ignore */ }
+			storyShow(r);
+		}, function (e) { toast(e.message); if (S.view === 'story') go(from === 'today' ? 'today' : 'stories'); });
+	}
+	function storyView(id) {
+		if (!id) return go('stories');
+		shell('<p class="loading">Loading…</p>');
+		api('readers/' + id).then(function (r) { if (S.view === 'story') storyShow(r); }, function (e) { toast(e.message); go('stories'); });
+	}
+	function storyShow(r) {
+		SCAN = { title: '', paragraphs: r.paragraphs, targets: r.targets, story: r.id };
+		var f = ST_FMT[r.format] || ST_FMT.story;
+		shell('<section class="stack"><button class="link small" id="stback">← Stories</button>'
+			+ '<div class="in-tags"><span class="pill">' + esc(stCat(r.cat)) + '</span><span class="pill">' + f[0] + ' ' + (r.format === 'series' ? 'Chapter ' + r.chapter + ' of ' + r.of : f[1]) + '</span><span class="pill">' + r.level + ' · ' + r.minutes + ' min</span>' + (r.format !== 'explainer' ? '<span class="pill">Fiction</span>' : '') + (r.mine ? '<span class="pill open">✨ Made for you</span>' : '') + (r.hidden ? '<span class="pill review">Hidden</span>' : '') + '</div>'
+			+ '<h1>' + esc(r.title) + '</h1>' + (r.teaser ? '<p class="muted">' + esc(r.teaser) + '</p>' : '') + '</section>'
+			+ '<section id="scan" class="stack"></section>'
+			+ (r.targets.length || r.used.length ? '<section class="card stack adapted">' + (r.used.length ? '<p class="small"><b>Your words in this story:</b> ' + r.used.map(function (w) { return '<span class="pill" dir="ltr">' + esc(w) + '</span>'; }).join(' ') + '</p>' : '')
+				+ (r.targets.length ? '<p class="small muted">New words (underlined): your +1. Tap ＋ to add one to your review cards.</p><ul class="tg-list">' + r.targets.map(function (t, i) {
+					return '<li><button class="say sm" data-say="' + esc(t.word) + '" aria-label="Listen">🔊</button><b dir="ltr">' + esc(t.word) + '</b><span class="small muted" dir="ltr">' + esc(t.en) + '</span><span class="small" dir="rtl">' + esc(t.ar) + '</span><button class="btn ghost sm" data-stw="' + i + '">＋</button></li>';
+				}).join('') + '</ul>' : '') + '</section>' : '')
+			+ '<section class="card stack" id="stq"></section>'
+			+ '<div class="ra-btns"><button class="btn ghost sm" id="stfav">' + (r.fav ? '★ Favourite' : '☆ Add to favourites') + '</button>' + (r.admin ? '<button class="btn ghost sm" id="sthide">' + (r.hidden ? 'Show again (admin)' : 'Hide this story (admin)') + '</button>' : '') + '</div>');
+		paintScan();
+		$app.querySelector('#stback').onclick = function () { go('stories'); };
+		$app.querySelectorAll('[data-say]').forEach(function (b) { b.onclick = function () { speak(b.dataset.say); }; });
+		$app.querySelectorAll('[data-stw]').forEach(function (b) {
+			b.onclick = function () {
+				var t = r.targets[+b.dataset.stw]; b.disabled = true;
+				lex().then(function () {
+					return api('library/word', { body: { lemma: lemmaOf(t.word), status: 'learning', sentence: (r.paragraphs.filter(function (p) { return p.toLowerCase().indexOf(t.word) >= 0; })[0] || '').slice(0, 600), title: r.title } });
+				}).then(function () { b.textContent = '✓'; toast('Added to your review cards'); }, function (e) { b.disabled = false; toast(e.message); });
+			};
+		});
+		var fav = $app.querySelector('#stfav');
+		fav.onclick = function () { r.fav = !r.fav; fav.textContent = r.fav ? '★ Favourite' : '☆ Add to favourites'; api('readers/fav', { body: { id: r.id, on: r.fav ? 1 : 0 } }).catch(function () {}); };
+		var hd = $app.querySelector('#sthide');
+		if (hd) hd.onclick = function () { hd.disabled = true; api('readers/hide', { body: { id: r.id, show: r.hidden ? 1 : 0 } }).then(function () { toast(r.hidden ? 'Shown again' : 'Hidden: it won\'t be suggested again'); go('stories'); }, function (e) { hd.disabled = false; toast(e.message); }); };
+		storyCheck(r);
+	}
+	/** After reading: a quick check (tap answers), then XP and the reading streak. */
+	function storyCheck(r) {
+		var box = $app.querySelector('#stq'); if (!box) return;
+		var qs = r.questions || [];
+		if (r.done) {
+			box.innerHTML = '<p><b>✓ You read this one</b>' + (qs.length ? ' · quick check ' + r.score + '/' + qs.length : '') + '</p><div class="ra-btns">' + (qs.length ? '<button class="btn ghost sm" id="stagain">Do the quick check again</button>' : '') + '<button class="btn sm" id="stmore">Another story</button></div>';
+			var ag = box.querySelector('#stagain'); if (ag) ag.onclick = function () { r.done = false; storyCheck(r); };
+			box.querySelector('#stmore').onclick = function () { go('stories'); };
+			return;
+		}
+		box.innerHTML = '<h3>Finished reading?</h3><p class="small muted">' + (qs.length ? qs.length + ' quick questions to check you got it · ' : '') + '+10 XP' + (qs.length ? ', +5 more for getting them right' : '') + '</p><button class="btn" id="stdone">✓ I finished reading</button>';
+		box.querySelector('#stdone').onclick = function () {
+			stopReading();
+			if (!qs.length) return storyFinish(r, 0, 0);
+			var right = 0, answered = 0;
+			box.innerHTML = '<h3>Quick check</h3>' + qs.map(function (q, i) {
+				return '<div class="stack st-q" data-q="' + i + '"><p dir="ltr"><b>' + (i + 1) + '. ' + esc(q.q) + '</b></p>' + (q.ar && S.ar ? '<p class="ar small muted">' + esc(q.ar) + '</p>' : '') + '<div class="opts">' + q.options.map(function (o, k) { return '<button class="opt" dir="ltr" data-k="' + k + '">' + esc(o) + '</button>'; }).join('') + '</div></div>';
+			}).join('');
+			box.querySelectorAll('.st-q').forEach(function (qe) {
+				var q = qs[+qe.dataset.q];
+				qe.querySelectorAll('.opt').forEach(function (b) {
+					b.onclick = function () {
+						var ok = +b.dataset.k === q.answer;
+						qe.querySelectorAll('.opt').forEach(function (x) { x.disabled = true; });
+						b.classList.add(ok ? 'right' : 'wrong');
+						qe.querySelector('.opt[data-k="' + q.answer + '"]').classList.add('right');
+						if (ok) right++;
+						if (++answered === qs.length) storyFinish(r, right, qs.length);
+					};
+				});
+			});
+			box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		};
+	}
+	function storyFinish(r, right, total) {
+		var box = $app.querySelector('#stq');
+		api('readers/done', { body: { id: r.id, right: right, total: total } }).then(function (x) {
+			if (x.xp) toast('+' + x.xp + ' XP 📖');
+			r.done = true; r.score = Math.max(r.score || 0, right);
+			if (!box || !box.isConnected) return;
+			box.insertAdjacentHTML('beforeend', '<div class="banner good st-end"><b>' + (total ? right + ' of ' + total + ' right' + (right === total ? ' — great reading! 🎉' : '') : 'Well done! 🎉') + '</b>' + (x.xp ? ' · +' + x.xp + ' XP' : '') + (x.streak ? ' · 🔥 ' + x.streak + '-day reading streak' : '') + '</div>'
+				+ (x.nextChapter ? '<p class="small muted">Chapter ' + x.nextChapter + ' opens tomorrow.</p>' : '') + '<button class="btn sm" id="stmore">Another story</button>');
+			box.querySelector('#stmore').onclick = function () { go('stories'); };
+		}, function (e) { toast(e.message); });
+	}
+	/** Home: today's story (or the next chapter of a series), with the reading streak. */
+	function paintStoryCard() {
+		var box = $app.querySelector('#story'); if (!box || !B.readers) return;
+		api('readers').then(function (h) {
+			if (S.view !== 'today' || !box.isConnected) return;
+			var sr = h.series && !h.series.tomorrow ? h.series : null, t = h.today;
+			box.hidden = false;
+			box.innerHTML = '<div class="row-between"><h3>📖 ' + (sr ? 'Your series continues' : h.readToday ? 'You read today ✓' : 'Today\'s story') + '</h3>' + (h.streak ? '<span class="pill mastered">🔥 ' + h.streak + '</span>' : '<i class="beta-tag">BETA</i>') + '</div>'
+				+ (sr ? '<p><b>' + esc(sr.title) + '</b> · chapter ' + sr.next + ' of ' + sr.of + '</p><button class="btn sm" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>'
+					: h.readToday ? '<p class="small muted">Want another? Pick a topic you love.</p><button class="btn ghost sm" data-more>More stories</button>'
+						: t && t.cat ? '<p>A short ' + (ST_FMT[t.format][1]).toLowerCase() + ' about <b>' + esc(stCat(t.cat)) + '</b>, at your level (' + esc(h.level) + ').</p><button class="btn sm" data-cat="' + esc(t.cat.id) + '" data-fmt="' + t.format + '">Read today\'s story</button>' : '<button class="btn sm" data-more>Open Stories</button>');
+			box.querySelectorAll('[data-series]').forEach(function (b) { b.onclick = function () { storyNext({ series: +b.dataset.series }); }; });
+			box.querySelectorAll('[data-cat]').forEach(function (b) { b.onclick = function () { storyNext({ cat: b.dataset.cat, format: b.dataset.fmt }); }; });
+			box.querySelectorAll('[data-more]').forEach(function (b) { b.onclick = function () { go('stories'); }; });
+		}, function () {});
+	}
+
 	function fail(e) {
 		shell('<p class="err">' + esc(e && e.message ? e.message : 'Something went wrong.') + '</p><button class="btn ghost" id="re">Reload</button>');
 		$app.querySelector('#re').onclick = function () { location.reload(); };
@@ -1964,7 +2108,7 @@
 			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
 		});
 		var hv = h0.split('-')[0], ha = h0.split('-')[1];
-		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
+		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests', 'stories', 'story'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
 		return;
 	}
 	loadJourney().then(function () { go(['review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start'].indexOf(h0) >= 0 ? h0 : S.stage < 5 ? 'start' : 'skills'); }, function () { S.stage = 5; go('skills'); });
