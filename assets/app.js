@@ -126,6 +126,7 @@
 		if (view === 'library') return library();
 		if (view === 'watch') return watch(arg);
 		if (view === 'interests') return interests(arg);
+		if (view === 'songs') return songsView(arg);
 	}
 
 	function loadTree() {
@@ -582,6 +583,7 @@
 		return Math.max(seq, seen);
 	}
 	function unlocked(tab) {
+		if (tab === 'songs') return !!B.songs; // My songs: beta testers only
 		if (!S.J) return true;
 		for (var i = 0; i < S.stage; i++) if (STAGES[i].tabs.indexOf(tab) >= 0) return true;
 		return ['skill', 'practice'].indexOf(tab) >= 0 ? S.stage >= 3 : false;
@@ -671,7 +673,7 @@
 			['interests', 'Find content you\'ll love', 'What you enjoy in Arabic → English creators, music and books', 1],
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
-		];
+		].concat(B.songs ? [['songs', '🎵 My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1]] : []);
 		shell('<section class="stack"><h1>Learn</h1></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
 			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
@@ -788,6 +790,94 @@
 		}, function () { box.innerHTML = ''; });
 	}
 	function R0() { return { ret: S.reviewStats ? S.reviewStats.retention : null }; }
+	/* ── My songs (beta): a song made from your new words ───────────────── */
+	var SONG_STYLES = { acapella: ['🎤', 'Voice only', 'No instruments, a cappella'], pop: ['✨', 'Pop', 'Bright and catchy'], rap: ['🎧', 'Rap', 'Clear, easy flow'], acoustic: ['🎸', 'Acoustic', 'Calm guitar'] };
+	var SG = { timer: null };
+	function songsView(id) {
+		clearTimeout(SG.timer);
+		if (id) return songPage(+id);
+		shell('<section class="stack"><h1>🎵 My songs <i class="beta-tag">BETA</i></h1><p class="muted">Save new words while you read and watch. Every 10 new words or sentences, you can make a short song with them: your new words, sung in simple English, with the hardest ones in the chorus.</p></section><section id="sg" class="stack"><p class="loading">Loading…</p></section>');
+		api('songs').then(function (r) {
+			var box = $app.querySelector('#sg'); if (!box || S.view !== 'songs') return;
+			var st = r.state, making = r.songs.filter(function (s) { return ['queued', 'writing', 'singing'].indexOf(s.status) >= 0; })[0];
+			var head = '';
+			if (making) head = '<section class="card sg-make"><b>' + (making.status === 'singing' ? '🎙 Recording your song…' : '✍️ Writing your song…') + '</b><p class="small muted">It takes about a minute. You can leave this page — it will be here when it\'s ready.</p><div class="sg-bar"><i></i></div></section>';
+			else if (st.can) head = '<section class="card sg-make"><b>Your next song is ready to make 🎉</b><p class="small muted">Pick a style:</p><div class="sg-styles">' + st.styles.map(function (k, i) { var x = SONG_STYLES[k] || [k, k, '']; return '<label class="sg-style"><input type="radio" name="sgs" value="' + k + '"' + (i ? '' : ' checked') + '><span><b>' + x[0] + ' ' + x[1] + '</b><small>' + x[2] + '</small></span></label>'; }).join('') + '</div><label class="small"><input type="checkbox" id="sgslow" checked> Slow and clear</label><button class="btn block" id="sggo">🎵 Make my song</button><p class="err" id="sger"></p></section>';
+			else {
+				var msg = { more: 'Save <b>' + (st.need - st.new) + ' more</b> words or sentences to unlock your next song.', today: 'One song a day — come back tomorrow for the next one.', budget: 'New songs are paused until next month.', off: 'Songs aren\'t switched on yet.', busy: 'Your song is being made.' }[st.why] || '';
+				head = '<section class="card sg-make"><b>Next song</b>' + (st.why === 'more' ? '<div class="sg-prog"><i style="width:' + Math.round(100 * Math.min(st.new, st.need) / st.need) + '%"></i></div><p class="small muted">' + st.new + ' of ' + st.need + ' new words or sentences</p>' : '') + '<p class="small">' + msg + '</p></section>';
+			}
+			box.innerHTML = head + (r.songs.length ? '<h2>Your songs</h2><div class="sg-list">' + r.songs.map(function (s) {
+				var x = SONG_STYLES[s.style] || ['🎵', '', ''];
+				return '<button class="card sg-item" data-sg="' + s.id + '"' + (s.status === 'ready' ? '' : ' disabled') + '><span class="sg-ic">' + x[0] + '</span><span><b>' + esc(s.title || 'Your new song') + '</b><small class="muted">' + (s.status === 'ready' ? s.words.length + ' new words · ' + x[1] : s.status === 'failed' ? esc(s.error || 'It didn\'t work this time.') : 'Being made…') + '</small></span></button>';
+			}).join('') + '</div>' : '');
+			var go2 = box.querySelector('#sggo');
+			if (go2) go2.onclick = function () {
+				var sty = (box.querySelector('[name=sgs]:checked') || {}).value || 'pop';
+				go2.disabled = true; go2.textContent = 'Starting…';
+				api('songs', { body: { style: sty, slow: box.querySelector('#sgslow').checked ? 1 : 0 } }).then(function () { songsView(); }, function (e) { go2.disabled = false; go2.textContent = '🎵 Make my song'; box.querySelector('#sger').textContent = e.message; });
+			};
+			box.querySelectorAll('[data-sg]').forEach(function (b) { b.onclick = function () { go('songs', +b.dataset.sg); }; });
+			if (making) SG.timer = setTimeout(function () { if (S.view === 'songs') songsView(); }, 6000);
+		}, function (e) { var box = $app.querySelector('#sg'); if (box) box.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+	}
+	/** A song: the player, the lyrics with the new words marked, the words, and the fill-the-gaps game. */
+	function songPage(id) {
+		shell('<p class="loading">Loading…</p>');
+		api('songs').then(function (r) {
+			var s = r.songs.filter(function (x) { return x.id === id; })[0];
+			if (!s || s.status !== 'ready') return songsView();
+			var nw = {}; s.words.forEach(function (w) { nw[w.word] = w; });
+			var isNew = function (w) { var l = w.toLowerCase(); return nw[l] || nw[lemmaOf(l)]; };
+			var line = function (t, gaps) {
+				if (/^\[.*\]$/.test(t.trim())) return '<p class="sg-tag">' + esc(t.trim().slice(1, -1)) + '</p>';
+				return '<p class="sg-line" dir="ltr">' + esc(t).replace(/[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) {
+					if (gaps && isNew(w)) { gaps.push(w); return '<span class="sg-gap" data-gap="' + (gaps.length - 1) + '">＿＿</span>'; }
+					return '<span class="sw' + (isNew(w) ? ' tg' : '') + '">' + w + '</span>';
+				}) + '</p>';
+			};
+			var lines = s.lyrics.split(/\n/).filter(function (t) { return t.trim(); });
+			shell('<section class="stack"><button class="link small" id="sgback">← My songs</button><h1>' + esc(s.title) + '</h1></section>'
+				+ '<section class="card"><audio controls preload="none" src="' + esc(s.audio) + '" style="width:100%"></audio><p class="small muted">Listen, then sing along. Tap any word for its meaning.</p></section>'
+				+ '<div class="seg" role="group"><button data-sm="read" aria-pressed="true">📝 Lyrics</button><button data-sm="game" aria-pressed="false">🎯 Fill the gaps</button></div>'
+				+ '<section class="card scan-text" id="sgl">' + lines.map(function (t) { return line(t); }).join('') + '</section>'
+				+ '<section class="card"><h3>New words in this song</h3><ul class="tg-list">' + s.words.map(function (w, i) { return '<li><button class="say sm" data-say="' + esc(w.word) + '" aria-label="Listen">🔊</button><b dir="ltr">' + esc(w.word) + '</b><span class="small muted" dir="ltr">' + esc(w.en) + '</span><span class="small" dir="rtl">' + esc(w.ar) + '</span><button class="btn ghost sm" data-tgl="' + i + '">＋</button></li>'; }).join('') + '</ul></section><div id="wcard"></div>');
+			$app.querySelector('#sgback').onclick = function () { go('songs'); };
+			bindSay();
+			var bindWords = function () {
+				$app.querySelectorAll('#sgl .sw').forEach(function (sp) { sp.onclick = function () { wordCard(sp.textContent, sp.parentNode.textContent); }; });
+			};
+			bindWords();
+			$app.querySelectorAll('[data-tgl]').forEach(function (b) {
+				b.onclick = function () { var w = s.words[+b.dataset.tgl]; b.disabled = true; api('library/word', { body: { lemma: lemmaOf(w.word), status: 'learning', sentence: (lines.filter(function (t) { return t.toLowerCase().indexOf(w.word) >= 0; })[0] || ''), title: s.title } }).then(function () { b.textContent = '✓'; toast('Added to your review cards'); }, function (e) { b.disabled = false; toast(e.message); }); };
+			});
+			$app.querySelectorAll('[data-sm]').forEach(function (b) {
+				b.onclick = function () {
+					$app.querySelectorAll('[data-sm]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+					var box = $app.querySelector('#sgl');
+					if (b.dataset.sm === 'read') { box.innerHTML = lines.map(function (t) { return line(t); }).join(''); bindWords(); return; }
+					// Fill the gaps: the new words are blanks; tap the words below in the order you hear them.
+					var gaps = [], filled = [], html = lines.map(function (t) { return line(t, gaps); }).join('');
+					var bank = gaps.slice().sort(function () { return Math.random() - 0.5; });
+					box.innerHTML = '<p class="small muted">Play the song and tap the missing words in order.</p>' + html + '<div class="sg-bank">' + bank.map(function (w, i) { return '<button class="btn ghost sm" data-bk="' + i + '">' + esc(w.toLowerCase()) + '</button>'; }).join('') + '</div><p class="small" id="sgsc"></p>';
+					var right = 0;
+					box.querySelectorAll('[data-bk]').forEach(function (k) {
+						k.onclick = function () {
+							var i = filled.length; if (i >= gaps.length) return;
+							var ok = k.textContent === gaps[i].toLowerCase(), g = box.querySelector('[data-gap="' + i + '"]');
+							g.textContent = gaps[i]; g.classList.add(ok ? 'ok' : 'bad'); filled.push(k.textContent); if (ok) right++;
+							k.disabled = true;
+							if (filled.length === gaps.length) {
+								box.querySelector('#sgsc').innerHTML = '<b>' + right + ' of ' + gaps.length + ' right!</b>';
+								api('songs/played', { body: { id: s.id, right: right, total: gaps.length } }).then(function (x) { if (x.xp) toast('+' + x.xp + ' XP 🎵'); }).catch(function () {});
+							}
+						};
+					});
+				};
+			});
+		}, function (e) { shell('<p class="err">' + esc(e.message) + '</p>'); });
+	}
+
 	/** Your things (library, mistakes, stages, level test, the extension), at the bottom of Home. */
 	function meTiles() {
 		var j = S.J || {};

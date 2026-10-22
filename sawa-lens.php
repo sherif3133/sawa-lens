@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'SAWA_LENS_VER', '0.16.4' );
-define( 'SAWA_LENS_DB', 8 );
+define( 'SAWA_LENS_DB', 9 );
 define( 'SAWA_LENS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SAWA_LENS_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -27,6 +27,7 @@ require_once SAWA_LENS_DIR . 'includes/class-activity.php';
 require_once SAWA_LENS_DIR . 'includes/class-lessons.php';
 require_once SAWA_LENS_DIR . 'includes/class-images.php';
 require_once SAWA_LENS_DIR . 'includes/class-daily.php';
+require_once SAWA_LENS_DIR . 'includes/class-songs.php';
 require_once SAWA_LENS_DIR . 'includes/class-placement.php';
 require_once SAWA_LENS_DIR . 'includes/class-placement-web.php';
 require_once SAWA_LENS_DIR . 'includes/class-app.php';
@@ -48,6 +49,7 @@ Sawa_Lens_App::init();
 Sawa_Lens_Interests::init();
 Sawa_Lens_Chat::init();
 Sawa_Lens_Images::init();
+Sawa_Lens_Songs::init();
 Sawa_Lens_Placement_Web::init();
 
 register_activation_hook( __FILE__, array( 'Sawa_Lens_Store', 'install' ) );

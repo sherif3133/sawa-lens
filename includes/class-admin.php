@@ -39,6 +39,16 @@ final class Sawa_Lens_Admin {
 		if ( ! empty( $_POST['remove_stt'] ) ) {
 			$s['stt_key'] = '';
 		}
+		$gem = isset( $_POST['gemini_key'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['gemini_key'] ) ) ) : '';
+		if ( '' !== $gem && false === strpos( $gem, '•' ) ) {
+			$s['gemini_key'] = $gem;
+		}
+		if ( ! empty( $_POST['remove_gemini'] ) ) {
+			$s['gemini_key'] = '';
+		}
+		$s['songs_beta']   = isset( $_POST['songs_beta'] ) ? sanitize_textarea_field( wp_unslash( $_POST['songs_beta'] ) ) : ( $s['songs_beta'] ?? '' );
+		$s['songs_budget'] = isset( $_POST['songs_budget'] ) ? max( 0, (float) $_POST['songs_budget'] ) : ( $s['songs_budget'] ?? 10 );
+		$s['songs_price']  = isset( $_POST['songs_price'] ) ? max( 0, (float) $_POST['songs_price'] ) : ( $s['songs_price'] ?? 0.08 );
 		$s['model']       = isset( $_POST['model'] ) ? sanitize_text_field( wp_unslash( $_POST['model'] ) ) : $s['model'];
 		$s['daily_limit'] = isset( $_POST['daily_limit'] ) ? max( 0, (int) $_POST['daily_limit'] ) : $s['daily_limit'];
 		$s['store_url']   = isset( $_POST['store_url'] ) ? esc_url_raw( wp_unslash( $_POST['store_url'] ) ) : $s['store_url'];
@@ -132,6 +142,33 @@ final class Sawa_Lens_Admin {
 							<?php endif; ?>
 							<p class="description">Turns on "write it as text" for voice messages in the tracker chat (and feedback on voice messages). Claude can't listen to audio, so this one step uses OpenAI's transcription (gpt-4o-mini-transcribe, about $0.003 per minute). Create a key at platform.openai.com → API keys. Each voice message is transcribed once, then saved.</p>
 						</td>
+					</tr>
+					<?php
+					$gk    = (string) ( $s['gemini_key'] ?? '' );
+					$mgk   = $gk ? substr( $gk, 0, 6 ) . str_repeat( '•', 12 ) . substr( $gk, -4 ) : '';
+					$spent = 0;
+					if ( class_exists( 'Sawa_Lens_Songs' ) ) {
+						global $wpdb;
+						$spent = (float) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(SUM(cost),0) FROM ' . Sawa_Lens_Store::t( 'songs' ) . ' WHERE created_at >= %s', wp_date( 'Y-m-01 00:00:00' ) ) ); // phpcs:ignore
+					}
+					?>
+					<tr>
+						<th><label for="gemini_key">🎵 My songs (beta): Google Gemini key</label></th>
+						<td>
+							<input type="password" id="gemini_key" name="gemini_key" class="regular-text" value="<?php echo esc_attr( $mgk ); ?>" autocomplete="off" placeholder="AIza…">
+							<?php if ( $gk ) : ?>
+								<label style="margin-inline-start:12px"><input type="checkbox" name="remove_gemini" value="1"> Remove key</label>
+							<?php endif; ?>
+							<p class="description">Turns on "My songs": Claude writes a short song from a student's new words and Google's Lyria (lyria-3.5) sings it. Create a key at aistudio.google.com → Get API key (billing must be on for Lyria). It stays on this server.</p>
+						</td>
+					</tr>
+					<tr>
+						<th><label for="songs_beta">Song beta testers</label></th>
+						<td><textarea id="songs_beta" name="songs_beta" rows="2" class="large-text" placeholder="12, student@example.com, … or all"><?php echo esc_textarea( (string) ( $s['songs_beta'] ?? '' ) ); ?></textarea><p class="description">User IDs or emails, separated by commas; "all" opens it to everyone. Admins always have it. One song a day per student, after 10 new Learning words or saved sentences.</p></td>
+					</tr>
+					<tr>
+						<th><label for="songs_budget">Song budget</label></th>
+						<td>$<input id="songs_budget" name="songs_budget" type="number" step="0.01" min="0" class="small-text" value="<?php echo esc_attr( (string) ( $s['songs_budget'] ?? 10 ) ); ?>"> a month, at $<input name="songs_price" type="number" step="0.001" min="0" class="small-text" value="<?php echo esc_attr( (string) ( $s['songs_price'] ?? 0.08 ) ); ?>"> a song · spent this month: <b>$<?php echo esc_html( number_format( $spent, 2 ) ); ?></b><p class="description">New songs pause when the month's budget is used up. Check the current Lyria price on Google's pricing page.</p></td>
 					</tr>
 					<tr>
 						<th><label for="model">Model</label></th>

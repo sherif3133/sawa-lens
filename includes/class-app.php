@@ -86,6 +86,7 @@ final class Sawa_Lens_App {
 			'tracker' => esc_url_raw( home_url( '/tracker/' ) ),
 			'lessons' => $lessons,
 			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
+			'songs'   => class_exists( 'Sawa_Lens_Songs' ) && Sawa_Lens_Songs::allowed( get_current_user_id() ), // My songs beta
 			'appMode' => $app_mode,
 			'progress' => esc_url_raw( rest_url( self::NS . '/web/progress' ) ),
 			'explainLang' => Sawa_Lens_AI::explain_lang( $u->ID ), // same setting as in Language Lens
@@ -235,6 +236,9 @@ self.addEventListener('fetch', function () {});
 		$r( 'library/save', 'POST', array( __CLASS__, 'library_save' ) );
 		$r( 'scan', 'POST', array( __CLASS__, 'scan' ) );
 		$r( 'adapt', 'POST', array( __CLASS__, 'adapt' ) );
+		$r( 'songs', 'GET', array( __CLASS__, 'songs' ) );
+		$r( 'songs', 'POST', array( __CLASS__, 'song_make' ) );
+		$r( 'songs/played', 'POST', array( __CLASS__, 'song_played' ) );
 		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
 		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
 		$r( 'journey', 'GET', array( __CLASS__, 'journey' ) );
@@ -433,6 +437,24 @@ self.addEventListener('fetch', function () {});
 	/** Progress over time, for the charts on the home page. */
 	public static function review_history() {
 		return self::out( Sawa_Lens_Review::history( get_current_user_id() ) );
+	}
+
+	/** My songs (beta): the learner's songs and whether a new one is unlocked. */
+	public static function songs() {
+		$uid = get_current_user_id();
+		if ( ! Sawa_Lens_Songs::allowed( $uid ) ) {
+			return new WP_Error( 'beta', 'Songs are in a small beta for now.', array( 'status' => 403 ) );
+		}
+		return self::out( array( 'songs' => Sawa_Lens_Songs::songs( $uid ), 'state' => Sawa_Lens_Songs::state( $uid ) ) );
+	}
+
+	public static function song_make( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Songs::request( get_current_user_id(), sanitize_key( (string) $r->get_param( 'style' ) ), (bool) $r->get_param( 'slow' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	public static function song_played( WP_REST_Request $r ) {
+		return self::out( Sawa_Lens_Songs::played( get_current_user_id(), (int) $r->get_param( 'id' ), (int) $r->get_param( 'right' ), (int) $r->get_param( 'total' ) ) );
 	}
 
 	/** Graded reading: one chunk of a text rewritten at the learner's level (i+1), with their Learning words. */

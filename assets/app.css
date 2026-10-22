@@ -375,3 +375,16 @@ main:has(.in-creators) { padding-bottom: 76px; }
 .in-home { display: flex; gap: 12px; align-items: flex-start; } .in-home p { margin: 4px 0 0; }
 #ilove .btn { justify-self: start; }
 @media (min-width: 1100px) { .in-go { left: 210px; bottom: 0; } .in-cats { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); } }
+
+/* My songs (beta) */
+.beta-tag{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.06em;background:#6250d6;color:#fff;border-radius:6px;padding:2px 6px;vertical-align:middle}
+.sg-styles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:6px 0 10px}
+.sg-style input{position:absolute;opacity:0}.sg-style span{display:grid;border:1.5px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;min-height:44px}
+.sg-style input:checked+span{border-color:#6250d6;background:#F5F3FF}.sg-style small{color:var(--muted);font-size:12px}
+.sg-prog,.sg-bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:8px 0 4px}.sg-prog i{display:block;height:100%;background:#6250d6;border-radius:5px}
+.sg-bar i{display:block;height:100%;width:40%;background:#6250d6;border-radius:5px;animation:sgmove 1.4s ease-in-out infinite}
+@keyframes sgmove{0%{margin-left:-40%}100%{margin-left:100%}}
+.sg-list{display:grid;gap:8px}.sg-item{display:flex;gap:12px;align-items:center;text-align:start;cursor:pointer;width:100%}.sg-item span{display:grid}.sg-ic{font-size:26px}
+.sg-tag{font:700 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+.sg-line{margin:2px 0}.sg-gap{display:inline-block;min-width:60px;border-bottom:2px solid #6250d6;text-align:center;font-weight:700}.sg-gap.ok{color:#15803D;border-color:#15803D}.sg-gap.bad{color:#B91C1C;border-color:#B91C1C}
+.sg-bank{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}

@@ -194,6 +194,45 @@ final class Sawa_Lens_AI {
 		return array( 'english' => array_values( $out ) );
 	}
 
+	/**
+	 * Lyrics for a learner's song ("My songs" beta): built around their new words, the rest in words they know
+	 * at their level, the hardest 3–4 new words in a repeated chorus, about 75 seconds when sung.
+	 * Returns { title, lyrics (with [Verse]/[Chorus] tags), words: [{word, en, ar}] }.
+	 */
+	public static function song_lyrics( $uid, $words, $phrases, $cefr, $style ) {
+		$words   = array_slice( array_values( array_filter( array_map( 'sanitize_text_field', (array) $words ) ) ), 0, 14 );
+		$phrases = array_slice( array_values( array_filter( array_map( 'sanitize_text_field', (array) $phrases ) ) ), 0, 4 );
+		if ( ! $words && ! $phrases ) {
+			return new WP_Error( 'empty', 'No words to sing about yet.' );
+		}
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		$system = 'You write short, catchy songs that help Arabic-speaking learners of English (CEFR ' . sanitize_text_field( $cefr ) . ') remember new words. '
+			. 'Use as many of the learner\'s new words as fit naturally (at least 6), each in a clear sentence that shows its meaning. Every other word must be easy for a ' . sanitize_text_field( $cefr ) . ' learner. '
+			. 'Structure: [Verse 1] 4 lines, [Chorus] 4 lines, [Verse 2] 4 lines, [Chorus] again (repeat it exactly). Short lines (5–9 words), simple rhymes, present and past simple mostly. '
+			. 'The chorus repeats the 3–4 hardest new words. About 75 seconds when sung. Style: ' . sanitize_key( $style ) . ( 'rap' === $style ? ' (rhythmic lines, clean language)' : '' ) . '. '
+			. 'Wholesome and positive: nothing about romance, alcohol, drugs, violence or bad language; suitable for Muslim students. No names of real people or artists, and do not copy any existing song. '
+			. 'Return ONLY a JSON object: {"title": a short song title, "lyrics": the lyrics with the section tags on their own lines, "words": [for each new word you used: {"word": the word, "en": a very simple English meaning, "ar": its Arabic meaning}]}. Plain JSON, no markdown.';
+		$user = 'New words: ' . implode( ', ', $words ) . ( $phrases ? "\nSaved phrases (use one or two if they fit): " . implode( ' | ', $phrases ) : '' );
+		$out  = self::call( $system, $user, 4000, 60, self::ADAPT_MODEL );
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$lyrics = trim( (string) ( $out['lyrics'] ?? '' ) );
+		if ( '' === $lyrics ) {
+			return new WP_Error( 'ai', 'The lyrics came back empty. Try again.' );
+		}
+		$list = array();
+		foreach ( array_slice( (array) ( $out['words'] ?? array() ), 0, 20 ) as $w ) {
+			if ( ! empty( $w['word'] ) ) {
+				$list[] = array( 'word' => mb_substr( strtolower( (string) $w['word'] ), 0, 40 ), 'en' => mb_substr( (string) ( $w['en'] ?? '' ), 0, 160 ), 'ar' => mb_substr( (string) ( $w['ar'] ?? '' ), 0, 120 ) );
+			}
+		}
+		return array( 'title' => sanitize_text_field( (string) ( $out['title'] ?? 'My song' ) ), 'lyrics' => mb_substr( $lyrics, 0, 3000 ), 'words' => $list );
+	}
+
 	/** The model for graded texts: rewriting well at a level needs a stronger model than short explanations. */
 	const ADAPT_MODEL = 'claude-sonnet-5-5';
 
