@@ -328,3 +328,18 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
 .tg-list li{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:4px 10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px 8px}.tg-list .say{width:32px;height:32px;padding:0;font-size:14px}.tg-list [data-tgl]{min-width:40px;padding:4px 10px}
 .scan-text .sw.tg{text-decoration:underline 2px #6250d6;text-underline-offset:4px;font-weight:600}
 @media (max-width:560px){.tg-list li{grid-template-columns:auto auto 1fr auto}.tg-list li .small:not([dir=rtl]){grid-column:1/-1;order:9}.tg-list li [dir=rtl]{text-align:right}}
+/* Computers: a sidebar instead of the bottom bar, a wider page, and Today in two columns (phones keep one column). */
+@media (min-width: 1100px) {
+  .nav { inset: 0 auto 0 0; width: 210px; flex-direction: column; justify-content: flex-start; gap: 4px; padding: 76px 12px 16px; border-top: 0; border-right: 1px solid var(--line); }
+  .nav button { flex: none; max-width: none; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px; font-size: 15px; text-align: left; }
+  .nav button[aria-current="page"] { background: var(--soft, rgba(0, 0, 0, .06)); }
+  .nav .badge { position: static; margin-left: auto; }
+  .app { max-width: 1240px; padding: 0 32px 40px 242px; }
+  .hub { grid-template-columns: repeat(4, 1fr); }
+  .toast { bottom: 24px; }
+  main.stack:has(> #trk.at-top) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 460px); column-gap: 24px; align-items: start; }
+  main.stack:has(> #trk.at-top) > * { grid-column: 1; margin-top: 0; }
+  main.stack:has(> #trk.at-top) > * + * { margin-top: 12px; }
+  main.stack:has(> #trk.at-top) > #trk { grid-column: 2; grid-row: 1 / span 30; justify-self: stretch; width: 100%; max-width: none; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; margin-top: 0; }
+}
+@media (min-width: 1100px) { .trk { max-width: none; } .trk:not(.at-top) { max-width: 1240px; margin: 0 auto; padding: 8px 32px 40px 242px; } }
