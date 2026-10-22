@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 define( 'SAWA_LENS_VER', '0.14.8' );
-define( 'SAWA_LENS_DB', 7 );
+define( 'SAWA_LENS_DB', 8 );
 define( 'SAWA_LENS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SAWA_LENS_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -21,6 +21,7 @@ require_once SAWA_LENS_DIR . 'includes/class-store.php';
 require_once SAWA_LENS_DIR . 'includes/class-auth.php';
 require_once SAWA_LENS_DIR . 'includes/class-ai.php';
 require_once SAWA_LENS_DIR . 'includes/class-skills.php';
+require_once SAWA_LENS_DIR . 'includes/class-fsrs.php';
 require_once SAWA_LENS_DIR . 'includes/class-review.php';
 require_once SAWA_LENS_DIR . 'includes/class-activity.php';
 require_once SAWA_LENS_DIR . 'includes/class-lessons.php';

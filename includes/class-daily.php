@@ -22,6 +22,11 @@ final class Sawa_Lens_Daily {
 	}
 
 	/** [day => {read, heard, curious}] for the last 60 days. */
+	/** [day => {read, heard, curious}] (for the progress charts). */
+	public static function series( $uid ) {
+		return self::days( $uid );
+	}
+
 	private static function days( $uid ) {
 		$d = get_user_meta( $uid, 'sawa_lens_days', true );
 		return is_array( $d ) ? $d : array();

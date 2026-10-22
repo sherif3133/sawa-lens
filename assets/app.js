@@ -58,10 +58,10 @@
 		me: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/></svg>'
 	};
 
-	var APP_TABS = [['today', 'Today'], ['learn', 'Learn'], ['chat', 'Chat'], ['community', 'Community'], ['me', 'Me']];
+	var APP_TABS = [['today', 'Home'], ['learn', 'Learn'], ['chat', 'Chat'], ['community', 'Community']];
 	function tabOf(v) {
-		if (['today', 'chat', 'community', 'me'].indexOf(v) >= 0) return v;
-		return ['library', 'progress', 'start'].indexOf(v) >= 0 ? 'me' : 'learn';
+		if (['today', 'chat', 'community'].indexOf(v) >= 0) return v;
+		return ['me', 'library', 'progress', 'start'].indexOf(v) >= 0 ? 'today' : 'learn';
 	}
 	function paintNav() {
 		var nav = document.getElementById('nav'); if (!nav) return;
@@ -81,10 +81,15 @@
 	}
 	function shell(inner) {
 		if (B.appMode) {
+			// Home shows the tracker (your stats, streak, quests) at the top: move it out before redrawing, back in after.
+			var trk = document.getElementById('trk'), nav = document.getElementById('nav');
+			if (trk && $app.contains(trk)) document.body.insertBefore(trk, nav);
 			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><button class="link small" data-nav-start>Guide</button></header><main class="stack">' + inner + '</main>';
 			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
 			paintNav();
 			showTrk(['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
+			if (trk) trk.classList.toggle('at-top', S.view === 'today');
+			if (trk && S.view === 'today') { var mn = $app.querySelector('main'); mn.insertBefore(trk, mn.firstChild); }
 			window.scrollTo(0, 0);
 			return;
 		}
@@ -106,7 +111,7 @@
 		try { if (B.appMode) history.replaceState(null, '', '#' + view + (arg && typeof arg !== 'object' ? '-' + arg : '')); } catch (e) { /* ignore */ }
 		if (view === 'today') return today();
 		if (view === 'learn') return learnHub();
-		if (view === 'me') return meHub();
+		if (view === 'me') { view = 'today'; S.view = 'today'; } // Me is part of Home now
 		if (view === 'scan') return scanView();
 		if (view === 'read') return readView();
 		if (view === 'community' && !unlocked('community')) return shell('<section class="stack"><h1>Community</h1></section><div class="card stack"><p><b>🐫 The Silk Road opens at stage 3</b> — a world you walk through with the other students, where monsters attack with the words you save. Clans, the weekly boss and the caravan board open with it.</p><p class="muted">To get there, finish your stages — or check a few sentences you wrote in Learn → Write. The chat is already open — say hello in English!</p><div class="ra-btns"><button class="btn" data-go="chat">Open the chat</button><button class="btn ghost" data-go="start">See your stages</button></div></div>'), $app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
@@ -620,8 +625,11 @@
 	/** Today: a short plan with the next step highlighted, then today's stats and quest from the tracker. */
 	function today() {
 		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
-		shell('<section class="stack"><h1>Today</h1></section><section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card" id="expo" hidden></section>');
+		shell('<section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card" id="expo" hidden></section><section class="stack" id="prog"></section>' + meTiles());
 		paintExposure();
+		bindMeTiles();
+		paintProgress($app.querySelector('#prog'));
+		api('review/settings', { body: {} }).then(function (x) { S.reviewStats = x; }).catch(function () {});
 		api('today').then(function (p) {
 			if (S.view !== 'today') return;
 			S.due = p.due; paintNav();
@@ -665,6 +673,127 @@
 		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
+	}
+	/* ── Progress charts (home page) ─────────────────────
+	 * Small inline-SVG charts: thin marks, a recessive grid, one hue per job, and a hover/tap tooltip on every mark.
+	 * Colours: blue = the learner's activity (sequential steps for the calendar), orange = the second series.
+	 */
+	var CH = { blue: '#2a78d6', orange: '#eb6834', seq: ['#EEF0F2', '#b7d3f6', '#86b6ef', '#3987e5', '#1c5cab'], grid: '#e1e0d9', axis: '#898781' };
+	function fmtDay(d, long) {
+		var x = new Date(d + 'T12:00:00');
+		return x.toLocaleDateString('en-GB', long ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short' });
+	}
+	function nf(n) { return (+n || 0).toLocaleString('en-US'); }
+	/** One tooltip for every chart: marks carry data-tip; hover or tap shows it. */
+	function bindTips(root) {
+		var tip = document.getElementById('ch-tip');
+		if (!tip) { tip = document.createElement('div'); tip.id = 'ch-tip'; tip.className = 'ch-tip'; tip.hidden = true; document.body.appendChild(tip); }
+		var show = function (e) {
+			var m = e.target.closest('[data-tip]'); if (!m || !root.contains(m)) { tip.hidden = true; return; }
+			tip.innerHTML = m.getAttribute('data-tip'); tip.hidden = false;
+			var r = m.getBoundingClientRect(), w = tip.offsetWidth;
+			tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+			tip.style.top = Math.max(8, r.top - tip.offsetHeight - 8) + 'px';
+			root.querySelectorAll('.hot').forEach(function (x) { x.classList.remove('hot'); }); m.classList.add('hot');
+		};
+		var hide = function () { tip.hidden = true; root.querySelectorAll('.hot').forEach(function (x) { x.classList.remove('hot'); }); };
+		root.addEventListener('mouseover', show); root.addEventListener('click', show); root.addEventListener('mouseleave', hide);
+		window.addEventListener('scroll', hide, { passive: true });
+	}
+	/** Bars over time. rows: [[label, value, tip]]; opts: { color, ref (a reference line value), refLabel, max, stack: [[label, v1, v2, tip]] } */
+	function barChart(rows, o) {
+		o = o || {};
+		var W = CH.w || 600, H = 150, pl = 30, pb = 20, pt = 8, n = rows.length, bw = (W - pl) / n, gap = Math.min(6, bw * 0.25);
+		var max = o.max || Math.max(1, Math.max.apply(null, rows.map(function (r) { return o.stack ? r[1] + r[2] : r[1]; })));
+		var nice = max <= 5 ? 5 : max <= 10 ? 10 : Math.ceil(max / 4 / Math.pow(10, Math.floor(Math.log10(max / 4)))) * Math.pow(10, Math.floor(Math.log10(max / 4))) * 4;
+		if (o.max) nice = o.max;
+		var y = function (v) { return pt + (H - pt - pb) * (1 - v / nice); };
+		var g = '';
+		[0, 0.5, 1].forEach(function (f) { var v = Math.round(nice * f), yy = y(v); g += '<line x1="' + pl + '" x2="' + W + '" y1="' + yy + '" y2="' + yy + '" stroke="' + CH.grid + '" stroke-width="1"/><text x="' + (pl - 6) + '" y="' + (yy + 4) + '" text-anchor="end" class="ch-ax">' + nf(v) + (o.unit || '') + '</text>'; });
+		var bars = rows.map(function (r, i) {
+			var x = pl + i * bw + gap / 2, w = Math.max(2, bw - gap), out = '';
+			if (o.stack) {
+				var y1 = y(r[1]), y2 = y(r[1] + r[2]);
+				if (r[1]) out += '<rect x="' + x + '" y="' + y1 + '" width="' + w + '" height="' + (y(0) - y1) + '" rx="2" fill="' + CH.blue + '"/>';
+				if (r[2]) out += '<rect x="' + x + '" y="' + y2 + '" width="' + w + '" height="' + Math.max(0, y1 - y2 - (r[1] ? 2 : 0)) + '" rx="2" fill="' + CH.orange + '"/>';
+			} else if (r[1] != null) {
+				var yy = y(r[1]);
+				out += '<rect x="' + x + '" y="' + yy + '" width="' + w + '" height="' + Math.max(r[1] ? 2 : 0, y(0) - yy) + '" rx="3" fill="' + (o.color || CH.blue) + '"/>';
+			}
+			// a hit area taller than the bar, so small bars are easy to hover or tap
+			out += '<rect class="ch-hit" x="' + (pl + i * bw) + '" y="' + pt + '" width="' + bw + '" height="' + (H - pt - pb) + '" fill="transparent" data-tip="' + esc(r[r.length - 1]) + '"/>';
+			if (o.every && (n - 1 - i) % o.every === 0) out += '<text x="' + (pl + i * bw + bw / 2) + '" y="' + (H - 4) + '" text-anchor="middle" class="ch-ax">' + esc(r[0]) + '</text>';
+			return out;
+		}).join('');
+		var ref = o.ref != null ? '<line x1="' + pl + '" x2="' + W + '" y1="' + y(o.ref) + '" y2="' + y(o.ref) + '" stroke="' + CH.axis + '" stroke-dasharray="4 4" stroke-width="1"/><text x="' + W + '" y="' + (y(o.ref) - 4) + '" text-anchor="end" class="ch-ax">' + esc(o.refLabel || '') + '</text>' : '';
+		return '<svg class="ch" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label || '') + '">' + g + bars + ref + '</svg>';
+	}
+	/** A line over time with a dot per day on hover. rows: [[date, value]] */
+	function lineChart(rows, o) {
+		o = o || {};
+		var W = CH.w || 600, H = 150, pl = 40, pb = 20, pt = 10, n = rows.length;
+		var vals = rows.map(function (r) { return r[1]; }), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+		if (hi === lo) { hi = lo + 10; }
+		var pad = (hi - lo) * 0.15; lo = Math.max(0, Math.floor(lo - pad)); hi = Math.ceil(hi + pad);
+		var x = function (i) { return pl + (W - pl - 8) * i / Math.max(1, n - 1); }, y = function (v) { return pt + (H - pt - pb) * (1 - (v - lo) / (hi - lo)); };
+		var g = '';
+		[lo, Math.round((lo + hi) / 2), hi].forEach(function (v) { g += '<line x1="' + pl + '" x2="' + W + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' + CH.grid + '"/><text x="' + (pl - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" class="ch-ax">' + nf(v) + '</text>'; });
+		var d = rows.map(function (r, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(r[1]).toFixed(1); }).join(' ');
+		var area = d + ' L' + x(n - 1) + ' ' + y(lo) + ' L' + x(0) + ' ' + y(lo) + ' Z';
+		var hits = rows.map(function (r, i) {
+			return '<g class="ch-pt" data-tip="' + esc('<b>' + nf(r[1]) + '</b> ' + (o.what || '') + '<br>' + fmtDay(r[0], true)) + '"><rect x="' + (x(i) - (W - pl) / n / 2) + '" y="' + pt + '" width="' + ((W - pl) / n) + '" height="' + (H - pt - pb) + '" fill="transparent"/><line class="ch-x" x1="' + x(i) + '" x2="' + x(i) + '" y1="' + pt + '" y2="' + (H - pb) + '" stroke="' + CH.axis + '" stroke-width="1"/><circle class="ch-dot" cx="' + x(i) + '" cy="' + y(r[1]) + '" r="4.5" fill="' + CH.blue + '" stroke="#fff" stroke-width="2"/></g>';
+		}).join('');
+		var lab = [0, Math.floor((n - 1) / 2), n - 1].map(function (i) { return '<text x="' + x(i) + '" y="' + (H - 4) + '" text-anchor="' + (i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle') + '" class="ch-ax">' + fmtDay(rows[i][0]) + '</text>'; }).join('');
+		return '<svg class="ch" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label || '') + '">' + g + '<path d="' + area + '" fill="' + CH.blue + '" opacity=".08"/><path d="' + d + '" fill="none" stroke="' + CH.blue + '" stroke-width="2" stroke-linejoin="round"/>' + hits + lab + '</svg>';
+	}
+	/** 12-week study calendar: one square per day, darker = more reviews. */
+	function heatmap(rows) {
+		var first = new Date(rows[0][0] + 'T12:00:00').getDay(), cells = '', s = 13, gp = 3;
+		var max = Math.max(1, Math.max.apply(null, rows.map(function (r) { return r[1]; })));
+		var step = function (v) { return !v ? 0 : v < max * 0.25 ? 1 : v < max * 0.5 ? 2 : v < max * 0.75 ? 3 : 4; };
+		var off = (first + 6) % 7; // weeks start on Monday
+		rows.forEach(function (r, i) {
+			var k = i + off, col = Math.floor(k / 7), row = k % 7;
+			cells += '<rect x="' + (col * (s + gp)) + '" y="' + (row * (s + gp)) + '" width="' + s + '" height="' + s + '" rx="3" fill="' + CH.seq[step(r[1])] + '" data-tip="' + esc((r[1] ? '<b>' + r[1] + '</b> cards reviewed' : 'No reviews') + '<br>' + fmtDay(r[0], true)) + '"/>';
+		});
+		var cols = Math.ceil((rows.length + off) / 7), W = cols * (s + gp), H = 7 * (s + gp);
+		return '<svg class="ch heat" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Days you reviewed cards in the last 12 weeks">' + cells + '</svg>'
+			+ '<div class="ch-key small muted">Less ' + CH.seq.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + ' More</div>';
+	}
+	/** Home: your progress in pictures. */
+	function paintProgress(box) {
+		api('review/history').then(function (h) {
+			if (!box.isConnected) return;
+			CH.w = Math.max(280, Math.min(640, box.clientWidth - 34)); // chart width in px = viewBox width, so text isn't shrunk
+			var R = R0(), wk = h.weeks.filter(function (w) { return w[1] != null; });
+			var st = h.stages, totalCards = st.fresh + st.learning + st.young + st.mature;
+			var known = h.known, gained = known[known.length - 1][1] - known[0][1];
+			var activeDays = h.reviews.slice(-28).filter(function (r) { return r[1]; }).length;
+			var met = h.met, metTot = met.reduce(function (a, r) { return a + r[1] + r[2]; }, 0);
+			var stageBar = totalCards ? [['New', st.fresh, CH.seq[1]], ['Learning', st.learning, CH.seq[2]], ['Getting there', st.young, CH.seq[3]], ['Long-term', st.mature, CH.seq[4]]].map(function (x) { return x[1] ? '<i style="flex:' + x[1] + ';background:' + x[2] + '" data-tip="' + esc('<b>' + x[1] + '</b> ' + x[0].toLowerCase() + ' cards') + '"></i>' : ''; }).join('') : '';
+			box.innerHTML = '<h2>Your progress</h2>'
+				+ '<div class="ch-tiles"><div><b>' + nf(known[known.length - 1][1]) + '</b><span>words known' + (gained ? ' · <em>+' + nf(gained) + '</em> in 60 days' : '') + '</span></div><div><b>' + activeDays + '<small>/28</small></b><span>study days this month</span></div><div><b>' + (R.ret != null ? R.ret + '%' : '–') + '</b><span>cards remembered this week</span></div><div><b>' + nf(st.mature) + '</b><span>cards in long-term memory</span></div></div>'
+				+ '<section class="card"><h3>Study calendar</h3><p class="small muted">Every square is a day. Keep the chain going — even 5 cards count.</p>' + heatmap(h.reviews) + '</section>'
+				+ '<section class="card"><h3>Words you know</h3>' + lineChart(known, { what: 'words known', label: 'Words known over the last 60 days' }) + '</section>'
+				+ (wk.length ? '<section class="card"><h3>How much you remember</h3><p class="small muted">Review cards you got right each week. Around 90% is the sweet spot; the dashed line (80%) unlocks the next card level.</p>' + barChart(h.weeks.map(function (w) { return [fmtDay(w[0]), w[1], w[1] == null ? 'No reviews this week' : '<b>' + w[1] + '%</b> remembered (' + w[2] + ' reviews)<br>week of ' + fmtDay(w[0])]; }), { max: 100, unit: '%', ref: 80, every: 2, label: 'Percent of review cards remembered each week' }) + '</section>' : '')
+				+ (totalCards ? '<section class="card"><h3>Your cards</h3><div class="ch-stack">' + stageBar + '</div><div class="ch-legend small">' + [['New', st.fresh, 1], ['Learning', st.learning, 2], ['Getting there', st.young, 3], ['Long-term', st.mature, 4]].map(function (x) { return '<span><i style="background:' + CH.seq[x[2]] + '"></i>' + x[0] + ' <b>' + nf(x[1]) + '</b></span>'; }).join('') + '</div>'
+					+ '<h3 style="margin-top:16px">Coming up</h3><p class="small muted">Reviews waiting for you in the next 14 days.</p>' + barChart(h.forecast.map(function (f, i) { return [i ? fmtDay(f[0]).split(' ')[0] : 'Today', f[1], '<b>' + f[1] + '</b> reviews<br>' + (i ? fmtDay(f[0], true) : 'today')]; }), { every: 2, label: 'Reviews due in the next 14 days' }) + '</section>' : '')
+				+ (metTot ? '<section class="card"><h3>English you met</h3><div class="ch-legend small"><span><i style="background:' + CH.blue + '"></i>📖 read</span><span><i style="background:' + CH.orange + '"></i>🎧 heard in videos</span></div>' + barChart(met.map(function (r) { return [fmtDay(r[0]).split(' ')[0], r[1], r[2], '<b>' + nf(r[1] + r[2]) + '</b> words<br>📖 ' + nf(r[1]) + ' read · 🎧 ' + nf(r[2]) + ' heard' + (r[3] ? '<br>💡 curious about ' + r[3] : '') + '<br>' + fmtDay(r[0], true)]; }), { stack: true, every: 2, label: 'Words read and heard each day, last 14 days' }) + '</section>' : '');
+			bindTips(box);
+		}, function () { box.innerHTML = ''; });
+	}
+	function R0() { return { ret: S.reviewStats ? S.reviewStats.retention : null }; }
+	/** Your things (library, mistakes, stages, level test, the extension), at the bottom of Home. */
+	function meTiles() {
+		var j = S.J || {};
+		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'My mistakes', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
+		return '<h2>Your things</h2><div class="hub">' + tiles.map(function (x) {
+			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
+		}).join('') + '</div>'
+			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>';
+	}
+	function bindMeTiles() {
+		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { if (b.dataset.t === 'placement') location.href = '/placement/'; else go(b.dataset.t); }; });
 	}
 	/** Me: your stuff — library, progress, the guide, the extension — then your tracker stats. */
 	function meHub() {
@@ -1127,7 +1256,25 @@
 	}
 	function reviewHead() {
 		var st = R.stats;
-		return '<section class="rv-top"><div><b>' + R.queue.length + '</b><span>left</span></div><div><b>' + st.today + '</b><span>reviewed today</span></div><div><b>' + st.streak + '🔥</b><span>day streak</span></div><div><b>' + st.mature + '</b><span>long-term</span></div></section>';
+		return '<section class="rv-top"><div><b>' + R.queue.length + '</b><span>left</span></div><div><b>' + st.today + '</b><span>reviewed today</span></div><div><b>' + st.streak + '🔥</b><span>day streak</span></div><div><b>' + (st.retention != null ? st.retention + '%' : st.mature) + '</b><span>' + (st.retention != null ? 'remembered this week' : 'long-term') + '</span></div></section>' + levelBox(st);
+	}
+	/**
+	 * Card level (progressive overload): new cards a day grow with consistency. Shows the level, what the next one
+	 * needs, and catch-up mode when reviews pile up.
+	 */
+	function levelBox(st) {
+		var lv = st.level;
+		if (!lv || !lv.level) return '';
+		if (lv.change && !R.levelSeen) {
+			R.levelSeen = true;
+			toast(lv.change === 'up' ? '⬆️ Card level ' + lv.level + '! Now ' + lv.levelMax + ' new cards a day.' : 'Card level ' + lv.level + ': fewer new cards for a while, so reviews stay easy.');
+		}
+		var dots = '';
+		for (var i = 1; i <= lv.levels; i++) dots += '<i class="' + (i <= lv.level ? 'on' : '') + '"></i>';
+		var tip = lv.catchup ? '<b>Catch-up time:</b> ' + lv.dueReviews + ' reviews are waiting. Finish them and new cards come back — no new cards until then, so it never gets too much.'
+			: lv.level >= lv.levels ? 'Top level: ' + lv.levelMax + ' new cards a day. Keep it up!'
+			: 'Review on <b>5 of 7 days</b> this week (' + lv.weekDays + ' so far) and remember 80% to reach level ' + (lv.level + 1) + ' (' + lv.nextPerDay + ' new cards a day). Check-in in ' + lv.checkIn + ' day' + (lv.checkIn === 1 ? '' : 's') + '.';
+		return '<section class="card lvbox' + (lv.catchup ? ' catchup' : '') + '"><div class="row-between"><b>Card level ' + lv.level + ' <span class="lvdots">' + dots + '</span></b><span class="pill">' + lv.newPerDay + ' new a day</span></div><p class="small muted">' + tip + (lv.waiting ? ' ' + lv.waiting + ' saved items are waiting to become cards.' : '') + '</p></section>';
 	}
 	function cardFront(c) {
 		if (c.type === 'word') return '<p class="rv-kind">Word · what does it mean?</p><p class="rv-word" dir="ltr">' + esc(c.lemma) + '</p>'
@@ -1251,10 +1398,10 @@
 			var more = Math.max(0, (st.due || 0) - 0);
 			shell(reviewHead() + '<section class="card stack center-text"><h2>All done for today 🎉</h2><p class="muted">' + (R.done ? 'You reviewed ' + R.done + ' cards.' : 'No cards are due.') + (more ? ' ' + more + ' more can wait for tomorrow — no pressure.' : '') + (R.waiting ? ' ' + R.waiting + ' new cards are waiting for the next days.' : '') + '</p>'
 				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learning</b>, phrases and sentences you save in Language Lens, and your own mistakes in Write.</p>')
-				+ '<label class="small">New cards per day <select id="npd">' + [5, 10, 15, 20, 30, 50].map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>'
+				+ (st.level && st.level.levelMax > 5 ? '<label class="small">Fewer new cards? <select id="npd">' + [5, 7, 10, 13, 16, 20, 25].filter(function (n) { return n <= st.level.levelMax; }).map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select> a day (your level allows ' + st.level.levelMax + ')</label>' : '')
 				+ '<button class="btn ghost" id="lib">Open my library</button></section>');
 			$app.querySelector('#lib').onclick = function () { go('library'); };
-			$app.querySelector('#npd').onchange = function () { api('review/settings', { body: { newPerDay: +this.value } }).then(function (x) { R.stats = x; toast('Saved'); review(); }); };
+			if ($app.querySelector('#npd')) $app.querySelector('#npd').onchange = function () { api('review/settings', { body: { newPerDay: +this.value } }).then(function (x) { R.stats = x; toast('Saved'); review(); }); };
 			return;
 		}
 		stopClip();

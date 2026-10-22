@@ -300,3 +300,24 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
 #expo h3{margin:0 0 10px}
 .me-sum.expo{box-shadow:none;border:0;padding:0;margin-bottom:8px}
 .me-sum.expo{grid-template-columns:repeat(3,1fr)}
+
+/* Card level (progressive overload) */
+.lvbox{margin:10px 0}.lvbox.catchup{border-color:#F59E0B;background:#FFFBEB}.lvdots{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}.lvdots i{width:10px;height:10px;border-radius:3px;background:var(--line,#E6E3DF)}.lvdots i.on{background:#F59E0B}
+
+/* Progress charts (home) */
+#prog h2{margin-top:8px}
+.ch{width:100%;height:auto;display:block;overflow:visible;margin-top:6px}
+.ch-ax{font:11px/1 var(--body);fill:#898781}
+.ch .ch-hit:hover,.ch .hot.ch-hit{fill:rgba(15,15,16,.05)}
+.ch .ch-x,.ch .ch-dot{opacity:0}.ch .ch-pt:hover .ch-x,.ch .ch-pt.hot .ch-x,.ch .ch-pt:hover .ch-dot,.ch .ch-pt.hot .ch-dot{opacity:1}
+.ch.heat{max-width:560px}.ch.heat rect{stroke:#fff;stroke-width:0}.ch.heat rect.hot,.ch.heat rect:hover{stroke:#0F0F10;stroke-width:1.5}
+.ch-key{display:flex;align-items:center;gap:3px;margin-top:6px}.ch-key i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.ch-tip{position:fixed;z-index:9999;background:#0F0F10;color:#fff;font:13px/1.4 var(--body);padding:6px 10px;border-radius:8px;pointer-events:none;max-width:240px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.ch-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ch-tiles>div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;display:grid}
+.ch-tiles b{font:800 26px/1.1 var(--display);color:var(--fg)}.ch-tiles b small{font-size:14px;color:var(--muted)}
+.ch-tiles span{font-size:12.5px;color:var(--muted)}.ch-tiles em{font-style:normal;color:#0ca30c;font-weight:700}
+.ch-stack{display:flex;gap:2px;height:16px;border-radius:6px;overflow:hidden;margin:8px 0}.ch-stack i{display:block;height:100%;cursor:default}
+.ch-legend{display:flex;flex-wrap:wrap;gap:12px;margin:6px 0}.ch-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+@media (max-width:560px){.ch-tiles{grid-template-columns:repeat(2,1fr)}}
+.trk.at-top{padding:0 0 4px}

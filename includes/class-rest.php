@@ -219,6 +219,7 @@ final class Sawa_Lens_Rest {
 				'cursor'    => $cursor,
 				'more'      => count( $words ) >= 5000 || count( $sentences ) >= 2000,
 				'level'     => Sawa_Lens_Store::level( $uid ),
+				'cards'     => Sawa_Lens_Review::capacity( $uid ), // card level: how many new Learning words today
 				'words'     => array_map(
 					function ( $w ) {
 						return array(

@@ -224,6 +224,7 @@ self.addEventListener('fetch', function () {});
 		$r( 'review', 'GET', array( __CLASS__, 'review' ) );
 		$r( 'review', 'POST', array( __CLASS__, 'review_grade' ) );
 		$r( 'review/settings', 'POST', array( __CLASS__, 'review_settings' ) );
+		$r( 'review/history', 'GET', array( __CLASS__, 'review_history' ) );
 		$r( 'library', 'GET', array( __CLASS__, 'library' ) );
 		$r( 'library/word', 'POST', array( __CLASS__, 'library_word' ) );
 		$r( 'library/sentence', 'POST', array( __CLASS__, 'library_sentence' ) );
@@ -414,6 +415,11 @@ self.addEventListener('fetch', function () {});
 			update_user_meta( get_current_user_id(), 'sawa_lens_new_per_day', $n );
 		}
 		return self::out( Sawa_Lens_Review::stats( get_current_user_id() ) );
+	}
+
+	/** Progress over time, for the charts on the home page. */
+	public static function review_history() {
+		return self::out( Sawa_Lens_Review::history( get_current_user_id() ) );
 	}
 
 	public static function library() {
