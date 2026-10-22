@@ -807,7 +807,8 @@ self.addEventListener('fetch', function () {});
 		$word = mb_substr( trim( sanitize_text_field( (string) $r->get_param( 'word' ) ) ), 0, 60 );
 		$given = trim( (string) $r->get_param( 'sentence' ) );
 		$sent = '' !== $given ? mb_substr( $given, 0, 600 ) : (string) $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . Sawa_Lens_Store::t( 'sentences' ) . ' WHERE user_id = %d AND deleted = 0 AND body LIKE %s ORDER BY id DESC LIMIT 1', $uid, '%' . $wpdb->esc_like( $word ) . '%' ) ); // phpcs:ignore
-		$res  = Sawa_Lens_AI::explain( $uid, $word, '' !== $sent ? $sent : $word, 'ar', Sawa_Lens_AI::explain_lang( $uid ) );
+		$lang = Sawa_Lens_AI::explain_lang( $uid ); // English by default, Arabic when the student chose it
+		$res  = Sawa_Lens_AI::explain( $uid, $word, '' !== $sent ? $sent : $word, $lang, $lang );
 		return is_wp_error( $res ) ? $res : self::out( $res + array( 'example' => $sent ) );
 	}
 

@@ -178,6 +178,25 @@
 			'<p class="ar"' + (S.ar ? '' : ' hidden') + ' data-ar>' + esc(l.rule_ar) + '</p>' +
 			'<button class="link small" data-toggle-ar>' + (S.ar ? 'Hide Arabic' : 'عربي – show in Arabic') + '</button>';
 	}
+	/** A word's meaning: English definition by default, the Arabic meaning when the student chose العربية. */
+	function meaningHtml(m, short) {
+		var en = m.en ? '<p' + (short ? '' : ' class="small"') + ' dir="ltr">' + esc(m.en) + '</p>' : '';
+		var ar = m.ar ? '<p class="ar">' + esc(m.ar) + '</p>' : '';
+		if (!S.ar) return en || ar;
+		return short ? (ar || en) : ar + en;
+	}
+	/** "English / العربية" switch (one setting for the app and Language Lens). */
+	function langSwitch() {
+		return '<div class="seg" style="flex:none" role="group" aria-label="Language"><button data-xl="en" aria-pressed="' + !S.ar + '">English</button><button data-xl="ar" lang="ar" aria-pressed="' + S.ar + '">العربية</button></div>';
+	}
+	$app.addEventListener('click', function (e) {
+		var b = e.target.closest('[data-xl]');
+		if (!b || (b.dataset.xl === 'ar') === S.ar) return;
+		S.ar = b.dataset.xl === 'ar';
+		setPref('lensAr', S.ar ? '1' : '0');
+		api('prefs', { body: { explainLang: S.ar ? 'ar' : 'en' } }).catch(function () {});
+		go(S.view);
+	});
 	function bindAr(root) {
 		root.querySelectorAll('[data-toggle-ar]').forEach(function (b) {
 			b.onclick = function () {
@@ -603,14 +622,14 @@
 		var cur = S.stage;
 		var card = function (st) {
 			var state = st.n < cur ? 'done' : st.n === cur ? 'now' : 'locked';
-			var head = '<div class="g-head"><span class="g-n">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : st.n) + '</span><div><b>' + esc(st.title) + '</b><span class="ar small">' + esc(st.ar) + '</span></div></div>';
+			var head = '<div class="g-head"><span class="g-n">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : st.n) + '</span><div><b>' + esc(st.title) + '</b>' + (S.ar ? '<span class="ar small">' + esc(st.ar) + '</span>' : '') + '</div></div>';
 			if (state === 'locked') return '<li class="g-stage locked">' + head + '<p class="small muted">Opens after stage ' + (st.n - 1) + '.</p></li>';
 			if (state === 'done') return '<li class="g-stage done">' + head + '</li>';
 			return '<li class="g-stage now">' + head + '<p>' + esc(st.intro) + '</p>'
 				+ (st.steps.length ? '<ul class="g-steps">' + st.steps.map(function (x) {
 					var ok = x.done(j), lk = x.link ? x.link(j) : null;
 					return '<li class="' + (ok ? 'ok' : '') + '"><span class="g-check">' + (ok ? '✓' : '') + '</span><div><b>' + esc(x.t) + '</b>' + (x.optional ? ' <span class="pill">optional</span>' : '') + (x.count && !ok ? ' <span class="pill">' + x.count(j) + '</span>' : '')
-						+ '<p class="ar small muted">' + esc(x.ar) + '</p>' + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">Open ' + x.go.charAt(0).toUpperCase() + x.go.slice(1) + '</button>' : '') + (lk ? '<a class="btn ghost sm" href="' + esc(lk[1]) + '" target="_blank" rel="noopener">' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
+						+ (S.ar ? '<p class="ar small muted">' + esc(x.ar) + '</p>' : '') + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">Open ' + x.go.charAt(0).toUpperCase() + x.go.slice(1) + '</button>' : '') + (lk ? '<a class="btn ghost sm" href="' + esc(lk[1]) + '" target="_blank" rel="noopener">' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
 				}).join('') + '</ul>' : '')
 				+ (st.tips ? '<ul class="g-tips">' + st.tips.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '')
 				+ '</li>';
@@ -674,7 +693,7 @@
 			['write', 'Write & speak', 'Write or talk; get every correction', 3],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
 		].concat(B.songs ? [['songs', '🎵 My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1]] : []);
-		shell('<section class="stack"><h1>Learn</h1></section><div class="hub">' + tools.map(function (x) {
+		shell('<section class="stack"><div class="row-between"><h1>Learn</h1>' + langSwitch() + '</div></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
 			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
 		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
@@ -1318,7 +1337,7 @@
 	function wordCard(word, sentence) {
 		var lemma = lemmaOf(word), ms = meanings(lemma), el = $app.querySelector('#wcard');
 		el.innerHTML = '<section class="card stack wcard"><div class="row-between"><b class="rv-word" dir="ltr" style="font-size:26px">' + esc(lemma) + '</b><button class="say sm" data-say="' + esc(lemma) + '">🔊</button></div>'
-			+ (ms.length ? ms.slice(0, 2).map(function (m) { return '<div><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span><p class="ar">' + esc(m.ar) + '</p>' + (m.en ? '<p class="small">' + esc(m.en) + '</p>' : '') + '</div>'; }).join('') : '')
+			+ (ms.length ? ms.slice(0, 2).map(function (m) { return '<div><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span>' + meaningHtml(m) + '</div>'; }).join('') : '')
 			+ '<div data-ai-word="' + esc(word) + '" data-ai-sent="' + esc(sentence) + '"><button class="link small">' + (ms.length ? 'Meaning in this sentence (AI)' : 'Explain with AI') + '</button></div>'
 			+ '<p class="small muted" dir="ltr">“' + esc(sentence) + '”</p><div class="pics" data-pics="' + esc(lemma) + '" data-sent="' + esc(sentence) + '"></div>'
 			+ '<div class="ra-btns"><button class="btn sm" id="learn">+ Learning</button><button class="btn ghost sm" id="savesent">Save sentence</button><button class="btn ghost sm" data-say="' + esc(sentence) + '">🔊 Sentence</button></div></section>';
@@ -1327,7 +1346,7 @@
 		var aw = el.querySelector('[data-ai-word]');
 		aw.querySelector('button').onclick = function () {
 			this.textContent = 'Explaining…';
-			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
+			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="rv-ar' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
 		};
 		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learning'; b.disabled = true; toast('Added to your review cards'); }, function (e) { toast(e.message); }); };
 		el.querySelector('#savesent').onclick = function () { saveEditor(sentence, sentence); };
@@ -1508,7 +1527,7 @@
 		if (c.type === 'word') {
 			var ms = meanings(c.lemma);
 			return (ms.length ? '<ul class="rv-m">' + ms.slice(0, 4).map(function (m) {
-				return '<li><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span><p class="ar">' + esc(m.ar) + '</p>' + (m.en ? '<p class="small">' + esc(m.en) + '</p>' : '') + (m.ex ? '<p class="small muted" dir="ltr">“' + esc(m.ex) + '”</p>' : '') + '</li>';
+				return '<li><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span>' + meaningHtml(m) + (m.ex ? '<p class="small muted" dir="ltr">“' + esc(m.ex) + '”</p>' : '') + '</li>';
 			}).join('') + '</ul>' : '<div data-ai-word="' + esc(c.lemma) + '"><button class="link">Explain with AI</button></div>')
 				+ '<div class="pics" data-pics="' + esc(c.lemma) + '" data-sent="' + esc(c.text || '') + '"></div>' + (c._clip ? '' : momentHtml(c))
 				+ '<p class="small"><a href="https://youglish.com/pronounce/' + encodeURIComponent(c.lemma) + '/english" target="_blank" rel="noopener">Hear “' + esc(c.lemma) + '” in other videos ↗</a></p>';
@@ -1674,7 +1693,7 @@
 			b.onclick = function () {
 				b.textContent = 'Explaining…';
 				api('library/explain', { body: { word: box.dataset.aiWord } }).then(function (x) {
-					box.innerHTML = '<p class="ar rv-ar">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.example ? '<p class="small muted" dir="ltr">“' + esc(x.example) + '”</p>' : '');
+					box.innerHTML = '<p class="rv-ar' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.example ? '<p class="small muted" dir="ltr">“' + esc(x.example) + '”</p>' : '');
 				}, function (e) { b.textContent = e.message; });
 			};
 		});
@@ -1704,7 +1723,7 @@
 		if (L.tab === 'words') {
 			rows = d.learning.filter(function (w) { return match(w.lemma) || match(firstAr(w.lemma)); }).map(function (w) {
 				var m = meanings(w.lemma)[0];
-				return '<li class="lib-row"><div class="lib-main"><b dir="ltr">' + esc(w.lemma) + '</b>' + (m && m.level ? ' <span class="pill">' + m.level + '</span>' : '') + (m ? '<p class="ar">' + esc(m.ar) + '</p>' : '<div data-ai-word="' + esc(w.lemma) + '"><button class="link small">Explain with AI</button></div>')
+				return '<li class="lib-row"><div class="lib-main"><b dir="ltr">' + esc(w.lemma) + '</b>' + (m && m.level ? ' <span class="pill">' + m.level + '</span>' : '') + (m ? meaningHtml(m, true) : '<div data-ai-word="' + esc(w.lemma) + '"><button class="link small">Explain with AI</button></div>')
 					+ (w.text ? '<p class="small" dir="ltr">“' + highlight(w.text, wordIn(w.text, w.lemma)) + '”</p>' : '') + '<div class="pics" data-pics="' + esc(w.lemma) + '" data-sent="' + esc(w.text || '') + '"></div>'
 					+ '<p class="small muted">' + (w.due ? 'Next review: ' + whenDue(w.due) : 'Card starts soon') + '</p></div>'
 					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(w.lemma) + '" title="Listen">🔊</button><button class="btn ghost sm" data-known="' + esc(w.lemma) + '">✓ Known</button><button class="icon" data-rmw="' + esc(w.lemma) + '" title="Remove">✕</button></div></li>';

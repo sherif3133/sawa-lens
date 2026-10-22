@@ -56,7 +56,7 @@ final class Sawa_Lens_AI {
 		$key = hash( 'sha256', 'explain|v1|' . ( 'en' === $lang ? 'en|' : '' ) . ( $expl !== $lang ? 'x' . $expl . '|' : '' ) . strtolower( $word ) . '|' . $sentence );
 		$hit = self::cached( $key );
 		if ( $hit ) {
-			return $hit;
+			return $hit + array( 'noteLang' => $expl ); // older cached answers don't say their language
 		}
 		$limit = self::limit( $uid );
 		if ( is_wp_error( $limit ) ) {
