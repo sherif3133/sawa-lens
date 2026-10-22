@@ -812,6 +812,50 @@ final class Sawa_Lens_AI {
 		return is_wp_error( $out ) ? $out : array( 'summary' => (string) ( $out['summary'] ?? '' ), 'themes' => array_slice( (array) ( $out['themes'] ?? array() ), 0, 8 ), 'first' => (string) ( $out['first'] ?? '' ) );
 	}
 
+	/**
+	 * Feedback & Dev (Sawa Tracker): can a beta note be acted on, or should we ask the student for more first?
+	 * Cheap model, cached per note. Returns array( 'clear' => bool, 'missing' => [where|did|happened|expected|what|why] ), or null.
+	 */
+	public static function feedback_clarity( $kind, $text, $has_where ) {
+		$key = hash( 'sha256', 'fbclear|v1|' . $kind . '|' . ( $has_where ? 1 : 0 ) . '|' . $text );
+		$hit = self::cached( $key );
+		if ( $hit ) {
+			return $hit;
+		}
+		if ( ! self::uid_limit_ok() ) {
+			return null; // the simple check takes over
+		}
+		$idea = in_array( $kind, array( 'idea', 'request' ), true );
+		$out  = self::call(
+			'You check beta feedback from Arabic-speaking A2–B1 learners about an English-learning app (Arabic, Egyptian, English or Franco-Arabic). Decide if the team can act on the note as written. '
+			. ( $idea
+				? 'It is an idea or request. It is clear when it says what the student wants (a concrete feature, change or content), even briefly. Missing: "what" (what exactly they want), "why" (when they would use it).'
+				: 'It is a bug report. It is clear when a developer could find the problem: what the student did and what went wrong (or what they expected instead). ' . ( $has_where ? 'The screen is already known, so never ask where. ' : 'Missing "where" if the screen or feature is not named. ' ) . 'Missing: "where", "did" (what they did), "happened", "expected". Vague notes like "it doesn\'t work", "bad", "fix the game" are not clear.' )
+			. ' Be generous: if a short note is specific, it is clear. Return ONLY JSON: {"clear":true|false,"missing":["..."]}.',
+			mb_substr( (string) $text, 0, 1200 ),
+			120,
+			15,
+			'claude-haiku-5-5'
+		);
+		if ( is_wp_error( $out ) || ! isset( $out['clear'] ) ) {
+			return null;
+		}
+		$res = array( 'clear' => (bool) $out['clear'], 'missing' => array_values( array_map( 'strval', (array) ( $out['missing'] ?? array() ) ) ) );
+		self::store( $key, $res );
+		return $res;
+	}
+
+	/** A site-wide daily cap for small background checks (feedback clarity). */
+	private static function uid_limit_ok() {
+		$k = 'sawa_lens_fbclear_' . wp_date( 'Ymd' );
+		$n = (int) get_transient( $k );
+		if ( $n >= 300 ) {
+			return false;
+		}
+		set_transient( $k, $n + 1, DAY_IN_SECONDS );
+		return true;
+	}
+
 	public static function grade_writing( $uid, $text, $prompt ) {
 		$limit = self::limit( $uid );
 		if ( is_wp_error( $limit ) ) {

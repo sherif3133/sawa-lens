@@ -55,13 +55,14 @@
 		learn: '<svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10v5c3 2.5 9 2.5 12 0v-5"/></svg>',
 		chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
 		community: '<svg viewBox="0 0 24 24"><path d="M7 8h10a4 4 0 0 1 4 4v3a3 3 0 0 1-5.4 1.8L14.5 15h-5l-1.1 1.8A3 3 0 0 1 3 15v-3a4 4 0 0 1 4-4z"/><path d="M8 11v3M6.5 12.5h3"/><circle cx="15.5" cy="11.5" r=".6"/><circle cx="17.5" cy="13.5" r=".6"/></svg>', // Play: a game controller
-		me: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/></svg>'
+		me: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.5 3.5-7 8-7s8 2.5 8 7"/></svg>',
+		dev: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10.5l2 2 4-4"/></svg>' // Feedback & Dev: a speech bubble with a tick
 	};
 
 	var APP_TABS = [['today', 'Home'], ['learn', 'Learn'], ['chat', 'Chat'], ['community', 'Play']]; // Play: the Silk Road game and your clan
 	function tabOf(v) {
 		if (['today', 'chat', 'community'].indexOf(v) >= 0) return v;
-		return ['me', 'library', 'progress', 'start'].indexOf(v) >= 0 ? 'today' : 'learn';
+		return ['me', 'library', 'progress', 'start', 'dev'].indexOf(v) >= 0 ? 'today' : 'learn';
 	}
 	function paintNav() {
 		var nav = document.getElementById('nav'); if (!nav) return;
@@ -106,7 +107,7 @@
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
 		stopClip(); stopReading();
 		if (B.appMode && S.gate) view = 'today';
-		if (['today', 'learn', 'chat', 'community', 'me'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = B.appMode ? 'learn' : 'start';
+		if (['today', 'learn', 'chat', 'community', 'me', 'dev'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = B.appMode ? 'learn' : 'start';
 		S.view = view;
 		try { if (B.appMode) history.replaceState(null, '', '#' + view + (arg && typeof arg !== 'object' ? '-' + arg : '')); } catch (e) { /* ignore */ }
 		if (view === 'today') return today();
@@ -128,6 +129,7 @@
 		if (view === 'interests') return interests(arg);
 		if (view === 'songs') return songsView(arg);
 		if (view === 'stories') return storiesView();
+		if (view === 'dev') return devView();
 		if (view === 'story') return storyView(arg);
 	}
 
@@ -905,7 +907,7 @@
 	/** Your things (library, mistakes, stages, level test, the extension), at the bottom of Home. */
 	function meTiles() {
 		var j = S.J || {};
-		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'My mistakes', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
+		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'My mistakes', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills'], ['dev', 'Feedback & Dev', 'What\'s coming · post ideas and bugs, vote', 'dev']].filter(function (x) { return x[0] === 'start' || (x[0] === 'dev' ? !!trkCfg().boardJs : unlocked(x[0])); });
 		return '<h2>Your things</h2><div class="hub">' + tiles.map(function (x) {
 			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
 		}).join('') + '</div>'
@@ -913,6 +915,21 @@
 	}
 	function bindMeTiles() {
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { if (b.dataset.t === 'placement') location.href = '/placement/'; else go(b.dataset.t); }; });
+	}
+	/** The Sawa Tracker's settings (REST address, nonce, script addresses), printed next to the embedded tracker. */
+	function trkCfg() {
+		try { return JSON.parse(document.querySelector('.sawa-tracker-app').nextElementSibling.textContent) || {}; } catch (e) { return {}; }
+	}
+	/** Feedback & Dev: the roadmap and the students' board (sawa-tracker assets/board.js). */
+	function devView() {
+		var c = trkCfg();
+		shell('<section class="stack"><button class="link small" data-back-home>← Home</button><h1>Feedback &amp; Dev</h1><p class="muted">See what\'s live and what\'s coming, post your ideas and bugs, and vote for the ones you want most.</p></section><div id="sawa-board"><p class="muted">Loading…</p></div>');
+		$app.querySelector('[data-back-home]').onclick = function () { go('today'); };
+		if (!c.boardJs) { $app.querySelector('#sawa-board').innerHTML = '<p class="err">Feedback &amp; Dev needs the Sawa Tracker. Try again later.</p>'; return; }
+		var mount = function () { var el = $app.querySelector('#sawa-board'); if (el && S.view === 'dev') window.SawaBoard.mount(el, { rest: c.rest, nonce: c.nonce, lang: S.ar ? 'ar' : 'en' }); };
+		if (window.SawaBoard) return mount();
+		var s = document.createElement('script'); s.src = c.boardJs; s.onload = mount; s.onerror = function () { var el = $app.querySelector('#sawa-board'); if (el) el.innerHTML = '<p class="err">Could not load. Check your connection and try again.</p>'; };
+		document.head.appendChild(s);
 	}
 	/** Me: your stuff — library, progress, the guide, the extension — then your tracker stats. */
 	function meHub() {
@@ -2133,7 +2150,7 @@
 			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
 		});
 		var hv = h0.split('-')[0], ha = h0.split('-')[1];
-		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests', 'stories', 'story'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
+		loadJourney().then(function () { go(['today', 'learn', 'chat', 'community', 'me', 'review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start', 'interests', 'stories', 'story', 'dev'].indexOf(hv) >= 0 ? hv : 'today', ha ? +ha || ha : undefined); }, function () { S.stage = 5; go('today'); });
 		return;
 	}
 	loadJourney().then(function () { go(['review', 'library', 'read', 'scan', 'write', 'skills', 'progress', 'start'].indexOf(h0) >= 0 ? h0 : S.stage < 5 ? 'start' : 'skills'); }, function () { S.stage = 5; go('skills'); });
