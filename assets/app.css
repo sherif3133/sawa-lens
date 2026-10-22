@@ -393,3 +393,13 @@ main:has(.in-creators) { padding-bottom: 76px; }
 .st-q{padding:10px 0;border-top:1px solid var(--line)}.st-q:first-of-type{border-top:0}
 .st-end{margin-top:10px}.st-mine{border-color:#6250d6;background:#F5F3FF}
 .toast{pointer-events:none}
+
+/* phone audit 2026-10-23: finger-sized taps, and the library tabs wrap instead of hiding behind a swipe */
+.lib-tabs { flex-wrap: wrap; overflow: visible; }
+@media (pointer: coarse) {
+	.btn.sm { min-height: 44px; padding: 8px 14px; }
+	.link.small { min-height: 44px; min-width: 44px; padding: 0 6px; display: inline-flex; align-items: center; justify-content: center; }
+	.seg button { min-height: 44px; }
+	.lib-tabs button { min-height: 44px; }
+	.lib-acts .icon { min-width: 44px; min-height: 44px; }
+}

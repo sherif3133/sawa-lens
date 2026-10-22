@@ -5,7 +5,7 @@
 .pt-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: p; }
 .pt-list li { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; gap: 8px; align-items: baseline; counter-increment: p; }
 .pt-list li::before { content: counter(p); font-weight: 800; color: var(--muted); }
-.pt-list span { margin-left: auto; color: var(--muted); font-size: 13px; }
+.pt-list span { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; }
 .pt-parts { display: flex; gap: 4px; margin-bottom: 14px; }
 .pt-parts span { flex: 1; font-size: 11px; text-align: center; padding: 6px 2px; border-radius: 6px; background: var(--soft); color: var(--muted); font-weight: 600; }
 .pt-parts .cur { background: var(--fg); color: #fff; }
@@ -29,3 +29,5 @@
 .pt-scale i { position: absolute; top: 0; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid var(--red); transform: translateX(-7px); }
 .pt-skill { display: grid; gap: 6px; }
 .ct input { height: 1.5em; vertical-align: baseline; min-height: 0; line-height: 1.5; }
+
+@media (pointer: coarse) { .top a.small { min-height: 44px; display: inline-flex; align-items: center; padding: 0 8px; } }

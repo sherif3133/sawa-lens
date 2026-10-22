@@ -243,6 +243,7 @@ self.addEventListener('fetch', function () {});
 		$r( 'readaloud', 'GET', array( __CLASS__, 'readaloud' ) );
 		$r( 'speak', 'POST', array( __CLASS__, 'speak' ) );
 		$r( 'journey', 'GET', array( __CLASS__, 'journey' ) );
+		$r( 'daily', 'GET', array( 'Sawa_Lens_Rest', 'daily' ) ); // "English you met today" on Home (the app asked for this and got a 404)
 		$r( 'today', 'GET', array( __CLASS__, 'today_plan' ) );
 		$r( 'image', 'GET', array( 'Sawa_Lens_Rest', 'image' ) );
 		$r( 'image/ai', 'POST', array( 'Sawa_Lens_Rest', 'image_ai' ) );

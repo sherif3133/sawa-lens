@@ -36,7 +36,7 @@
 	function intro() {
 		var prev = B.previous;
 		page('<section class="stack pt-hero"><h1>What\'s your English level?</h1><p class="lead">A free test that adapts to you, like EF SET or the Duolingo English Test. You get your CEFR level (A1–C2), a score out of 100 and your vocabulary size.</p>'
-			+ '<p class="ar muted">اختبار مجاني بيتأقلم مع مستواك. هتعرف مستواك من A1 لـ C2، ودرجتك من ١٠٠، وعدد الكلمات اللي تعرفها.</p></section>'
+			+ '<p class="ar muted" dir="rtl">اختبار مجاني بيتأقلم مع مستواك. هتعرف مستواك من A1 لـ C2، ودرجتك من ١٠٠، وعدد الكلمات اللي تعرفها.</p></section>'
 			+ '<ol class="pt-list"><li><b>Vocabulary</b> · do you know these words? <span>3 min</span></li><li><b>Grammar</b> · choose the right answer <span>6 min</span></li><li><b>Reading</b> · complete the missing letters <span>6 min</span></li><li><b>Listening</b> · listen and type <span>4 min</span></li><li><b>Writing</b> · a short text' + (B.member ? '' : ' (members)') + ' <span>5 min</span></li></ol>'
 			+ '<p class="small muted">🎧 You need sound for the listening part. Don\'t use a dictionary — the result is only useful if it\'s really you.</p>'
 			+ (prev ? '<div class="card small">Your last result: <b>' + esc(prev.level) + '</b> · ' + prev.score + '/100 · ' + esc(prev.date) + '</div>' : '')

@@ -1075,7 +1075,7 @@
 		shell('<section class="stack"><h1>Read a text</h1><p class="muted">Paste any English text or upload a PDF — an article, a story, a lesson. Read it as it is, or let AI rewrite it at <b>your level</b>: almost every word one you know, plus a few new ones to learn. Tap a word for its meaning, save it, or listen to the whole text.</p></section>'
 			+ '<textarea id="rtext" rows="7" dir="ltr" maxlength="40000" placeholder="Paste English text here"></textarea>'
 			+ '<div class="ra-btns"><label class="btn ghost" for="rpdf">📄 Upload a PDF</label><input id="rpdf" type="file" accept="application/pdf,.pdf" hidden><span class="small muted" id="rinfo"></span></div>'
-			+ '<input id="rtitle" dir="auto" maxlength="120" placeholder="Title (optional)">'
+			+ '<input class="inp" id="rtitle" dir="auto" maxlength="120" placeholder="Title (optional)">'
 			+ '<div class="ra-btns"><button class="btn" id="radapt">✨ Adapt to my level</button><button class="btn ghost" id="rgo">Read as it is</button></div><p class="err" id="er"></p><section id="scan" class="stack"></section>');
 		var ta = $app.querySelector('#rtext'), er = $app.querySelector('#er'), info = $app.querySelector('#rinfo');
 		var count = function () { var n = (ta.value.match(/[A-Za-z]+/g) || []).length; info.textContent = n ? n.toLocaleString('en-US') + ' words' + (n > ADAPT_MAX ? ' · the first ' + ADAPT_MAX.toLocaleString('en-US') + ' can be adapted' : '') : ''; };
