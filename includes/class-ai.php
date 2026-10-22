@@ -627,12 +627,16 @@ final class Sawa_Lens_AI {
 	 * Voice message → text with OpenAI's transcription API (Claude doesn't take audio input).
 	 * The prompt asks for a verbatim transcript, so learners' grammar mistakes stay in.
 	 */
-	public static function transcribe( $uid, $path ) {
+	/**
+	 * Speech to text (OpenAI). $prompt guides the wording (default: a learner speaking English);
+	 * $max_mb is the biggest file accepted (OpenAI's own limit is 25 MB). Other plugins (testimonials) use this too.
+	 */
+	public static function transcribe( $uid, $path, $prompt = '', $max_mb = 8 ) {
 		$s = self::settings();
 		if ( '' === $s['stt_key'] ) {
 			return new WP_Error( 'off', 'تحويل الصوت لنص مش متفعّل لسه.' );
 		}
-		if ( ! is_readable( $path ) || filesize( $path ) > 8 * MB_IN_BYTES ) {
+		if ( ! is_readable( $path ) || filesize( $path ) > min( 25, max( 1, (int) $max_mb ) ) * MB_IN_BYTES ) {
 			return new WP_Error( 'audio', 'الملف ده مش راضي يتقري.' );
 		}
 		$limit = self::limit( $uid );
@@ -640,12 +644,12 @@ final class Sawa_Lens_AI {
 			return $limit;
 		}
 		$ext      = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-		$types    = array( 'webm' => 'audio/webm', 'weba' => 'audio/webm', 'm4a' => 'audio/mp4', 'mp4' => 'audio/mp4', 'ogg' => 'audio/ogg', 'mp3' => 'audio/mpeg', 'wav' => 'audio/wav' );
+		$types    = array( 'webm' => 'audio/webm', 'weba' => 'audio/webm', 'm4a' => 'audio/mp4', 'mp4' => 'audio/mp4', 'ogg' => 'audio/ogg', 'mp3' => 'audio/mpeg', 'wav' => 'audio/wav', 'mpeg' => 'audio/mpeg', 'mpga' => 'audio/mpeg' );
 		$boundary = wp_generate_password( 24, false );
 		$fields   = array(
 			'model'           => $s['stt_model'],
 			'response_format' => 'json',
-			'prompt'          => 'An Arabic-speaking learner of English is speaking, sometimes with a few Arabic words. Write exactly what they say, word for word, keeping their grammar mistakes. Do not correct or improve anything.',
+			'prompt'          => '' !== $prompt ? $prompt : 'An Arabic-speaking learner of English is speaking, sometimes with a few Arabic words. Write exactly what they say, word for word, keeping their grammar mistakes. Do not correct or improve anything.',
 		);
 		$body = '';
 		$crlf = "\r\n";
