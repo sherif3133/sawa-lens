@@ -403,3 +403,6 @@ main:has(.in-creators) { padding-bottom: 76px; }
 	.lib-tabs button { min-height: 44px; }
 	.lib-acts .icon { min-width: 44px; min-height: 44px; }
 }
+
+/* the round Beta button sits bottom-right above the nav: leave room so it never covers the last lines */
+body:has(.sawa-beta) .app, body:has(.sawa-beta) .app.one, body:has(.sawa-beta) .trk { padding-bottom: calc(148px + env(safe-area-inset-bottom)); }

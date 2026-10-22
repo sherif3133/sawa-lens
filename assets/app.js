@@ -431,7 +431,7 @@
 		shell(modeSeg('write') + '<section class="stack"><h1>Write</h1><p class="muted">Write anything in English – a message, your day, an email. You get every correction. Explanations open as you unlock the skill.</p></section>' +
 			'<section class="stack"><textarea id="txt" rows="7" placeholder="Write here…" autocapitalize="sentences">' + esc(result ? result.text : draft) + '</textarea>' +
 			'<div class="count"><span id="wc"></span><span>up to ~500 words</span></div>' +
-			'<button class="btn block" id="chk"' + (B.ai ? '' : ' disabled') + '>Check my writing</button><p class="err" id="er"></p></section>' +
+			'<button class="btn block" id="chk"' + (B.ai ? '' : ' disabled') + '>Check my writing</button><p class="err" id="er">' + (B.ai ? '' : 'Writing checks are not switched on yet. Please come back soon.') + '</p></section>' +
 			'<section id="res" class="stack"></section>');
 		bindModes();
 		var ta = $app.querySelector('#txt'), wc = $app.querySelector('#wc');
@@ -1659,7 +1659,7 @@
 			var st = R.stats;
 			var more = Math.max(0, (st.due || 0) - 0);
 			shell(reviewHead() + '<section class="card stack center-text"><h2>All done for today 🎉</h2><p class="muted">' + (R.done ? 'You reviewed ' + R.done + ' cards.' : 'No cards are due.') + (more ? ' ' + more + ' more can wait for tomorrow — no pressure.' : '') + (R.waiting ? ' ' + R.waiting + ' new cards are waiting for the next days.' : '') + '</p>'
-				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learning</b>, phrases and sentences you save in Language Lens, and your own mistakes in Write.</p>')
+				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learning</b>. On your phone: Learn → Scan a page or Read a text, tap a word → "+ Learning". On a computer: Language Lens on YouTube. Your own mistakes in Write become cards too.</p>')
 				+ (st.level && st.level.levelMax > 5 ? '<label class="small">Fewer new cards? <select id="npd">' + [5, 7, 10, 13, 16, 20, 25].filter(function (n) { return n <= st.level.levelMax; }).map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select> a day (your level allows ' + st.level.levelMax + ')</label>' : '')
 				+ '<button class="btn ghost" id="lib">Open my library</button></section>');
 			$app.querySelector('#lib').onclick = function () { go('library'); };
@@ -1752,7 +1752,7 @@
 					+ '<p class="small muted">' + (w.due ? 'Next review: ' + whenDue(w.due) : 'Card starts soon') + '</p></div>'
 					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(w.lemma) + '" title="Listen">🔊</button><button class="btn ghost sm" data-known="' + esc(w.lemma) + '">✓ Known</button><button class="icon" data-rmw="' + esc(w.lemma) + '" title="Remove">✕</button></div></li>';
 			}).join('');
-			rows = '<p class="small muted">' + d.known + ' known words in total' + (d.recentKnown.length ? ' · recently learned: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">No learning words' + (q ? ' match your search.' : ' yet. Mark words as Learning in Language Lens.') + '</li>') + '</ul>';
+			rows = '<p class="small muted">' + d.known + ' known words in total' + (d.recentKnown.length ? ' · recently learned: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">No learning words' + (q ? ' match your search.' : ' yet. On your phone, tap a word in Learn → Read a text or Scan a page and choose "+ Learning". On a computer, use Language Lens.') + '</li>') + '</ul>';
 		} else if (L.tab === 'mistakes') {
 			var seenM = {};
 			rows = '<ul class="lib">' + (d.mistakes.filter(function (e) { var k = (e.wrong + '|' + e.fix + '|' + e.sentence).toLowerCase(); if (seenM[k]) return false; seenM[k] = 1; return match(e.sentence) || match(e.skillName); }).map(function (e) {
@@ -1766,7 +1766,7 @@
 					+ '<p dir="ltr">' + highlight(x.text, x.focus) + '</p>' + (x.ar ? '<p class="ar small">' + esc(x.ar) + '</p>' : '<button class="link small" data-tr="' + x.uuid + '">Arabic translation</button>')
 					+ (link ? '<p class="small"><a href="' + esc(link) + '" target="_blank" rel="noopener">' + (x.videoId ? '▶ ' : '') + esc(x.title || 'Source') + '</a></p>' : '') + '</div>'
 					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(x.focus && x.kind === 'phrase' ? x.focus : x.text) + '" title="Listen">🔊</button><button class="icon" data-rms="' + x.uuid + '" title="Delete">✕</button></div></li>';
-			}).join('') || '<li class="muted">Nothing here yet. Save ' + (L.tab === 'phrase' ? 'phrases' : L.tab === 'grammar' ? 'grammar examples' : 'sentences') + ' with Language Lens on YouTube or any website.</li>') + '</ul>';
+			}).join('') || '<li class="muted">Nothing here yet. Save ' + (L.tab === 'phrase' ? 'phrases' : L.tab === 'grammar' ? 'grammar examples' : 'sentences') + ' while you read in Learn → Read a text, or with Language Lens on a computer.</li>') + '</ul>';
 		}
 		shell('<section class="stack"><h1>My library</h1></section>'
 			+ '<section class="lib-tabs" role="tablist">' + tabs.map(function (t) { return '<button data-lt="' + t[0] + '" aria-pressed="' + (L.tab === t[0]) + '">' + t[1] + ' <span>' + t[2] + '</span></button>'; }).join('') + '</section>'
