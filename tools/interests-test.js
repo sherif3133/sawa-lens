@@ -46,7 +46,7 @@ async function run(br, size) {
 	console.log('     Start here:', start.join(' | '));
 	ok(start.some((s) => /J\. Cole|XXXTentacion|Travis Scott|Kendrick/.test(s)), size + ': rap picks match Abyusif / Pablo');
 	ok(start.some((s) => /Danny Gonzalez/.test(s)), size + ': comedy pick matches Mogzz');
-	ok(await p.$$eval('.in-rec', (x) => x.every((r) => r.querySelector('.pill.lv') && r.querySelector('a[target=_blank]'))), size + ': every pick has a level and a link');
+	ok(await p.$$eval('.in-rec', (x) => x.every((r) => r.querySelector('.pill.ease') && r.querySelector('a[target=_blank]'))), size + ': every pick has an ease estimate and a link');
 	ok(await noScroll(), size + ': no sideways scroll (picks)');
 	await shot('3-picks');
 	// More on request

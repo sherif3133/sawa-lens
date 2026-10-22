@@ -1691,16 +1691,20 @@
 	function inSave() {
 		return api('interests', { body: { cats: Object.keys(IN.sel), liked: Object.keys(IN.liked), saved: Object.keys(IN.saved) } }).then(function (r) { IN.picks = r.picks; if (S.J) S.J.interests = true; });
 	}
-	function inMyLevel() { var p = S.J && S.J.placement; return p && LV[p.level] ? LV[p.level] : 2; }
-	/** Every English pick for the chosen categories, best first: creators you like count most, then a level that fits you (i+1), then Language Lens. */
+	function inMyLevel() { var p = S.J && S.J.placement; return p && LV[p.level] ? LV[p.level] : 2.5; }
+	/** How likely the student is to follow a pick: not a grade, just a rough guess from the kind of content, how fast they talk and the student's level. */
+	function inEase(e) {
+		var x = (LV[e.level] || 3) - inMyLevel() + (e.speech === 'slow' ? -1 : e.speech === 'fast' ? 1 : 0) + (e.captions === 'text' ? -0.5 : 0);
+		return x <= 0 ? ['easy', '🟢 You\'ll follow most of it'] : x <= 1.5 ? ['mid', '🟡 You\'ll get the main idea'] : ['hard', '🟠 A stretch — keep captions on'];
+	}
+	/** Every English pick for the chosen categories, best first: creators you like count most, then good first picks and Language Lens; easier ones win ties. */
 	function inRecs() {
-		var me = inMyLevel(), by = {};
+		var by = {};
 		Object.keys(IN.sel).forEach(function (k) {
 			var c = IN.byCat[k]; if (!c) return;
 			c.en.forEach(function (e) {
 				var hits = e.like.filter(function (a) { return IN.liked[a]; });
-				var d = (LV[e.level] || 3) - me;
-				var sc = 1 + hits.length * 4 + (e.start ? 1 : 0) + (d <= 0 ? 1 : d === 1 ? 0.6 : -1) + (e.lens ? 0.8 : 0) + (IN.saved[e.id] ? 2 : 0);
+				var sc = 1 + hits.length * 4 + (e.start ? 1 : 0) + ({ easy: 0.4, mid: 0.2, hard: 0 }[inEase(e)[0]]) + (e.lens ? 0.8 : 0) + (IN.saved[e.id] ? 2 : 0);
 				var cur = by[e.id];
 				if (!cur || sc > cur.sc) by[e.id] = { e: e, c: c, sc: sc, hits: hits, cats: (cur ? cur.cats : []).concat(k) };
 				else cur.cats.push(k);
@@ -1782,11 +1786,11 @@
 		return '<article class="in-rec' + (big ? ' big' : '') + '"><div class="in-rh"><span class="in-ty" aria-hidden="true">' + t[0] + '</span><div><b>' + esc(e.name) + '</b><span class="small muted">' + t[1] + ' · ' + esc(because) + '</span></div>'
 			+ '<button class="in-star" data-s="' + esc(e.id) + '" aria-pressed="' + (IN.saved[e.id] ? 'true' : 'false') + '" aria-label="Save ' + esc(e.name) + '">' + (IN.saved[e.id] ? '★' : '☆') + '</button></div>'
 			+ '<p class="small">' + esc(e.what) + '</p><p class="small in-why">💡 ' + esc(e.why) + '</p>'
-			+ '<div class="in-tags"><span class="pill lv">' + esc(e.level) + '</span>' + (e.speech ? '<span class="pill">' + ({ slow: '🐢 slow speech', clear: '🗣 clear speech', fast: '⚡ fast speech' }[e.speech] || '') + '</span>' : '') + '<span class="pill">' + (IN_CC[e.captions] || '') + '</span>' + (e.lens ? '<span class="pill open">🔍 Works with Language Lens</span>' : '') + '</div>'
+			+ '<div class="in-tags"><span class="pill ease ' + inEase(e)[0] + '">' + inEase(e)[1] + '</span>' + (e.speech ? '<span class="pill">' + ({ slow: '🐢 slow speech', clear: '🗣 clear speech', fast: '⚡ fast speech' }[e.speech] || '') + '</span>' : '') + '<span class="pill">' + (IN_CC[e.captions] || '') + '</span>' + (e.lens ? '<span class="pill open">🔍 Works with Language Lens</span>' : '') + '</div>'
 			+ '<a class="btn sm' + (big ? '' : ' ghost') + '" href="' + esc(e.url) + '" target="_blank" rel="noopener">' + (e.type === 'book' ? 'Find the book ↗' : e.type === 'music' ? 'Listen ↗' : e.type === 'site' ? 'Open ↗' : 'Watch ↗') + '</a></article>';
 	}
 	function inShow() {
-		var all = inRecs(), start = inStart(all, 5), me = inMyLevel(), lvName = Object.keys(LV).filter(function (k) { return LV[k] === me; })[0];
+		var all = inRecs(), start = inStart(all, 5);
 		var used = {}; start.forEach(function (r) { used[r.e.id] = 1; });
 		var saved = all.filter(function (r) { return IN.saved[r.e.id]; });
 		var groups = IN.data.categories.filter(function (c) { return IN.sel[c.id]; }).map(function (c) {
@@ -1795,7 +1799,7 @@
 			return rest.length ? '<section class="stack in-grp"><h3 class="in-h"><span aria-hidden="true">' + c.emoji + '</span> ' + esc(c.name) + '</h3><div class="in-recs">' + rest.map(function (r, i) { return '<div' + (i >= 2 ? ' class="in-more" hidden' : '') + '>' + inCard(r) + '</div>'; }).join('') + '</div>' + (rest.length > 2 ? '<button class="link small" data-more>Show ' + (rest.length - 2) + ' more</button>' : '') + '</section>' : '';
 		}).join('');
 		shell('<section class="stack"><h1>Your English picks</h1>' + inBar(3, 'your picks')
-			+ '<p class="muted">Matched to what you love' + (S.J && S.J.placement ? ' and your level (' + esc(lvName) + ')' : '') + '. Watch 10 minutes a day — with captions on.</p>'
+			+ '<p class="muted">Matched to what you love. Watch 10 minutes a day — with captions on. You don\'t need to understand every word: getting the main idea is how your English grows.</p>'
 			+ '<p class="small muted">🔍 On a computer, YouTube picks work with <b>Language Lens</b>: tap any word in the captions for its meaning.</p></section>'
 			+ '<section class="stack"><h2>⭐ Start here</h2><div class="in-recs">' + start.map(function (r) { return inCard(r, true); }).join('') + '</div></section>'
 			+ (saved.length ? '<details class="card"><summary><b>★ Saved (' + saved.length + ')</b></summary><div class="in-recs" style="margin-top:12px">' + saved.map(function (r) { return inCard(r); }).join('') + '</div></details>' : '')
@@ -1824,7 +1828,7 @@
 			} else {
 				var yt = inRecs().filter(function (r) { return r.e.lens && r.e.type !== 'music'; });
 				var day = Math.floor(Date.now() / 864e5), r = yt.length ? yt[day % Math.min(yt.length, 8)] : null;
-				box.innerHTML = r ? '<div class="row-between"><h3>🎬 Watch today</h3><button class="link small" data-in="recs">All your picks</button></div><p><b>Watch 10 minutes of ' + esc(r.e.name) + '</b></p><p class="small muted">' + esc(r.e.why) + '</p><div class="in-tags"><span class="pill lv">' + esc(r.e.level) + '</span><span class="pill open">🔍 Works with Language Lens</span></div><a class="btn sm" href="' + esc(r.e.url) + '" target="_blank" rel="noopener">Open on YouTube ↗</a>'
+				box.innerHTML = r ? '<div class="row-between"><h3>🎬 Watch today</h3><button class="link small" data-in="recs">All your picks</button></div><p><b>Watch 10 minutes of ' + esc(r.e.name) + '</b></p><p class="small muted">' + esc(r.e.why) + '</p><div class="in-tags"><span class="pill ease ' + inEase(r.e)[0] + '">' + inEase(r.e)[1] + '</span><span class="pill open">🔍 Works with Language Lens</span></div><a class="btn sm" href="' + esc(r.e.url) + '" target="_blank" rel="noopener">Open on YouTube ↗</a>'
 					: '<div class="row-between"><h3>Your English picks</h3></div><button class="btn sm" data-in="recs">See your picks</button>';
 			}
 			box.querySelectorAll('[data-in]').forEach(function (b) { b.onclick = function () { go('interests', b.dataset.in || undefined); }; });
