@@ -73,7 +73,7 @@ async function phone(br) {
 	for (let i = 0; i < r.questions.length; i++) await p.$eval(`.st-q[data-q="${i}"] .opt[data-k="${r.questions[i].answer}"]`, (b) => b.click());
 	await p.waitForSelector('.st-end', { timeout: 10000 });
 	const end = await p.$eval('.st-end', (b) => b.textContent);
-	ok(new RegExp(r.questions.length + ' of ' + r.questions.length).test(end) && /\+15 XP/.test(end) && /1-day reading streak/.test(end), 'phone: result shows all right, +15 XP and the streak (' + end.trim() + ')');
+	ok(new RegExp(r.questions.length + ' of ' + r.questions.length).test(end) && /\+15 XP/.test(end) && /1-day reading streak/.test(end), 'phone: result shows all right, +15 XP (unless today's XP cap is reached) and the streak (' + end.trim() + ')');
 	await p.shot('3-check');
 	const twice = await p.api('readers/done', { id, right: 4, total: 4 });
 	ok(twice.xp === 0, 'phone: XP is given only once per story');

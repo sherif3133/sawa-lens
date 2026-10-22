@@ -37,8 +37,16 @@ final class Sawa_Lens_Readers {
 		if ( get_option( 'sawa_lens_stories_ver' ) === SAWA_LENS_VER || (int) get_option( 'sawa_lens_db' ) < 11 ) {
 			return;
 		}
+		// Only one request imports: add_option() fails if another request holds the lock (a stale lock expires).
+		if ( ! add_option( 'sawa_lens_stories_lock', time(), '', 'no' ) ) {
+			if ( (int) get_option( 'sawa_lens_stories_lock' ) < time() - 300 ) {
+				delete_option( 'sawa_lens_stories_lock' );
+			}
+			return;
+		}
 		update_option( 'sawa_lens_stories_ver', SAWA_LENS_VER, true );
 		self::import();
+		delete_option( 'sawa_lens_stories_lock' );
 	}
 
 	/**
@@ -96,12 +104,19 @@ final class Sawa_Lens_Readers {
 				}
 			}
 		}
-		// A series is known by the id of its first chapter.
-		foreach ( $series as $chs ) {
-			if ( isset( $chs[1] ) ) {
-				foreach ( $chs as $id ) {
-					$wpdb->update( self::t(), array( 'series' => $chs[1] ), array( 'id' => $id ) ); // phpcs:ignore
-				}
+		// One row per slug: if two imports ever ran at once, keep the oldest row and move its readers' history to it.
+		foreach ( (array) $wpdb->get_results( 'SELECT slug, MIN(id) AS keep FROM ' . self::t() . " WHERE slug <> '' GROUP BY slug HAVING COUNT(*) > 1" ) as $d ) { // phpcs:ignore
+			foreach ( (array) $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM ' . self::t() . ' WHERE slug = %s AND id <> %d', $d->slug, (int) $d->keep ) ) as $dup ) { // phpcs:ignore
+				$wpdb->query( $wpdb->prepare( 'UPDATE IGNORE ' . self::log_t() . ' SET reader_id = %d WHERE reader_id = %d', (int) $d->keep, (int) $dup ) ); // phpcs:ignore
+				$wpdb->delete( self::log_t(), array( 'reader_id' => (int) $dup ) ); // phpcs:ignore
+				$wpdb->delete( self::t(), array( 'id' => (int) $dup ) ); // phpcs:ignore
+			}
+		}
+		// A series is known by the id of its first chapter (slugs "name-1", "name-2", …).
+		foreach ( $series as $base => $chs ) {
+			$first = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::t() . ' WHERE slug = %s', $base . '-1' ) ); // phpcs:ignore
+			if ( $first ) {
+				$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::t() . " SET series = %d WHERE format = 'series' AND slug LIKE %s", $first, $wpdb->esc_like( $base ) . '-%' ) ); // phpcs:ignore
 			}
 		}
 		return $n;
