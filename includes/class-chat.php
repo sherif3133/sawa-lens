@@ -66,7 +66,7 @@ final class Sawa_Lens_Chat {
 				$qs[] = $q;
 			}
 			if ( count( $qs ) >= $target ) {
-				return $qs;
+				return self::unique( $qs );
 			}
 		}
 		$pl  = get_user_meta( $uid, 'sawa_lens_placement', true );
@@ -81,8 +81,23 @@ final class Sawa_Lens_Chat {
 		if ( count( $qs ) < $target && ! empty( $opt['level'] ) ) {
 			return self::battle_questions( $qs, $uid, $target - count( $qs ) ); // not enough at that level yet: fill around the student's level
 		}
-		shuffle( $qs );
-		return $qs;
+		return self::unique( $qs );
+	}
+
+	/** No question twice in one fight (the same sentence can come from two sources). */
+	private static function unique( $qs ) {
+		$seen = array();
+		$out  = array();
+		foreach ( $qs as $q ) {
+			$k = strtolower( preg_replace( '/\W+/', '', (string) $q['q'] ) ) . '|' . implode( '|', (array) ( $q['options'] ?? array() ) );
+			if ( 'Which sentence is correct?' !== $q['q'] && isset( $seen[ $k ] ) ) {
+				continue;
+			}
+			$seen[ $k ] = 1;
+			$out[]      = $q;
+		}
+		shuffle( $out );
+		return $out;
 	}
 
 	/**
@@ -109,6 +124,9 @@ final class Sawa_Lens_Chat {
 					$words[]   = $q;
 				}
 			}
+			foreach ( self::phrase_gaps( $uid ) as $q ) { // saved phrases and sentences make questions too
+				$words[] = $q;
+			}
 			foreach ( count( (array) $uids ) > 1 ? array() : (array) $wpdb->get_results( $wpdb->prepare( 'SELECT id, sentence, fixed, why FROM ' . Sawa_Lens_Store::t( 'errors' ) . " WHERE user_id = %d AND sentence <> '' AND fixed <> '' AND sentence <> fixed AND CHAR_LENGTH(sentence) < 160 ORDER BY id DESC LIMIT 12", $uid ), ARRAY_A ) as $e ) { // phpcs:ignore
 				$opts   = array( $e['fixed'], $e['sentence'] );
 				shuffle( $opts );
@@ -122,6 +140,32 @@ final class Sawa_Lens_Chat {
 		shuffle( $mist );
 		while ( count( $out ) < $n && ( $mw || $mist ) ) {
 			$out[] = $mist && ( ! $mw || 2 === count( $out ) % 3 ) ? array_shift( $mist ) : array_shift( $mw );
+		}
+		return $out;
+	}
+
+	/**
+	 * Saved phrases and sentences with a focus ("give up", "on the other hand"): the phrase becomes the gap, and the
+	 * student's other saved phrases are the wrong options. Words due for review come first elsewhere; these add variety.
+	 */
+	private static function phrase_gaps( $uid ) {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT uuid, body, focus, source_title FROM ' . Sawa_Lens_Store::t( 'sentences' ) . " WHERE user_id = %d AND deleted = 0 AND focus <> '' AND CHAR_LENGTH(body) < 220 ORDER BY RAND() LIMIT 6", $uid ), ARRAY_A ); // phpcs:ignore
+		$all  = $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT focus FROM ' . Sawa_Lens_Store::t( 'sentences' ) . " WHERE user_id = %d AND deleted = 0 AND focus <> '' ORDER BY RAND() LIMIT 30", $uid ) ); // phpcs:ignore
+		$out  = array();
+		foreach ( (array) $rows as $r ) {
+			$focus = trim( (string) $r['focus'] );
+			$pos   = stripos( $r['body'], $focus );
+			if ( false === $pos || str_word_count( $focus ) > 5 ) {
+				continue;
+			}
+			$wrong = array_slice( array_values( array_filter( (array) $all, function ( $x ) use ( $focus ) { return strtolower( trim( $x ) ) !== strtolower( $focus ); } ) ), 0, 2 );
+			if ( count( $wrong ) < 2 ) {
+				continue; // not enough saved phrases yet for good wrong options
+			}
+			$opts  = array_merge( array( substr( $r['body'], $pos, strlen( $focus ) ) ), $wrong );
+			shuffle( $opts );
+			$out[] = array( 'q' => trim( substr( $r['body'], 0, $pos ) . '___' . substr( $r['body'], $pos + strlen( $focus ) ) ), 'options' => $opts, 'answer' => array_search( substr( $r['body'], $pos, strlen( $focus ) ), $opts, true ), 'point' => 'Your phrase', 'src' => mb_substr( (string) $r['source_title'], 0, 80 ), 'card' => 's:' . $r['uuid'], 'why' => '"' . $focus . '" — a phrase you saved.', 'user' => $uid );
 		}
 		return $out;
 	}
