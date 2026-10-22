@@ -1953,6 +1953,7 @@
 	}
 
 	/* ── Stories for you (beta): graded readers about what you love ───── */
+	ICONS.songs = ICONS.songs || '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>'; // the My songs tile on Learn: a music note
 	ICONS.stories = '<svg viewBox="0 0 24 24"><path d="M4 5c3-1 6-1 8 1v14c-2-2-5-2-8-1z"/><path d="M20 5c-3-1-6-1-8 1v14c2-2 5-2 8-1z"/></svg>';
 	var ST_FMT = { story: ['📖', 'Story'], explainer: ['💡', 'Explainer'], series: ['📚', 'Series'] };
 	function stCat(c) { return c ? (c.emoji ? c.emoji + ' ' : '') + c.name : ''; }
