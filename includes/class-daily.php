@@ -11,9 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Sawa_Lens_Daily {
 
-	/** XP for each new word a learner is curious about, and how many of them earn XP in a day. */
-	const CURIOUS_XP  = 2;
-	const CURIOUS_DAY = 25;
+	/**
+	 * XP for each new word a learner is curious about. No daily limit: each word pays once, ever, so curiosity
+	 * can't be farmed. (New Learning words are what's capped, in the extension, so reviews don't pile up.)
+	 */
+	const CURIOUS_XP = 2;
 
 	private static function today() {
 		return wp_date( 'Y-m-d' );
@@ -49,13 +51,13 @@ final class Sawa_Lens_Daily {
 		$new  = ! isset( $seen[ $lemma ] );
 		if ( $new ) {
 			$seen[ $lemma ] = $day;
-			if ( count( $seen ) > 5000 ) {
-				$seen = array_slice( $seen, -5000, null, true );
+			if ( count( $seen ) > 30000 ) {
+				$seen = array_slice( $seen, -30000, null, true );
 			}
 			update_user_meta( $uid, 'sawa_lens_curious', $seen );
 			++$t['curious'];
-			if ( $t['curious'] <= self::CURIOUS_DAY && class_exists( 'Sawa_Tracker_XP' ) ) {
-				$xp = Sawa_Tracker_XP::award( $uid, self::CURIOUS_XP, 'curious' );
+			if ( class_exists( 'Sawa_Tracker_XP' ) ) {
+				$xp = Sawa_Tracker_XP::award( $uid, self::CURIOUS_XP, 'curious', false ); // outside the tracker's daily XP cap
 			}
 			$d[ $day ] = $t;
 			self::save_days( $uid, $d );
