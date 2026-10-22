@@ -24,6 +24,17 @@ final class Sawa_Lens_Songs {
 
 	public static function init() {
 		add_action( 'sawa_lens_make_song', array( __CLASS__, 'make' ) );
+		// The Silk Road's song camp: only when there is a song to sing (or one can be made now).
+		add_filter( 'sawa_tracker_road_song', function ( $on, $uid ) { return $on && self::road_ready( $uid ); }, 10, 2 );
+	}
+
+	/** A ready song, one being made, or one that can be made now. */
+	public static function road_ready( $uid ) {
+		global $wpdb;
+		if ( (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . self::t() . " WHERE user_id = %d AND status IN ('ready', 'queued', 'writing', 'singing')", $uid ) ) ) { // phpcs:ignore
+			return true;
+		}
+		return self::state( $uid )['can'];
 	}
 
 	public static function install( $c ) {
@@ -235,6 +246,9 @@ final class Sawa_Lens_Songs {
 		$done[ $id ] = 1;
 		update_user_meta( $uid, 'sawa_lens_song_games', $done );
 		$xp = 5 + (int) round( 10 * min( 1, $right / $total ) );
+		if ( class_exists( 'Sawa_Lens_Activity' ) ) {
+			Sawa_Lens_Activity::add( $uid, '', 1, 'Active Immersion', 3 ); // listening and singing along counts as study time
+		}
 		if ( class_exists( 'Sawa_Tracker_XP' ) ) {
 			$xp = Sawa_Tracker_XP::award( $uid, $xp, 'song' );
 		}
