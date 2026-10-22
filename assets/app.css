@@ -295,3 +295,8 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
 /* One big picture for a word (review, scan, library). */
 .pics img.big{display:block;width:100%;max-width:420px;height:240px;object-fit:contain;background:#F3F1EE;border-radius:12px;margin:8px auto 4px}
 .pics{text-align:center}
+
+/* English met today (Language Lens) */
+#expo h3{margin:0 0 10px}
+.me-sum.expo{box-shadow:none;border:0;padding:0;margin-bottom:8px}
+.me-sum.expo{grid-template-columns:repeat(3,1fr)}

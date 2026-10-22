@@ -620,7 +620,8 @@
 	/** Today: a short plan with the next step highlighted, then today's stats and quest from the tracker. */
 	function today() {
 		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
-		shell('<section class="stack"><h1>Today</h1></section><section class="card stack" id="plan"><p class="loading">Making your plan…</p></section>');
+		shell('<section class="stack"><h1>Today</h1></section><section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card" id="expo" hidden></section>');
+		paintExposure();
 		api('today').then(function (p) {
 			if (S.view !== 'today') return;
 			S.due = p.due; paintNav();
@@ -638,6 +639,16 @@
 			});
 			var sg = box.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
 		}, function () { var box = $app.querySelector('#plan'); if (box) box.innerHTML = '<p class="muted">Your plan couldn\'t load. Pull down to refresh.</p>'; });
+	}
+	/** English you met today with Language Lens: words read on websites, heard in videos, and looked up out of curiosity. */
+	function paintExposure() {
+		api('daily').then(function (d) {
+			var box = $app.querySelector('#expo'), t = d.today, w = d.week, n = function (x) { return (+x || 0).toLocaleString('en-US'); };
+			if (!box || (!w.read && !w.heard && !w.curious)) return;
+			box.hidden = false;
+			box.innerHTML = '<h3>English you met today</h3><div class="me-sum expo"><div><b>' + n(t.read) + '</b><span>📖 words read</span></div><div><b>' + n(t.heard) + '</b><span>🎧 words heard in videos</span></div><div><b>' + n(t.curious) + '</b><span>💡 curious about</span></div></div>'
+				+ '<p class="small muted">This week: ' + n(w.read) + ' words read · ' + n(w.heard) + ' heard · curious about ' + n(w.curious) + ' words (' + n(d.curiousTotal) + ' in all). Every word you meet counts, even the ones you don\'t save.</p>';
+		}, function () {});
 	}
 	/** Learn: the learning tools, opening one by one with the stages. */
 	function learnHub() {

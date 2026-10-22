@@ -64,6 +64,9 @@ final class Sawa_Lens_Rest {
 		$r( '/lesson/(?P<id>\d+)/answer', 'POST', array( __CLASS__, 'lesson_answer' ) );
 		$r( '/lessons/draft', 'POST', array( __CLASS__, 'lesson_draft' ) );
 		$r( '/image', 'GET', array( __CLASS__, 'image' ) );
+		$r( '/curious', 'POST', array( __CLASS__, 'curious' ) );
+		$r( '/daily', 'POST', array( __CLASS__, 'daily_add' ) );
+		$r( '/daily', 'GET', array( __CLASS__, 'daily' ) );
 		$r( '/image/ai', 'POST', array( __CLASS__, 'image_ai' ) );
 		// For the tracker page (normal WordPress login + nonce, not a device token).
 		register_rest_route(
@@ -275,6 +278,21 @@ final class Sawa_Lens_Rest {
 			? Sawa_Lens_AI::to_english_many( $uid, $r->get_param( 'texts' ) )
 			: Sawa_Lens_AI::to_english( $uid, (string) $r->get_param( 'text' ), (string) $r->get_param( 'word' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** A word the learner was curious about: XP, tracked but not added to reviews. */
+	public static function curious( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Daily::curious( get_current_user_id(), (string) $r->get_param( 'lemma' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** Words read on websites and heard in videos since the last report. */
+	public static function daily_add( WP_REST_Request $r ) {
+		return self::out( Sawa_Lens_Daily::add( get_current_user_id(), (int) $r->get_param( 'read' ), (int) $r->get_param( 'heard' ) ) );
+	}
+
+	public static function daily() {
+		return self::out( Sawa_Lens_Daily::summary( get_current_user_id() ) );
 	}
 
 	public static function logout() {
