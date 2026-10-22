@@ -35,10 +35,10 @@ final class Sawa_Lens_Feeds {
 			'reels'   => array(), // [{url, platform, id, title, cat, q, options[], answer}]
 			'memes'   => array(), // [{url, title}] Reddit posts
 			'feeds'   => array(
-				array( 'url' => 'https://www.lennysnewsletter.com/feed', 'name' => 'Lenny\'s Newsletter', 'cat' => 'business', 'on' => 1 ),
-				array( 'url' => 'https://www.oneusefulthing.org/feed', 'name' => 'One Useful Thing', 'cat' => 'ai', 'on' => 1 ),
+				array( 'url' => 'https://www.garbageday.email/feed', 'name' => 'Garbage Day', 'cat' => 'reactions', 'on' => 1 ),
+				array( 'url' => 'https://www.gamefile.news/feed', 'name' => 'Game File', 'cat' => 'gaming', 'on' => 1 ),
 				array( 'url' => 'https://www.readtrung.com/feed', 'name' => 'SatPost by Trung Phan', 'cat' => 'business', 'on' => 1 ),
-				array( 'url' => 'https://www.noahpinion.blog/feed', 'name' => 'Noahpinion', 'cat' => 'money', 'on' => 1 ),
+				array( 'url' => 'https://www.oneusefulthing.org/feed', 'name' => 'One Useful Thing', 'cat' => 'ai', 'on' => 1 ),
 			),
 			'discuss' => array(), // [{url, title, cat}] Reddit threads or Quora questions (links)
 		);

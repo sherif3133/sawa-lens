@@ -2,7 +2,7 @@
 /**
  * 📻 Radio in the Silk Road: English to listen to while playing, instead of the game's music, with captions.
  *
- * Podcasts (default): episodes from public RSS feeds, played from the publisher's own file like any podcast app.
+ * Fun podcasts by default (football, funny facts, a comedy quiz; no dry lessons): episodes from public RSS feeds, played from the publisher's own file like any podcast app.
  * Captions are made once per 30 seconds of an episode with speech-to-text and shared by every listener, so an
  * episode costs the same whether one student or a hundred listen ($0.003 a minute: a 6-minute episode ≈ 2 cents).
  * Live stations: only ones the admin marks as allowing it (most stations' terms don't allow use in other apps).
@@ -32,9 +32,9 @@ final class Sawa_Lens_Radio {
 			'captions' => 1,
 			'budget'   => 5, // USD a month for captions
 			'stations' => array(
-				array( 'id' => 'bbc6', 'name' => 'BBC Learning English · 6 Minute English', 'kind' => 'podcast', 'url' => 'https://podcasts.files.bbci.co.uk/p02pc9tn.rss', 'desc' => 'Two presenters, one topic, six new words. Clear British English (A2–B1).', 'kbps' => 0, 'ok' => 1 ),
-				array( 'id' => 'upfirst', 'name' => 'NPR · Up First', 'kind' => 'podcast', 'url' => 'https://feeds.npr.org/510318/podcast.xml', 'desc' => 'The day\'s news from the US in about 12 minutes (B1–B2).', 'kbps' => 0, 'ok' => 1 ),
-				array( 'id' => 'ted', 'name' => 'NPR · TED Radio Hour', 'kind' => 'podcast', 'url' => 'https://feeds.npr.org/510298/podcast.xml', 'desc' => 'Big ideas from TED speakers, explained (B2).', 'kbps' => 0, 'ok' => 1 ),
+				array( 'id' => 'football', 'name' => 'The Totally Football Show', 'kind' => 'podcast', 'url' => 'https://feeds.acast.com/public/shows/the-totally-football-show-with-james-richardson', 'desc' => 'Funny, fast football talk: this week\'s games, the drama, the jokes.', 'kbps' => 0, 'ok' => 1 ),
+				array( 'id' => 'fish', 'name' => 'No Such Thing As A Fish', 'kind' => 'podcast', 'url' => 'https://audioboom.com/channels/2399216.rss', 'desc' => 'Four friends share the strangest facts they found this week, and laugh a lot.', 'kbps' => 0, 'ok' => 1 ),
+				array( 'id' => 'waitwait', 'name' => 'Wait Wait... Don\'t Tell Me!', 'kind' => 'podcast', 'url' => 'https://feeds.npr.org/344098539/podcast.xml', 'desc' => 'A comedy quiz show: comedians joke about the week\'s silliest news.', 'kbps' => 0, 'ok' => 1 ),
 			),
 		);
 	}
