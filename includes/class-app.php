@@ -70,6 +70,9 @@ final class Sawa_Lens_App {
 			auth_redirect();
 		}
 		$uid = get_current_user_id();
+		if ( $app_mode ) {
+			Sawa_Lens_Usage::mark( $uid, 'app' ); // weekly usage: opened the app today
+		}
 		if ( ! Sawa_Lens_Auth::allowed( $uid ) ) {
 			Sawa_Lens_Auth::page( 'Your account is not active', 'Your Sawa English account is not open. If you think this is a mistake, write to Sherif in the Sawa English community on Skool.' );
 		}

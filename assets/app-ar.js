@@ -90,7 +90,7 @@
 	var APP_TABS = [['today', 'الرئيسية'], ['learn', 'اتعلم'], ['chat', 'الشات'], ['community', 'العب']]; // Play: the Silk Road game and your clan
 	function tabOf(v) {
 		if (['today', 'chat', 'community'].indexOf(v) >= 0) return v;
-		return ['me', 'library', 'progress', 'start', 'dev'].indexOf(v) >= 0 ? 'today' : 'learn';
+		return ['me', 'start', 'dev'].indexOf(v) >= 0 ? 'today' : 'learn'; // Library and Writing progress are Learn tools
 	}
 	function paintNav() {
 		var nav = document.getElementById('nav'); if (!nav) return;
@@ -119,7 +119,7 @@
 			showTrk(planLocked(S.view) || trkLocked() ? '' : ['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
 			if (trk) trk.classList.toggle('at-top', S.view === 'today');
 			if (trk && S.view === 'today') { var mn = $app.querySelector('main'); mn.insertBefore(trk, mn.firstChild); }
-			window.scrollTo(0, 0);
+			window.scrollTo(0, S.popping && S.ys ? S.ys[location.hash] || 0 : 0); // a new screen opens at the top; Back returns to where you were
 			return;
 		}
 		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><div class="top-r"><a class="small muted" href="' + esc(B.tracker) + '">التراكر</a>' + langSwitch() + '</div></header>' +
@@ -136,6 +136,7 @@
 		stopClip(); stopReading();
 		$app.style.paddingBottom = ''; // the review bar keeps room for itself only while reviewing
 		if (B.appMode && S.gate) view = 'today';
+		if (B.appMode && !S.popping) { S.ys = S.ys || {}; S.ys[location.hash] = window.scrollY; } // remembered for Back (on Back the address has already changed)
 		if (planLocked(view) && !S.navStarted && has('review')) view = 'review'; // a free account opens on Review, not on a locked Home
 		if (planLocked(view)) {
 			// Not in this student's plan: say so, with the way to join (the server refuses it too).
@@ -2388,6 +2389,7 @@
 			if (d.view && d.view !== S.view && ['today', 'chat', 'community', 'me'].indexOf(d.view) >= 0 && ['today', 'chat', 'community', 'me'].indexOf(S.view) >= 0) { S.view = d.view; paintNav(); if (d.view === 'chat' || d.view === 'community') $app.querySelector('main').innerHTML = ''; }
 		});
 		// Back / forward (Android back button, iPhone swipe, a #link): show the screen the address names.
+		try { history.scrollRestoration = 'manual'; } catch (e) { /* old browser */ } // the browser's own restore opened screens scrolled down
 		window.addEventListener('popstate', function () {
 			var h = location.hash.slice(1).split('-');
 			S.popping = true;

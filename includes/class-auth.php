@@ -129,6 +129,7 @@ final class Sawa_Lens_Auth {
 			$wpdb->update( $t, array( 'last_used' => current_time( 'mysql' ) ), array( 'id' => $row->id ) ); // phpcs:ignore
 		}
 		$GLOBALS['sawa_lens_token_id'] = (int) $row->id;
+		Sawa_Lens_Usage::mark( $row->user_id, 'lens' ); // weekly usage: Language Lens was used today
 		return (int) $row->user_id;
 	}
 
