@@ -42,7 +42,16 @@
 		'library/translate': function () { return { ar: 'ترجمة تجريبية للجملة.' }; },
 		'image': function () { return { images: [], canAi: false }; },
 		'journey': function () { return { admin: true }; }, // stage 5: every screen open
-		'today': function () { return { tasks: [] }; }
+		// Same shape as Sawa_Lens_App::today_plan(): the first step is Review when the learner has cards.
+		'today': function () {
+			var rv = stats.total ? { k: 'review', done: !stats.due && stats.today > 0, t: stats.due ? 'Review ' + Math.min(40, stats.due) + ' cards' : 'Cards reviewed', sub: '5 minutes', go: 'review' }
+				: { k: 'collect', done: false, t: 'Save 3 new words', sub: 'From a video, a page you scan, or a quiz · they become review cards', go: 'scan' };
+			return { items: [rv,
+				{ k: 'watch', done: false, t: 'Read something in English and save new words', sub: 'Learn → Read a text', go: 'read' },
+				{ k: 'use', done: false, t: 'Write or say something in English', sub: 'A message in the chat, or a few sentences in Write', go: 'write' },
+				{ k: 'log', done: false, t: 'Count today as a study day', sub: 'Anything above counts automatically · or log other study', go: 'log' }
+			], perfect: false, gained: 0, due: stats.due, minutes: 6 };
+		}
 	};
 
 	var realFetch = window.fetch.bind(window);
@@ -56,6 +65,20 @@
 		console.log('[fake-api]', init && init.method || 'GET', path, body || '');
 		return new Promise(function (ok) { setTimeout(function () { ok(new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } })); }, 120); });
 	};
+
+	/* Tests are always silent: a fake YouTube player (grey box, clock runs, no sound), silent speech and muted audio. */
+	window.YT = { Player: function (el, o) {
+		var t = (o.playerVars && o.playerVars.start) || 0, st = 2, me = this, tm = setInterval(function () { if (st === 1) t += 0.1; }, 100);
+		el.style.cssText = 'width:100%;aspect-ratio:16/9;background:#333;color:#aaa;display:grid;place-items:center;font:13px sans-serif';
+		el.textContent = '▶ fake video ' + (o.videoId || '');
+		this.seekTo = function (s) { t = s; }; this.playVideo = function () { st = 1; }; this.pauseVideo = function () { st = 2; };
+		this.getCurrentTime = function () { return t; }; this.getPlayerState = function () { return st; };
+		this.setPlaybackRate = function () {}; this.destroy = function () { clearInterval(tm); };
+		setTimeout(function () { o.events && o.events.onReady && o.events.onReady({ target: me }); }, 50);
+	} };
+	if ('speechSynthesis' in window) { speechSynthesis.speak = function (u) { setTimeout(function () { u.onend && u.onend(); }, 300); }; }
+	var realPlay = HTMLMediaElement.prototype.play;
+	HTMLMediaElement.prototype.play = function () { this.muted = true; return realPlay.call(this); };
 
 	var ar = q.get('lang') === 'ar';
 	document.documentElement.lang = ar ? 'ar' : 'en';
