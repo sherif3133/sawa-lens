@@ -64,8 +64,8 @@
 	/* ── Free and Member plans (Sawa Lens 0.25.0+; Settings → Free vs Member) ─────
 	 * A free account uses only its features (default: Review) and skips the stages for them; the rest shows 🔒 Members only. */
 	var PLAN = B.plan && B.plan.features ? B.plan : null;
-	var TAB_FEATURE = { review: 'review', library: 'review', read: 'lens_meanings', scan: 'lens_ai', write: 'writing', skills: 'learn', skill: 'learn', practice: 'learn', watch: 'learn', songs: 'stories', stories: 'stories', story: 'stories', chat: 'community', community: 'game' };
-	var FEATURE_NAME = { review: 'Review', lens_meanings: 'Word meanings', lens_ai: 'AI explanations and Scan a page', writing: 'Write & speak', learn: 'The skill tree and lessons', stories: 'Stories and songs', tracker: 'The study tracker', game: 'The Silk Road game', community: 'Chat and clans' };
+	var TAB_FEATURE = { today: 'home', me: 'home', review: 'review', library: 'review', read: 'learn', scan: 'learn', write: 'writing', skills: 'learn', skill: 'learn', practice: 'learn', watch: 'learn', songs: 'stories', stories: 'stories', story: 'stories', chat: 'community', community: 'game' };
+	var FEATURE_NAME = { review: 'Review', lens_meanings: 'Word meanings', lens_ai: 'AI explanations', lens_proof: 'The proofreader', home: 'Home (your plan and progress)', writing: 'Write & speak', learn: 'The skill tree and lessons', stories: 'Stories and songs', tracker: 'The study tracker', game: 'The Silk Road game', community: 'Chat and clans' };
 	function has(f) { return !PLAN || PLAN.features.indexOf(f) >= 0; }
 	function trkLocked() { return !!PLAN && !['tracker', 'game', 'community'].some(has); } // the tracker shows nothing but a lock: leave it out
 	function planLocked(tab) { var f = TAB_FEATURE[tab]; return f && !has(f) ? f : ''; }
@@ -124,6 +124,7 @@
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
 		stopClip(); stopReading();
 		if (B.appMode && S.gate) view = 'today';
+		if (planLocked(view) && !S.navStarted && has('review')) view = 'review'; // a free account opens on Review, not on a locked Home
 		if (planLocked(view)) {
 			// Not in this student's plan: say so, with the way to join (the server refuses it too).
 			S.view = view;
@@ -706,7 +707,7 @@
 		// Home is one page grid (app.css "Home grid"): the tracker's blocks (welcome, stats, new thing, leaderboard, character)
 		// sit next to these. On phones, Today / Progress / Community show one group at a time.
 		var seg = S.homeSeg || 'today';
-		var freeBar = trkLocked() ? '<section class="card free-bar" data-g="today"><p>🔒 <b>Free account:</b> Review only. The tracker, the Silk Road game, the chat and the other tools are for members.</p><a class="btn sm" href="' + esc(PLAN.join) + '" target="_blank" rel="noopener">Join Sawa English</a></section>' : '';
+		var freeBar = trkLocked() ? '<section class="card free-bar" data-g="today"><p>🔒 <b>Free account:</b> Language Lens and Review. The tracker, the Silk Road game, the chat and the other tools are for members.</p><a class="btn sm" href="' + esc(PLAN.join) + '" target="_blank" rel="noopener">Join Sawa English</a></section>' : '';
 		shell(freeBar + '<div class="seg home-seg" role="tablist" aria-label="Home">' + [['today', 'Today'], ['progress', 'Progress'], ['community', 'Community']].map(function (t) {
 			return '<button role="tab" data-hseg="' + t[0] + '" aria-selected="' + (seg === t[0]) + '" aria-pressed="' + (seg === t[0]) + '">' + t[1] + '</button>';
 		}).join('') + '</div>'

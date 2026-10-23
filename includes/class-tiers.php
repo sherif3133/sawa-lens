@@ -43,11 +43,13 @@ final class Sawa_Lens_Tiers {
 	/** key => [English, Arabic]. Add a feature here and to rules() to make it lockable. */
 	public static function features() {
 		return array(
-			'review'        => array( 'Review cards and saved words', 'مراجعة الكروت والكلمات المحفوظة' ),
+			'review'        => array( 'Review cards and saved words (Language Lens + the app\'s Review tab)', 'مراجعة الكروت والكلمات المحفوظة' ),
 			'lens_meanings' => array( 'Language Lens: word meanings on YouTube and websites', 'Language Lens: معاني الكلمات على يوتيوب والمواقع' ),
-			'lens_ai'       => array( 'AI explanations, translations and sounds', 'شرح وترجمة ونطق بالذكاء الاصطناعي' ),
-			'writing'       => array( 'Writing checker and proofreader', 'تصحيح الكتابة' ),
-			'learn'         => array( 'Skill tree, lessons and practice', 'شجرة المهارات والدروس والتمارين' ),
+			'lens_ai'       => array( 'Language Lens: AI explanations, translations and sounds', 'Language Lens: شرح وترجمة ونطق بالذكاء الاصطناعي' ),
+			'lens_proof'    => array( 'Language Lens: proofreader', 'Language Lens: تصحيح الكتابة' ),
+			'home'          => array( 'Sawa App: Home (today\'s plan and progress)', 'تطبيق سوا: الرئيسية' ),
+			'writing'       => array( 'Sawa App: Write & speak (writing checker)', 'تطبيق سوا: اكتب واتكلم' ),
+			'learn'         => array( 'Sawa App: skill tree, lessons, Read a text and Scan a page', 'تطبيق سوا: المهارات والدروس والقراءة' ),
 			'stories'       => array( 'Stories, songs, radio and reels', 'القصص والأغاني والراديو والريلز' ),
 			'tracker'       => array( 'Study tracker and leaderboards', 'تراكر المذاكرة والترتيب' ),
 			'game'          => array( 'Silk Road game, raids and caravans', 'لعبة طريق الحرير والغارات والقوافل' ),
@@ -55,15 +57,25 @@ final class Sawa_Lens_Tiers {
 		);
 	}
 
-	/** Which plan gets which feature (Settings → Free vs Member). */
+	/** Free during the Language Lens beta (decided 2026-10-23): all of Language Lens + Review in the app. */
+	const FREE_DEFAULT = array( 'review', 'lens_meanings', 'lens_ai', 'lens_proof' );
+
+	/**
+	 * Which plan gets which feature (Settings → Free vs Member). A feature added after the settings were saved
+	 * ("known" doesn't list it) gets its default: on for members, FREE_DEFAULT for free.
+	 */
 	public static function map() {
-		$all = array_keys( self::features() );
-		$m   = get_option( self::OPT );
-		$m   = is_array( $m ) ? $m : array();
-		return array(
-			'free'   => array_values( array_intersect( $all, isset( $m['free'] ) ? (array) $m['free'] : array( 'review' ) ) ),
-			'member' => array_values( array_intersect( $all, isset( $m['member'] ) ? (array) $m['member'] : $all ) ),
-		);
+		$all   = array_keys( self::features() );
+		$m     = get_option( self::OPT );
+		$m     = is_array( $m ) ? $m : array();
+		$known = isset( $m['known'] ) ? (array) $m['known'] : array( 'review', 'lens_meanings', 'lens_ai', 'writing', 'learn', 'stories', 'tracker', 'game', 'community' );
+		$out   = array();
+		foreach ( array( 'free' => self::FREE_DEFAULT, 'member' => $all ) as $t => $def ) {
+			$saved     = isset( $m[ $t ] ) ? (array) $m[ $t ] : $def;
+			$new       = array_intersect( array_diff( $all, $known ), $def );
+			$out[ $t ] = array_values( array_intersect( $all, array_merge( $saved, $new ) ) );
+		}
+		return $out;
 	}
 
 	/** Sign-up opens a free account at once (no approval). Off = the old "ask to join" queue. */
@@ -250,12 +262,14 @@ final class Sawa_Lens_Tiers {
 	/** Route (without the namespace) → feature. null = open to every account (sign-in, settings, level test, feedback). */
 	public static function feature_for( $route ) {
 		$rules = array(
-			'#^/sawa-lens/v1/(me|settings|logout|lang|daily|web/progress|pt/|app/(prefs|interests|band|today|journey|daily)$)#' => null,
+			'#^/sawa-lens/v1/(me|settings|logout|lang|daily|web/progress|pt/|app/(prefs|interests|band|journey|daily)$)#' => null,
+			'#^/sawa-lens/v1/app/today#' => 'home',
 			'#^/sawa-lens/v1/(sync|curious|image$|app/review|app/library$|app/library/(word|sentence|save)$|app/image$)#' => 'review',
 			'#^/sawa-lens/v1/(explain|translate|to-english|sound|lyric|song-lines|image/ai|app/library/(translate|explain)|app/image/ai)#' => 'lens_ai',
 			'#^/sawa-lens/v1/app/(readaloud|speak)#' => 'lens_meanings', // Read a text: listen to it
-			'#^/sawa-lens/v1/app/scan#' => 'lens_ai', // Scan a page (photo → text)
-			'#^/sawa-lens/v1/(proof|app/(write|history|writing))#' => 'writing',
+			'#^/sawa-lens/v1/app/scan#' => 'learn', // Scan a page (photo → text)
+			'#^/sawa-lens/v1/proof#' => 'lens_proof',
+			'#^/sawa-lens/v1/app/(write|history|writing)#' => 'writing',
 			'#^/sawa-lens/v1/(video/|lesson/|lessons/|app/(tree|skill|practice|videos?|video/))#' => 'learn',
 			'#^/sawa-lens/v1/app/(readers|songs|radio|reels|reading|adapt)#' => 'stories',
 			'#^/sawa-tracker/v1/(me|request|feedback|ideas|roadmap|lang)#' => null,
@@ -364,10 +378,19 @@ final class Sawa_Lens_Tiers {
 
 	/** 0.25.0: people still waiting for approval get a free account now. Review-gift requests stay for Sherif. */
 	public static function migrate() {
-		if ( get_option( 'sawa_lens_tiers_v' ) ) {
+		$v = (int) get_option( 'sawa_lens_tiers_v' );
+		if ( $v < 2 ) {
+			// 0.26.1: the Language Lens beta decision. Saved settings get Language Lens opened for free accounts.
+			update_option( 'sawa_lens_tiers_v', 2, false );
+			$m = get_option( self::OPT );
+			if ( is_array( $m ) && isset( $m['free'] ) ) {
+				$m['free'] = array_values( array_unique( array_merge( (array) $m['free'], self::FREE_DEFAULT ) ) );
+				update_option( self::OPT, $m, true );
+			}
+		}
+		if ( $v ) {
 			return;
 		}
-		update_option( 'sawa_lens_tiers_v', 1, false );
 		$ids = get_users( array( 'meta_key' => 'sawa_status', 'meta_value' => 'pending', 'fields' => 'ID', 'number' => 2000 ) ); // phpcs:ignore
 		foreach ( $ids as $id ) {
 			if ( get_user_meta( $id, '_sawa_gift', true ) ) {
@@ -434,6 +457,7 @@ final class Sawa_Lens_Tiers {
 			array(
 				'free'    => array_values( array_intersect( $all, array_map( 'sanitize_key', (array) wp_unslash( $_POST['free'] ?? array() ) ) ) ),
 				'member'  => array_values( array_intersect( $all, array_map( 'sanitize_key', (array) wp_unslash( $_POST['member'] ?? array() ) ) ) ),
+				'known'     => $all,
 				'instant'   => ! empty( $_POST['instant'] ),
 				'free_ai'   => max( 0, (int) ( $_POST['free_ai'] ?? 30 ) ),
 				'google_id' => preg_match( '/^[\w.-]+\.apps\.googleusercontent\.com$/', trim( (string) wp_unslash( $_POST['google_id'] ?? '' ) ) ) ? trim( (string) wp_unslash( $_POST['google_id'] ) ) : '',
