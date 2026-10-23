@@ -265,7 +265,7 @@ final class Sawa_Lens_Feeds {
 			return $hit;
 		}
 		$out = array();
-		$res = wp_remote_get( $f['url'], array( 'timeout' => 10, 'user-agent' => 'Mozilla/5.0 (compatible; SawaEnglish/1.0; +' . home_url() . ')' ) );
+		$res = wp_safe_remote_get( $f['url'], array( 'timeout' => 10, 'user-agent' => 'Mozilla/5.0 (compatible; SawaEnglish/1.0; +' . home_url() . ')' ) );
 		if ( ! is_wp_error( $res ) && 200 === wp_remote_retrieve_response_code( $res ) ) {
 			$prev = libxml_use_internal_errors( true );
 			$xml  = simplexml_load_string( wp_remote_retrieve_body( $res ), 'SimpleXMLElement', LIBXML_NOCDATA );

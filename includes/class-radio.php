@@ -116,7 +116,7 @@ final class Sawa_Lens_Radio {
 			return $hit;
 		}
 		$out = array();
-		$res = wp_remote_get( $st['url'], array( 'timeout' => 12 ) );
+		$res = wp_safe_remote_get( $st['url'], array( 'timeout' => 12 ) );
 		if ( ! is_wp_error( $res ) && 200 === wp_remote_retrieve_response_code( $res ) ) {
 			$prev = libxml_use_internal_errors( true );
 			$xml  = simplexml_load_string( wp_remote_retrieve_body( $res ), 'SimpleXMLElement', LIBXML_NOCDATA );
@@ -158,7 +158,7 @@ final class Sawa_Lens_Radio {
 		if ( $range ) {
 			$args['headers'] = array( 'Range' => $range );
 		}
-		$res = wp_remote_get( $url, $args );
+		$res = wp_safe_remote_get( $url, $args ); // episode addresses come from outside feeds: never fetch this server's own network
 		$txt = null; // null: try again later (the audio or the speech-to-text failed); '' : nothing said (music)
 		if ( ! is_wp_error( $res ) && file_exists( $tmp ) && filesize( $tmp ) > 2000 ) {
 			$t = Sawa_Lens_AI::transcribe( 0, $tmp, 'English radio: a podcast or a news programme. Write what is said, with normal punctuation.', 25, false );
