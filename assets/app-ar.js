@@ -1705,22 +1705,46 @@
 		return '<section class="rv-top"><div><b>' + R.queue.length + '</b><span>left</span></div><div><b>' + st.today + '</b><span>reviewed today</span></div><div><b>' + st.streak + '🔥</b><span>يوم مراجعة ورا بعض</span></div><div><b>' + (st.retention != null ? st.retention + '%' : st.mature) + '</b><span>' + (st.retention != null ? 'افتكرتها الأسبوع ده' : 'long-term') + '</span></div></section>' + levelBox(st);
 	}
 	/**
-	 * Card level (progressive overload): new cards a day grow with consistency. Shows the level, what the next one
-	 * needs, and catch-up mode when reviews pile up.
+	 * Card level (progressive overload): new cards a day grow with consistency. One short line; the explanation
+	 * lives in an ⓘ tooltip (design rule: explanations are tooltips, never popups or blocks of text).
 	 */
 	function levelBox(st) {
 		var lv = st.level;
 		if (!lv || !lv.level) return '';
-		if (lv.change && !R.levelSeen) {
-			R.levelSeen = true;
-			toast(lv.change === 'up' ? '⬆️ مستوى الكروت ' + lv.level + '! دلوقتي ' + lv.levelMax + ' كروت جديدة في اليوم.' : 'مستوى الكروت ' + lv.level + ': كروت جديدة أقل لفترة، عشان المراجعة تفضل سهلة.');
-		}
 		var dots = '';
 		for (var i = 1; i <= lv.levels; i++) dots += '<i class="' + (i <= lv.level ? 'on' : '') + '"></i>';
-		var tip = lv.catchup ? '<b>وقت تعويض:</b> ' + lv.dueReviews + ' مراجعة مستنياك. خلّصهم والكروت الجديدة هترجع — مفيش كروت جديدة لحد كده، عشان الحمل ميزيدش عليك.'
-			: lv.level >= lv.levels ? 'أعلى مستوى: ' + lv.levelMax + ' كروت جديدة في اليوم. كمّل كده!'
-			: 'راجع <b>٥ أيام من ٧</b> الأسبوع ده (' + lv.weekDays + ' لحد دلوقتي) وافتكر ٨٠٪ عشان توصل لمستوى ' + (lv.level + 1) + ' (' + lv.nextPerDay + ' كروت جديدة في اليوم). المتابعة بعد ' + lv.checkIn + ' day' + (lv.checkIn === 1 ? '' : 's') + '.';
-		return '<section class="card lvbox' + (lv.catchup ? ' catchup' : '') + '"><div class="row-between"><b>مستوى الكروت ' + lv.level + ' <span class="lvdots">' + dots + '</span></b><span class="pill">' + lv.newPerDay + ' جديد في اليوم</span></div><p class="small muted">' + tip + (lv.waiting ? ' ' + lv.waiting + ' حاجة محفوظة مستنية تبقى كروت.' : '') + '</p></section>';
+		var tip = lv.catchup ? lv.dueReviews + ' مراجعة مستنياك. خلّصها والكروت الجديدة ترجع.'
+			: lv.level >= lv.levels ? 'أعلى مستوى: ' + lv.levelMax + ' كروت جديدة في اليوم.'
+			: 'راجع ٥ أيام من ٧ (' + lv.weekDays + ' لحد دلوقتي) وافتكر ٨٠٪ عشان توصل لمستوى ' + (lv.level + 1) + ': ' + lv.nextPerDay + ' كروت جديدة في اليوم.';
+		if (lv.waiting) tip += ' ' + lv.waiting + ' حاجة محفوظة مستنية تبقى كروت.';
+		return '<p class="lvline' + (lv.catchup ? ' catchup' : '') + '">' + (lv.change === 'up' ? '⬆️ ' : '') + '<b>مستوى الكروت ' + lv.level + '</b> <span class="lvdots">' + dots + '</span> · '
+			+ (lv.catchup ? 'وقت التعويض: المراجعة الأول' : lv.newPerDay + ' جديد في اليوم') + ' ' + infoTip(tip) + '</p>';
+	}
+	/** ⓘ tooltip: hover on a computer, tap on a phone. Plain text only; one floating bubble, kept inside the screen. */
+	function infoTip(text) {
+		if (!infoTip.pop) {
+			var pop = infoTip.pop = document.createElement('div');
+			pop.className = 'itip-pop'; pop.setAttribute('role', 'tooltip'); pop.hidden = true;
+			document.body.appendChild(pop);
+			var cur = null;
+			var show = function (t) {
+				cur = t; pop.textContent = t.getAttribute('data-tip'); pop.hidden = false;
+				var r = t.getBoundingClientRect(), w = Math.min(280, innerWidth - 24);
+				pop.style.width = w + 'px';
+				pop.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+				var below = r.bottom + 8, h = pop.offsetHeight;
+				pop.style.top = (below + h > innerHeight - 8 ? Math.max(8, r.top - h - 8) : below) + 'px';
+			};
+			var hide = function () { cur = null; pop.hidden = true; };
+			document.addEventListener('click', function (e) {
+				var t = e.target.closest ? e.target.closest('.itip') : null;
+				if (t) { e.preventDefault(); if (cur === t) hide(); else show(t); } else if (cur) hide();
+			});
+			document.addEventListener('mouseover', function (e) { var t = e.target.closest && e.target.closest('.itip'); if (t && matchMedia('(hover:hover)').matches) show(t); });
+			document.addEventListener('mouseout', function (e) { if (cur && e.target.closest && e.target.closest('.itip') === cur && matchMedia('(hover:hover)').matches) hide(); });
+			addEventListener('scroll', hide, true);
+		}
+		return '<button type="button" class="itip" aria-label="' + esc(text) + '" data-tip="' + esc(text) + '">ⓘ</button>';
 	}
 	function cardFront(c) {
 		if (c.type === 'word') return '<p class="rv-kind">كلمة · معناها إيه؟</p><p class="rv-word" dir="ltr">' + esc(c.lemma) + '</p>'

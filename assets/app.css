@@ -485,3 +485,8 @@ main.home > #prog { order: 8; } main.home > .home-things { order: 9; } main.home
 .scan-text .sw.now{background:#FFE89A;border-radius:4px;box-shadow:0 0 0 2px #FFE89A}
 .wpop{position:absolute;z-index:40;width:min(300px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .wpop .row-between>span{display:flex;align-items:center;gap:6px}.wpop b{font-size:20px}.wpop p{margin:4px 0}.wpop .ra-btns{margin-top:6px}.wpop .say{width:40px;height:40px}.wpop [data-wx]{min-width:40px;min-height:40px}
+
+/* Card level: one line; ⓘ tooltips (hover on a computer, tap on a phone) */
+.lvline{margin:10px 2px;font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}.lvline.catchup b{color:var(--amber)}
+.itip{position:relative;display:inline-grid;place-items:center;min-width:28px;min-height:28px;padding:0;border:0;background:none;color:var(--muted);font-size:15px;line-height:1;cursor:help}
+.itip-pop{position:fixed;z-index:60;padding:8px 10px;border-radius:8px;background:var(--fg);color:var(--panel);font-size:13px;line-height:1.45;text-align:start;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none}.itip-pop[hidden]{display:none}
