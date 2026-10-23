@@ -89,7 +89,7 @@ final class Sawa_Lens_App {
 			'stt'     => '' !== Sawa_Lens_AI::settings()['stt_key'],
 			'tracker' => esc_url_raw( home_url( '/tracker/' ) ),
 			'lessons' => $lessons,
-			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER ),
+			'lexicon' => esc_url_raw( SAWA_LENS_URL . 'assets/lexicon.json?v=' . SAWA_LENS_VER . '.' . (int) @filemtime( SAWA_LENS_DIR . 'assets/lexicon.json' ) ), // a new dictionary reaches phones without a version bump
 			'songs'   => class_exists( 'Sawa_Lens_Songs' ) && Sawa_Lens_Songs::allowed( get_current_user_id() ), // My songs beta
 			'readers' => class_exists( 'Sawa_Lens_Readers' ) && Sawa_Lens_Readers::allowed( get_current_user_id() ), // Stories for you beta
 			'appMode' => $app_mode,
