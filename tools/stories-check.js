@@ -21,7 +21,9 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.json'))) {
 		if (![1, 2, 3, 4, 5].includes(s.level)) warn('bad level ' + id);
 		if (!['story', 'explainer', 'series'].includes(s.format)) warn('bad format ' + id);
 		if (s.format === 'series' && !(s.series && s.chapter)) warn('series needs series + chapter ' + id);
-		const text = (s.paragraphs || []).join(' ');
+		if (s.choice && !((s.choice.options || []).length >= 2 && s.choice.options.every((o) => o.key && o.label))) warn('choice needs 2+ options with key and label ' + id);
+		if (s.openings && s.chapter > 1) { const prev = list.find((x) => x.series === s.series && x.chapter === s.chapter - 1); const keys = prev && prev.choice ? prev.choice.options.map((o) => o.key) : []; if (!keys.length || keys.some((k) => !s.openings[k])) warn('openings must match the previous episode choice keys ' + id); }
+		const text = (s.paragraphs || []).concat(Object.values(s.openings || {})).join(' '); // the choice-dependent opening counts too
 		const words = text.split(/\s+/).filter(Boolean).length;
 		if (words < 140) warn('too short (' + words + ' words) ' + id);
 		for (const t of s.targets || []) {

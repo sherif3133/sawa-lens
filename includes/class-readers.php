@@ -73,6 +73,14 @@ final class Sawa_Lens_Readers {
 						'questions'  => array_values( (array) ( $s['questions'] ?? array() ) ),
 						'recap'      => (string) ( $s['recap'] ?? '' ),
 						'teaser'     => (string) ( $s['teaser'] ?? '' ),
+						// Seasons (Stories v2): the comeback box, the phrase you can steal, the reader's choice and the
+						// openings it leads to, tomorrow's hook, and a "what would you do?" question with no wrong answer.
+						'previously' => (string) ( $s['previously'] ?? '' ),
+						'phrase'     => (array) ( $s['phrase'] ?? array() ),
+						'choice'     => (array) ( $s['choice'] ?? array() ),
+						'openings'   => (array) ( $s['openings'] ?? array() ),
+						'next'       => (string) ( $s['next'] ?? '' ),
+						'reflect'    => (string) ( $s['reflect'] ?? '' ),
 					)
 				);
 				$row     = array(
@@ -239,6 +247,7 @@ final class Sawa_Lens_Readers {
 		$r( 'readers/skip', 'POST', array( __CLASS__, 'skip' ) );
 		$r( 'readers/hide', 'POST', array( __CLASS__, 'hide' ) );
 		$r( 'readers/audio', 'POST', array( __CLASS__, 'audio' ) );
+		$r( 'readers/choice', 'POST', array( __CLASS__, 'choose' ) );
 	}
 
 	/**
@@ -249,19 +258,29 @@ final class Sawa_Lens_Readers {
 		global $wpdb;
 		$id  = (int) $r->get_param( 'id' );
 		$p   = (int) $r->get_param( 'p' );
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, kind, owner, body FROM ' . self::t() . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, kind, owner, series, chapter, body FROM ' . self::t() . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore
 		$uid = get_current_user_id();
 		if ( ! $row || ( 'own' === $row['kind'] && (int) $row['owner'] !== $uid ) ) {
 			return new WP_Error( 'none', 'This story is not there anymore.', array( 'status' => 404 ) );
 		}
-		$b    = json_decode( (string) $row['body'], true );
-		$text = (string) ( $b['paragraphs'][ $p ] ?? '' );
+		$b     = json_decode( (string) $row['body'], true );
+		$paras = (array) ( $b['paragraphs'] ?? array() );
+		if ( (int) $row['chapter'] > 1 && ! empty( $b['openings'] ) ) { // the same opening the reader sees (it follows their choice)
+			$mine = (array) get_user_meta( $uid, 'sawa_lens_reader_choices', true );
+			$key  = $mine[ (int) $row['series'] . ':' . ( (int) $row['chapter'] - 1 ) ] ?? array_keys( (array) $b['openings'] )[0];
+			array_unshift( $paras, (string) ( $b['openings'][ $key ] ?? reset( $b['openings'] ) ) );
+		}
+		$text = (string) ( $paras[ $p ] ?? '' );
 		if ( '' === $text ) {
 			return new WP_Error( 'none', 'No such paragraph.', array( 'status' => 404 ) );
 		}
-		$up = wp_upload_dir();
-		if ( ! empty( $b['audio'][ $p ] ) && file_exists( trailingslashit( $up['basedir'] ) . 'sawa-lens-stories/' . $b['audio'][ $p ] ) ) {
-			return self::out( array( 'url' => trailingslashit( $up['baseurl'] ) . 'sawa-lens-stories/' . $b['audio'][ $p ] ) );
+		$up   = wp_upload_dir();
+		$file = $id . '-' . substr( md5( $text ), 0, 10 ) . '.mp3'; // one recording per text, shared by everyone
+		if ( file_exists( trailingslashit( $up['basedir'] ) . 'sawa-lens-stories/' . $file ) ) {
+			return self::out( array( 'url' => trailingslashit( $up['baseurl'] ) . 'sawa-lens-stories/' . $file ) );
+		}
+		if ( ! empty( $b['audio'][ $p ] ) && empty( $b['openings'] ) && file_exists( trailingslashit( $up['basedir'] ) . 'sawa-lens-stories/' . $b['audio'][ $p ] ) ) {
+			return self::out( array( 'url' => trailingslashit( $up['baseurl'] ) . 'sawa-lens-stories/' . $b['audio'][ $p ] ) ); // recorded before 0.20
 		}
 		$s = self::settings();
 		if ( ! $s['voice'] ) {
@@ -291,7 +310,6 @@ final class Sawa_Lens_Readers {
 		if ( ! file_exists( $dir . '/index.html' ) ) {
 			file_put_contents( $dir . '/index.html', '' ); // phpcs:ignore -- no folder listing
 		}
-		$file = $id . '-' . $p . '-' . substr( md5( $text ), 0, 10 ) . '.mp3';
 		file_put_contents( $dir . '/' . $file, $mp3 ); // phpcs:ignore
 		$b['audio'][ $p ] = $file;
 		$wpdb->update( self::t(), array( 'body' => wp_json_encode( $b ) ), array( 'id' => $id ) ); // phpcs:ignore
@@ -379,14 +397,61 @@ final class Sawa_Lens_Readers {
 		return $n < 8 ? 'explainer' : 'story';
 	}
 
-	/** The series the learner is following: [series id, chapters finished, finished today?, chapters written], or null. */
+	/** The series the learner is following: [series id, chapters finished, waiting for tomorrow?, chapters in all], or null. */
 	private static function series_going( $uid ) {
 		global $wpdb;
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT r.series, MAX(r.chapter) AS ch, MAX(l.done_on) AS last FROM ' . self::log_t() . ' l JOIN ' . self::t() . " r ON r.id = l.reader_id WHERE l.user_id = %d AND r.format = 'series' AND l.done_on IS NOT NULL GROUP BY r.series ORDER BY MAX(l.opened_at) DESC LIMIT 1", $uid ), ARRAY_A ); // phpcs:ignore
-		if ( ! $row || (int) $row['ch'] >= self::MAX_CHAPTERS ) {
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT r.series, MAX(r.chapter) AS ch FROM ' . self::log_t() . ' l JOIN ' . self::t() . " r ON r.id = l.reader_id WHERE l.user_id = %d AND r.format = 'series' AND l.done_on IS NOT NULL GROUP BY r.series ORDER BY MAX(l.opened_at) DESC LIMIT 1", $uid ), ARRAY_A ); // phpcs:ignore
+		if ( ! $row ) {
 			return null;
 		}
-		return array( (int) $row['series'], (int) $row['ch'], $row['last'] === Sawa_Lens_Store::today() );
+		$of = self::chapters( (int) $row['series'] );
+		if ( (int) $row['ch'] >= $of ) {
+			return null;
+		}
+		return array( (int) $row['series'], (int) $row['ch'], self::done_today( $uid, (int) $row['series'] ) >= self::per_day(), $of );
+	}
+
+	/** Chapters in a series: as many as are written for a library season, else the AI series length. */
+	private static function chapters( $series ) {
+		global $wpdb;
+		$n = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(chapter) FROM ' . self::t() . " WHERE series = %d AND slug <> ''", $series ) ); // phpcs:ignore
+		return $n ? $n : self::MAX_CHAPTERS;
+	}
+
+	/** Episodes a learner may finish per day in one series: one, and three on the weekend (Friday and Saturday). */
+	private static function per_day() {
+		return in_array( (int) wp_date( 'N' ), array( 5, 6 ), true ) ? 3 : 1;
+	}
+
+	private static function done_today( $uid, $series ) {
+		global $wpdb;
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . self::log_t() . ' l JOIN ' . self::t() . ' r ON r.id = l.reader_id WHERE l.user_id = %d AND r.series = %d AND l.done_on = %s', $uid, $series, Sawa_Lens_Store::today() ) ); // phpcs:ignore
+	}
+
+	/** The hook line of the last episode finished in a series ("Tomorrow: …"). */
+	private static function hook( $uid, $series ) {
+		global $wpdb;
+		$body = $wpdb->get_var( $wpdb->prepare( 'SELECT r.body FROM ' . self::log_t() . ' l JOIN ' . self::t() . ' r ON r.id = l.reader_id WHERE l.user_id = %d AND r.series = %d AND l.done_on IS NOT NULL ORDER BY r.chapter DESC LIMIT 1', $uid, $series ) ); // phpcs:ignore
+		$b    = json_decode( (string) $body, true );
+		return (string) ( $b['next'] ?? '' );
+	}
+
+	/** Save the learner's choice at the end of an episode; it picks the opening of the next one. */
+	public static function choose( WP_REST_Request $r ) {
+		global $wpdb;
+		$uid = get_current_user_id();
+		$id  = (int) $r->get_param( 'id' );
+		$key = strtoupper( substr( sanitize_key( (string) $r->get_param( 'key' ) ), 0, 2 ) );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT series, chapter, body FROM ' . self::t() . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore
+		$b   = $row ? json_decode( (string) $row['body'], true ) : null;
+		$ok  = $b ? array_filter( (array) ( $b['choice']['options'] ?? array() ), function ( $o ) use ( $key ) { return ( $o['key'] ?? '' ) === $key; } ) : array();
+		if ( ! $ok ) {
+			return new WP_Error( 'choice', 'That choice is not there.', array( 'status' => 400 ) );
+		}
+		$all = (array) get_user_meta( $uid, 'sawa_lens_reader_choices', true );
+		$all[ (int) $row['series'] . ':' . (int) $row['chapter'] ] = $key;
+		update_user_meta( $uid, 'sawa_lens_reader_choices', $all );
+		return self::out( array( 'ok' => true, 'key' => $key ) );
 	}
 
 	/** Days in a row with a finished reader (today, or up to yesterday if not read yet today). */
@@ -443,7 +508,7 @@ final class Sawa_Lens_Readers {
 		$series = null;
 		if ( $going ) {
 			$first  = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, cat FROM ' . self::t() . ' WHERE id = %d', $going[0] ), ARRAY_A ); // phpcs:ignore
-			$series = $first ? array( 'id' => (int) $first['id'], 'title' => self::series_title( $first['title'] ), 'cat' => $first['cat'], 'next' => $going[1] + 1, 'of' => self::MAX_CHAPTERS, 'tomorrow' => $going[2] ) : null;
+			$series = $first ? array( 'id' => (int) $first['id'], 'title' => self::series_title( $first['title'] ), 'cat' => $first['cat'], 'next' => $going[1] + 1, 'of' => $going[3], 'tomorrow' => $going[2], 'hook' => self::hook( $uid, $going[0] ) ) : null;
 		}
 		$rows = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT r.id, r.title, r.cat, r.format, r.chapter, r.kind, r.level, l.done_on, l.fav, l.score, l.total, l.opened_at FROM ' . self::log_t() . ' l JOIN ' . self::t() . ' r ON r.id = l.reader_id WHERE l.user_id = %d ORDER BY l.opened_at DESC LIMIT 100', $uid ), ARRAY_A ); // phpcs:ignore
 		$lib  = array_map(
@@ -453,7 +518,12 @@ final class Sawa_Lens_Readers {
 			$rows
 		);
 		$why  = self::personal_why( $uid );
-		$pick = self::pick( $uid, $level, self::pick_cat( $uid ), self::pick_format( $uid ) );
+		$pick = null;
+		if ( ! $going ) {
+			// No season going: suggest the first episode of a written season near the learner's level (they pull you back daily).
+			$pick = $wpdb->get_row( $wpdb->prepare( 'SELECT *, ABS(level - %d) * 2 + (level > %d) AS dist FROM ' . self::t() . " r WHERE kind = 'pool' AND status = 'ready' AND format = 'series' AND chapter = 1 AND slug <> '' AND level BETWEEN %d AND %d AND NOT EXISTS (SELECT 1 FROM " . self::log_t() . ' l WHERE l.user_id = %d AND l.reader_id = r.id) ORDER BY dist, id DESC LIMIT 1', $level, $level, $level - 2, $level + 1, $uid ), ARRAY_A ); // phpcs:ignore
+		}
+		$pick = $pick ? $pick : self::pick( $uid, $level, self::pick_cat( $uid ), self::pick_format( $uid ) );
 		return self::out(
 			array(
 				'level'    => self::CEFR[ $level ],
@@ -577,12 +647,13 @@ final class Sawa_Lens_Readers {
 		if ( ! $first ) {
 			return new WP_Error( 'series', 'This series is not there anymore.', array( 'status' => 404 ) );
 		}
-		$done = $wpdb->get_row( $wpdb->prepare( 'SELECT MAX(r.chapter) AS ch, MAX(l.done_on) AS last FROM ' . self::log_t() . ' l JOIN ' . self::t() . ' r ON r.id = l.reader_id WHERE l.user_id = %d AND r.series = %d AND l.done_on IS NOT NULL', $uid, $series ), ARRAY_A ); // phpcs:ignore
+		$done = $wpdb->get_row( $wpdb->prepare( 'SELECT MAX(r.chapter) AS ch FROM ' . self::log_t() . ' l JOIN ' . self::t() . ' r ON r.id = l.reader_id WHERE l.user_id = %d AND r.series = %d AND l.done_on IS NOT NULL', $uid, $series ), ARRAY_A ); // phpcs:ignore
 		$n    = (int) ( $done['ch'] ?? 0 ) + 1;
-		if ( $n > self::MAX_CHAPTERS ) {
+		if ( $n > self::chapters( $series ) ) {
 			return new WP_Error( 'series', 'You finished this series! 🎉', array( 'status' => 400 ) );
 		}
-		if ( $n > 1 && ( $done['last'] ?? '' ) === Sawa_Lens_Store::today() && ! current_user_can( 'manage_options' ) ) {
+		// One episode a day (three on Friday and Saturday), so tomorrow always has a reason to come back.
+		if ( $n > 1 && self::done_today( $uid, $series ) >= self::per_day() && ! current_user_can( 'manage_options' ) ) {
 			return new WP_Error( 'tomorrow', 'Chapter ' . $n . ' opens tomorrow. Come back for what happens next!', array( 'status' => 400 ) );
 		}
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . self::t() . " WHERE series = %d AND chapter = %d AND status = 'ready'", $series, $n ), ARRAY_A ); // phpcs:ignore
@@ -642,11 +713,13 @@ final class Sawa_Lens_Readers {
 			$wpdb->update( self::log_t(), array( 'score' => $right, 'total' => $total ), array( 'user_id' => $uid, 'reader_id' => $id ) ); // phpcs:ignore
 		}
 		$next = null;
-		$row  = $wpdb->get_row( $wpdb->prepare( 'SELECT format, series, chapter FROM ' . self::t() . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore
-		if ( $row && 'series' === $row['format'] && (int) $row['chapter'] < self::MAX_CHAPTERS ) {
+		$hook = '';
+		$row  = $wpdb->get_row( $wpdb->prepare( 'SELECT format, series, chapter, body FROM ' . self::t() . ' WHERE id = %d', $id ), ARRAY_A ); // phpcs:ignore
+		if ( $row && 'series' === $row['format'] && (int) $row['chapter'] < self::chapters( (int) $row['series'] ) ) {
 			$next = (int) $row['chapter'] + 1;
+			$hook = (string) ( json_decode( (string) $row['body'], true )['next'] ?? '' );
 		}
-		return self::out( array( 'xp' => $xp, 'streak' => self::streak( $uid ), 'nextChapter' => $next ) );
+		return self::out( array( 'xp' => $xp, 'streak' => self::streak( $uid ), 'nextChapter' => $next, 'hook' => $hook, 'today' => $next && self::done_today( $uid, (int) $row['series'] ) < self::per_day() ) );
 	}
 
 	public static function fav( WP_REST_Request $r ) {
@@ -703,15 +776,37 @@ final class Sawa_Lens_Readers {
 		$log  = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . self::log_t() . ' WHERE user_id = %d AND reader_id = %d', $uid, (int) $row['id'] ), ARRAY_A ); // phpcs:ignore
 		$b    = json_decode( (string) $row['body'], true );
 		$cats = self::cats();
+		$ser  = (int) $row['series'];
+		$ch   = (int) $row['chapter'];
+		$mine = (array) get_user_meta( $uid, 'sawa_lens_reader_choices', true );
+		// The opening paragraph follows the learner's choice in the previous episode (the first option if they didn't choose).
+		if ( $ch > 1 && ! empty( $b['openings'] ) ) {
+			$key = $mine[ $ser . ':' . ( $ch - 1 ) ] ?? array_keys( (array) $b['openings'] )[0];
+			array_unshift( $b['paragraphs'], (string) ( $b['openings'][ $key ] ?? reset( $b['openings'] ) ) );
+		}
+		$prev = (string) ( $b['previously'] ?? '' );
+		if ( '' === $prev && $ch > 1 ) {
+			$pb   = json_decode( (string) $wpdb->get_var( $wpdb->prepare( 'SELECT body FROM ' . self::t() . ' WHERE series = %d AND chapter = %d', $ser, $ch - 1 ) ), true ); // phpcs:ignore
+			$prev = (string) ( $pb['recap'] ?? '' );
+		}
+		$choice = (array) ( $b['choice'] ?? array() );
+		if ( $choice ) {
+			$choice['chosen'] = $mine[ $ser . ':' . $ch ] ?? '';
+		}
 		return self::out(
 			array(
 				'id'        => (int) $row['id'],
 				'title'     => $row['title'],
 				'cat'       => $cats[ $row['cat'] ] ?? array( 'id' => $row['cat'], 'name' => $row['cat'], 'ar' => '', 'emoji' => '📖' ),
 				'format'    => $row['format'],
-				'series'    => (int) $row['series'],
-				'chapter'   => (int) $row['chapter'],
-				'of'        => self::MAX_CHAPTERS,
+				'series'    => $ser,
+				'chapter'   => $ch,
+				'of'        => 'series' === $row['format'] ? self::chapters( $ser ) : self::MAX_CHAPTERS,
+				'previously' => $prev,
+				'phrase'    => (array) ( $b['phrase'] ?? array() ),
+				'choice'    => $choice,
+				'hook'      => (string) ( $b['next'] ?? '' ),
+				'reflect'   => (string) ( $b['reflect'] ?? '' ),
 				'mine'      => 'own' === $row['kind'],
 				'hidden'    => 'hidden' === $row['status'],
 				'level'     => self::CEFR[ (int) $row['level'] ] ?? 'A2',

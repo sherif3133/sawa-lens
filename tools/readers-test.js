@@ -73,7 +73,7 @@ async function phone(br) {
 	for (let i = 0; i < r.questions.length; i++) await p.$eval(`.st-q[data-q="${i}"] .opt[data-k="${r.questions[i].answer}"]`, (b) => b.click());
 	await p.waitForSelector('.st-end', { timeout: 10000 });
 	const end = await p.$eval('.st-end', (b) => b.textContent);
-	ok(new RegExp(r.questions.length + ' of ' + r.questions.length).test(end) && /\+15 XP/.test(end) && /1-day reading streak/.test(end), 'phone: result shows all right, +15 XP (unless today's XP cap is reached) and the streak (' + end.trim() + ')');
+	ok(new RegExp(r.questions.length + ' of ' + r.questions.length).test(end) && (/\+15 XP/.test(end) || !/XP/.test(end)) && /1-day reading streak/.test(end), 'phone: result shows all right, +15 XP (unless the daily XP cap is reached) and the streak (' + end.trim() + ')');
 	await p.shot('3-check');
 	const twice = await p.api('readers/done', { id, right: 4, total: 4 });
 	ok(twice.xp === 0, 'phone: XP is given only once per story');
@@ -92,7 +92,8 @@ async function phone(br) {
 	ok(c1.chapter === 1 && /Bulaq Boys – Chapter 1/.test(c1.title), 'phone: the Bulaq Boys series starts at chapter 1 (' + c1.title + ')');
 	await p.api('readers/done', { id: c1.id, right: 4, total: 4 });
 	const home = await p.api('readers');
-	ok(home.series && home.series.next === 2 && home.series.tomorrow, 'phone: chapter 2 is waiting for tomorrow');
+	const weekend = [5, 6].includes(new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })).getDay()); // 3 episodes a day on Friday and Saturday
+	ok(home.series && home.series.next === 2 && home.series.tomorrow === !weekend, 'phone: chapter 2 ' + (weekend ? 'is open today (weekend)' : 'is waiting for tomorrow'));
 	const n1 = await calls();
 	const c2 = await p.api('readers/next', { series: c1.series });
 	ok(c2.chapter === 2 && c2.series === c1.id && (await calls()) === n1, 'phone: chapter 2 comes from the library, same series, no AI');
