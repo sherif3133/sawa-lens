@@ -308,6 +308,7 @@
 	var voice = null;
 	function speak(text) {
 		if (!('speechSynthesis' in window)) return toast('المتصفح بتاعك مش بيشغّل صوت.');
+		if (typeof READ !== 'undefined' && READ && READ.playing) pauseReading(); // one word or sentence pauses the full reading
 		var vs = speechSynthesis.getVoices();
 		voice = voice || vs.filter(function (v) { return /en[-_]US/i.test(v.lang) && /Google|Samantha|Aria|Jenny|Natural/i.test(v.name); })[0] || vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] || null;
 		speechSynthesis.cancel();
@@ -865,7 +866,7 @@
 		});
 		var cols = Math.ceil((rows.length + off) / 7), W = cols * (s + gp), H = 7 * (s + gp);
 		return '<svg class="ch heat" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Days you reviewed cards in the last 12 weeks">' + cells + '</svg>'
-			+ '<div class="ch-key small muted">أقل ' + CH.seq.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + ' أكتر</div>';
+			+ '<div class="ch-key small muted">أقل ' + CH.seq.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + ' المزيد</div>';
 	}
 	/** Home: your progress in pictures. */
 	function paintProgress(box) {
@@ -1302,27 +1303,135 @@
 		var items = e.clipboardData.items || [];
 		for (var i = 0; i < items.length; i++) if (/^image\//.test(items[i].type)) { var f = items[i].getAsFile(); if (f) { e.preventDefault(); doScan(f); return; } }
 	});
-	/* Listen to the whole text: paragraph by paragraph, the one being read is highlighted. */
+	/*
+	 * Read aloud like a player (Read a text, Scan, Stories): play, pause and resume from the last word, and tap
+	 * any word to start from it. The phone's voice reports each word it reaches (boundary events; when a phone
+	 * doesn't, the place is estimated from the time); the recorded voice of stories seeks by time.
+	 * READ = { i: paragraph, off: character in it, playing, tok: changes on every stop so old callbacks do nothing }.
+	 */
 	var READ = null;
-	function stopReading() { if (READ) { if (READ.audio) READ.audio.pause(); READ = null; if ('speechSynthesis' in window) speechSynthesis.cancel(); $app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); }); var b = $app.querySelector('#readall'); if (b) b.textContent = '🔊 اسمع النص كله'; } }
-	function readAll(btn) {
-		if (READ) return stopReading();
-		if (SCAN && SCAN.voice) return readVoice(btn); // Stories for you: a natural recorded voice
-		if (!('speechSynthesis' in window)) return toast('المتصفح بتاعك مش بيشغّل صوت.');
-		var paras = SCAN.paragraphs, i = 0, run = READ = {}, vs = speechSynthesis.getVoices();
-		var v = vs.filter(function (x) { return /en[-_]US/i.test(x.lang) && /Google|Samantha|Aria|Jenny|Natural/i.test(x.name); })[0] || vs.filter(function (x) { return /en[-_]US/i.test(x.lang); })[0] || null;
-		btn.textContent = '■ وقّف القراية';
-		speechSynthesis.cancel();
-		(function next() {
-			if (READ !== run) return;
-			$app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); });
-			if (i >= paras.length) return stopReading();
-			var el = $app.querySelector('.scan-text p[data-p="' + i + '"]'); if (el) { el.classList.add('reading'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-			var u = new SpeechSynthesisUtterance(paras[i]); u.lang = 'en-US'; u.rate = +(($app.querySelector('#readrate') || {}).value || 0.9); if (v) u.voice = v;
-			u.onend = function () { i++; next(); }; u.onerror = function () { stopReading(); };
+	function rdRate() { return +(($app.querySelector('#readrate') || {}).value || 0.9); }
+	function rdVoice() {
+		var vs = speechSynthesis.getVoices();
+		return vs.filter(function (x) { return /en[-_]US/i.test(x.lang) && /Google|Samantha|Aria|Jenny|Natural/i.test(x.name); })[0] || vs.filter(function (x) { return /en[-_]US/i.test(x.lang); })[0] || null;
+	}
+	/** The start of the word at or before this character. */
+	function rdSnap(para, off) {
+		var best = 0, re = /[A-Za-z]+(?:[’'][A-Za-z]+)?/g, m;
+		while ((m = re.exec(para)) && m.index <= off) best = m.index;
+		return best;
+	}
+	/** Highlight the paragraph and the word being read. */
+	function rdMark(i, off) {
+		$app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); });
+		$app.querySelectorAll('.scan-text .sw.now').forEach(function (s) { s.classList.remove('now'); });
+		var el = $app.querySelector('.scan-text p[data-p="' + i + '"]'); if (!el) return;
+		el.classList.add('reading');
+		var w = null;
+		el.querySelectorAll('.sw').forEach(function (s) { if (+s.dataset.o <= off) w = s; });
+		if (w) w.classList.add('now');
+		var r = (w || el).getBoundingClientRect();
+		if (r.top < 70 || r.bottom > innerHeight - 150) (w || el).scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+	/** The player: the Listen button turns into Pause / Resume, and a bar stays at the bottom while reading. */
+	function rdUi() {
+		var b = $app.querySelector('#readall'), playing = !!(READ && READ.playing);
+		if (b) b.textContent = !READ ? '🔊 اسمع النص كله' : playing ? '❚❚ وقّف مؤقتًا' : '▶ كمّل';
+		var bar = document.getElementById('rdbar');
+		if (!READ) { if (bar) bar.remove(); return; }
+		if (!bar) { bar = document.createElement('div'); bar.id = 'rdbar'; bar.className = 'rd-bar'; document.body.appendChild(bar); }
+		bar.innerHTML = '<button class="rd-pp" aria-label="' + (playing ? 'وقّف مؤقتًا' : 'كمّل') + '">' + (playing ? '❚❚' : '▶') + '</button><span class="small">' + (playing ? 'بيقرا…' : 'واقف مؤقتًا') + ' · دوس على أي كلمة يبدأ منها</span><button class="rd-x" aria-label="Stop reading">■</button>';
+		bar.querySelector('.rd-pp').onclick = function () { if (READ && READ.playing) pauseReading(); else resumeReading(); };
+		bar.querySelector('.rd-x').onclick = function () { stopReading(); };
+	}
+	function rdHalt() {
+		if (!READ) return;
+		READ.tok++;
+		if (READ.audio) READ.audio.pause();
+		if ('speechSynthesis' in window) speechSynthesis.cancel();
+	}
+	function stopReading() {
+		var wp = document.querySelector('.wpop'); if (wp) wp.remove();
+		if (!READ) return;
+		rdHalt(); READ = null;
+		$app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); });
+		$app.querySelectorAll('.scan-text .sw.now').forEach(function (s) { s.classList.remove('now'); });
+		rdUi();
+	}
+	function pauseReading() {
+		if (!READ || !READ.playing) return;
+		var para = (SCAN && SCAN.paragraphs[READ.i]) || '';
+		if (READ.audio && READ.audio.duration) READ.off = Math.floor(para.length * READ.audio.currentTime / READ.audio.duration);
+		else if (!READ.heard) READ.off = Math.min(para.length, READ.from + Math.floor((Date.now() - READ.t0) / 1000 * 14 * rdRate())); // no word events on this phone: estimate
+		READ.off = rdSnap(para, READ.off);
+		rdHalt(); READ.playing = false; rdUi();
+	}
+	function resumeReading() { if (READ) readFrom(READ.i, READ.off); }
+	/** The Listen button: start, pause, resume. */
+	function readAll() {
+		if (!READ) return readFrom(0, 0);
+		return READ.playing ? pauseReading() : resumeReading();
+	}
+	/** Read from paragraph i, character off, to the end of the text. */
+	function readFrom(i, off) {
+		if (!SCAN || !SCAN.paragraphs || !SCAN.paragraphs.length) return;
+		var natural = !!SCAN.voice; // Stories: a recorded natural voice, when it is switched on
+		if (!natural && !('speechSynthesis' in window)) return toast('المتصفح بتاعك مش بيشغّل صوت.');
+		if (READ) rdHalt(); else READ = { tok: 0 };
+		READ.i = i; READ.off = off || 0; READ.playing = true;
+		if (natural && !READ.audio) READ.audio = new Audio();
+		var tok = ++READ.tok;
+		rdUi();
+		function fallback() { if (!READ || READ.tok !== tok) return; SCAN.voice = 0; readFrom(READ.i, READ.off); } // no recording: the phone's voice reads from here
+		(function play() {
+			if (!READ || READ.tok !== tok) return;
+			var paras = SCAN.paragraphs;
+			if (READ.i >= paras.length) return stopReading();
+			var para = paras[READ.i], start = READ.off;
+			var next = function () { if (!READ || READ.tok !== tok) return; READ.i++; READ.off = 0; play(); };
+			READ.from = start; READ.t0 = Date.now(); READ.heard = false;
+			rdMark(READ.i, start);
+			if (natural) {
+				api('readers/audio', { body: { id: SCAN.voice, p: READ.i } }).then(function (x) {
+					if (!READ || READ.tok !== tok) return;
+					var a = READ.audio;
+					a.src = x.url; a.playbackRate = rdRate() / 0.9;
+					a.onloadedmetadata = function () { if (start && a.duration) a.currentTime = a.duration * start / para.length; };
+					a.ontimeupdate = function () { if (READ && READ.tok === tok && a.duration) { READ.off = Math.floor(para.length * a.currentTime / a.duration); rdMark(READ.i, READ.off); } };
+					a.onended = next; a.onerror = fallback;
+					var pl = a.play(); if (pl && pl.catch) pl.catch(fallback);
+				}, fallback);
+				return;
+			}
+			var u = new SpeechSynthesisUtterance(para.slice(start)), v = rdVoice();
+			u.lang = 'en-US'; u.rate = rdRate(); if (v) u.voice = v;
+			u.onboundary = function (e) { if (!READ || READ.tok !== tok || (e.name && e.name !== 'word')) return; READ.heard = true; READ.off = start + e.charIndex; rdMark(READ.i, READ.off); };
+			u.onend = next;
+			u.onerror = function (e) { if (READ && READ.tok === tok && e.error !== 'interrupted' && e.error !== 'canceled') stopReading(); };
+			speechSynthesis.cancel();
 			speechSynthesis.speak(u);
 		})();
 	}
+	/** Tap a word: a small card right there (meaning, its sound, save), and the reading jumps to that word. */
+	function wordPop(sp, sentence) {
+		var old = document.querySelector('.wpop'); if (old) old.remove();
+		var word = sp.textContent, lemma = lemmaOf(word), ms = meanings(lemma);
+		var pop = document.createElement('div');
+		pop.className = 'wpop'; pop.setAttribute('role', 'dialog');
+		pop.innerHTML = '<div class="row-between"><b dir="ltr">' + esc(lemma) + '</b><span><button class="say sm" data-wsay aria-label="Listen to the word">🔊</button><button class="link small" data-wx aria-label="Close">✕</button></span></div>'
+			+ (ms.length ? meaningHtml(ms[0], true) : '<p class="small muted">مش في القاموس. دوس «المزيد» عشان شرح بالذكاء الاصطناعي.</p>')
+			+ '<div class="ra-btns"><button class="btn sm" data-wl>＋ بتعلّمها</button><button class="btn ghost sm" data-wm>المزيد</button></div>';
+		document.body.appendChild(pop);
+		var r = sp.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+		var below = r.bottom + h + 8 < innerHeight - 140; // the player bar and the menu sit at the bottom
+		pop.style.top = (scrollY + (below ? r.bottom + 6 : r.top - h - 6)) + 'px';
+		pop.style.left = (scrollX + Math.max(16, Math.min(r.left - 16, innerWidth - w - 16))) + 'px';
+		pop.querySelector('[data-wsay]').onclick = function () { speak(lemma); }; // one word: the reading pauses
+		pop.querySelector('[data-wx]').onclick = function () { pop.remove(); };
+		pop.querySelector('[data-wl]').onclick = function () { var b = this; b.disabled = true; api('library/word', { body: { lemma: lemma, status: 'learning', sentence: sentence.slice(0, 600), title: SCAN.title || '' } }).then(function () { b.textContent = '✓ بتعلّمها'; toast('اتضافت لكروت المراجعة'); }, function (e) { b.disabled = false; toast(e.message); }); };
+		pop.querySelector('[data-wm]').onclick = function () { pop.remove(); pauseReading(); wordCard(word, sentence); };
+	}
+	document.addEventListener('click', function (e) { var p = document.querySelector('.wpop'); if (p && !p.contains(e.target) && !e.target.closest('.sw')) p.remove(); });
 	function doScan(file) {
 		var box = $app.querySelector('#scan'), er = $app.querySelector('#er');
 		er.textContent = '';
@@ -1362,9 +1471,14 @@
 			var tg = {}; (SCAN.targets || []).forEach(function (t) { tg[t.word] = 1; });
 			box.innerHTML = (SCAN.title ? '<h2>' + esc(SCAN.title) + '</h2>' : '') + adaptedHead() + '<div class="ra-btns"><button class="btn" id="readall">🔊 اسمع النص كله</button><label class="small">السرعة <select id="readrate"><option value="0.75">بطيء</option><option value="0.9" selected>عادي</option><option value="1.05">سريع</option></select></label></div><p class="small muted">دوس على كلمة عشان معناها · حدّد كلمات عشان تحفظ تعبير أو جملة</p><div class="card scan-text" dir="ltr">' + SCAN.paragraphs.map(function (p) {
 				var idx = pi++;
-				return '<p data-p="' + idx + '">' + esc(p).replace(/&(?:[a-z]+|#\d+);|[A-Za-z]+(?:[’'][A-Za-z]+)?/g, function (w) { if (w.charAt(0) === '&') return w; /* keep &quot; &amp; … whole */ return '<span class="sw' + (tg[w.toLowerCase()] || tg[lemmaOf(w)] ? ' tg' : '') + '">' + w + '</span>'; }) + '</p>';
+				// Each word knows where it starts in the paragraph (data-o), so reading can start from it.
+				var offs = [], re = /[A-Za-z]+(?:[’'][A-Za-z]+)?/g, m, k = 0;
+				while ((m = re.exec(p))) offs.push(m.index);
+				return '<p data-p="' + idx + '">' + esc(p).replace(/&(?:[a-z]+|#\d+);|[A-Za-z]+(?:(?:[’']|&#39;)[A-Za-z]+)?/g, function (w) { if (w.charAt(0) === '&') return w; /* keep &quot; &amp; … whole */ var plain = w.replace('&#39;', '\''); return '<span class="sw' + (tg[plain.toLowerCase()] || tg[lemmaOf(plain)] ? ' tg' : '') + '" data-o="' + (offs[k++] || 0) + '">' + w + '</span>'; }) + '</p>';
 			}).join('') + '</div><div id="wcard"></div>';
-			box.querySelector('#readall').onclick = function () { readAll(this); };
+			box.querySelector('#readall').onclick = function () { readAll(); };
+			box.querySelector('#readrate').onchange = function () { if (READ && READ.playing) { pauseReading(); resumeReading(); } }; // new speed from the current word
+			if (READ) rdUi();
 			box.querySelectorAll('[data-tgl]').forEach(function (b) {
 				b.onclick = function () {
 					var t = SCAN.targets[+b.dataset.tgl]; b.disabled = true;
@@ -1376,9 +1490,11 @@
 				sp.onclick = function () {
 					box.querySelectorAll('.sw.on').forEach(function (x) { x.classList.remove('on'); });
 					sp.classList.add('on');
-					var para = SCAN.paragraphs[+sp.parentNode.dataset.p], word = sp.textContent;
+					var pIdx = +sp.parentNode.dataset.p, para = SCAN.paragraphs[pIdx], word = sp.textContent;
 					var sents = para.match(/[^.!?]+[.!?]*/g) || [para], sentence = sents.filter(function (x) { return x.indexOf(word) >= 0; })[0] || para;
-					wordCard(word, sentence.trim());
+					// Like a playback device: the reading jumps to this word, and its meaning shows right here.
+					readFrom(pIdx, +sp.dataset.o || 0);
+					wordPop(sp, sentence.trim());
 				};
 			});
 			// Select any part of the text (finger or mouse) to save exactly that part.
@@ -1432,7 +1548,7 @@
 			+ (ms.length ? ms.slice(0, 2).map(function (m) { return '<div><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span>' + meaningHtml(m) + '</div>'; }).join('') : '')
 			+ '<div data-ai-word="' + esc(word) + '" data-ai-sent="' + esc(sentence) + '"><button class="link small">' + (ms.length ? 'المعنى في الجملة دي (AI)' : 'اشرح بالـ AI') + '</button></div>'
 			+ '<p class="small muted" dir="ltr">“' + esc(sentence) + '”</p><div class="pics" data-pics="' + esc(lemma) + '" data-sent="' + esc(sentence) + '"></div>'
-			+ '<div class="ra-btns"><button class="btn sm" id="learn">+ Learning</button><button class="btn ghost sm" id="savesent">احفظ الجملة</button><button class="btn ghost sm" data-say="' + esc(sentence) + '">🔊 الجملة</button></div></section>';
+			+ '<div class="ra-btns"><button class="btn sm" id="learn">+ بتعلّمها</button><button class="btn ghost sm" id="savesent">احفظ الجملة</button><button class="btn ghost sm" data-say="' + esc(sentence) + '">🔊 الجملة</button></div></section>';
 		bindSay();
 		bindPics(el);
 		var aw = el.querySelector('[data-ai-word]');
@@ -1440,7 +1556,7 @@
 			this.textContent = 'بنشرح…';
 			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="rv-ar' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
 		};
-		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learning'; b.disabled = true; toast('اتضافت لكروت المراجعة'); }, function (e) { toast(e.message); }); };
+		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ بتعلّمها'; b.disabled = true; toast('اتضافت لكروت المراجعة'); }, function (e) { toast(e.message); }); };
 		el.querySelector('#savesent').onclick = function () { saveEditor(sentence, sentence); };
 		el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	}
@@ -1560,7 +1676,7 @@
 		return (LEX.lemmas[lemma] || []).map(function (i) { var e = LEX.entries[i]; return { head: e[0], pos: e[1], level: LEX.levels[e[2] - 1] || '', ar: e[3], en: String(e[4] || '').split(' · ')[0], ex: String(e[5] || '').split(' · ')[0] }; });
 	}
 	function firstAr(lemma) { var m = meanings(lemma); return m.length ? m[0].ar : ''; }
-	var GTAG = { conditional: 'Conditional (if)', passive: 'Passive', 'present-perfect': 'Present perfect', 'past-perfect': 'Past perfect', continuous: 'Continuous', future: 'Future', modal: 'Modal verb', relative: 'Relative clause', reported: 'Reported speech', comparison: 'Comparison', question: 'Question form', phrasal: 'Phrasal verb', idiom: 'Idiom', collocation: 'Collocation', phrase: 'Phrase', other: 'حاجة تانية' };
+	var GTAG = { conditional: 'Conditional (if)', passive: 'Passive', 'present-perfect': 'Present perfect', 'past-perfect': 'Past perfect', continuous: 'Continuous', future: 'Future', modal: 'Modal verb', relative: 'Relative clause', reported: 'Reported speech', comparison: 'Comparison', question: 'Question form', phrasal: 'Phrasal verb', idiom: 'Idiom', collocation: 'Collocation', phrase: 'عبارة', other: 'حاجة تانية' };
 	function srcLink(c) {
 		if (c.videoId) return 'https://www.youtube.com/watch?v=' + c.videoId + (c.startMs ? '&t=' + Math.floor(c.startMs / 1000) + 's' : '');
 		return c.url || '';
@@ -1611,7 +1727,7 @@
 			+ (c.text ? '<p class="rv-ctx" dir="ltr">“' + highlight(c.text, wordIn(c.text, c.lemma)) + '”</p>' : '')
 			+ '<div class="ra-btns"><button class="say sm" data-say="' + esc(c.lemma) + '" aria-label="Listen">🔊</button>' + (c.text ? '<button class="say sm" data-say="' + esc(c.text) + '" aria-label="Listen to the sentence">💬</button>' : '') + '</div>';
 		if (c.type === 'mistake') return '<p class="rv-kind">غلطتك · صلّحها في دماغك</p><p class="rv-sent" dir="ltr">' + highlight(c.sentence, c.wrong) + '</p>';
-		var kind = c.type === 'phrase' ? 'Phrase' + (GTAG[c.tag] ? ' · ' + GTAG[c.tag] : '') : c.type === 'grammar' ? 'قواعد · ' + (GTAG[c.tag] || 'example') : 'جملة';
+		var kind = c.type === 'phrase' ? 'عبارة' + (GTAG[c.tag] ? ' · ' + GTAG[c.tag] : '') : c.type === 'grammar' ? 'قواعد · ' + (GTAG[c.tag] || 'example') : 'جملة';
 		return '<p class="rv-kind">' + esc(kind) + ' · فاهمها؟</p>' + (c.type === 'phrase' && c.focus ? '<p class="rv-word" dir="ltr">' + esc(c.focus) + '</p>' : '')
 			+ '<p class="rv-sent" dir="ltr">' + highlight(c.text, c.focus) + '</p><button class="say sm" data-say="' + esc(c.text) + '" aria-label="Listen">🔊</button>';
 	}
@@ -1879,7 +1995,7 @@
 	 */
 	var IN = { sel: {}, liked: {}, saved: {} };
 	var LV = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
-	var IN_TYPE = { youtube: ['▶', 'YouTube'], podcast: ['🎙', 'Podcast'], music: ['🎵', 'Music'], book: ['📖', 'Book'], site: ['🌐', 'Website'], series: ['📺', 'Series'] };
+	var IN_TYPE = { youtube: ['▶', 'YouTube'], podcast: ['🎙', 'Podcast'], music: ['🎵', 'Music'], book: ['📖', 'Book'], site: ['🌐', 'Website'], series: ['📺', 'مسلسل'] };
 	var IN_CC = { yes: 'CC captions', auto: 'Auto captions', lyrics: 'Lyric videos', subs: 'Subtitles', text: 'Text', none: 'No captions' };
 	ICONS.interests = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 	function inLoad() {
@@ -2040,7 +2156,7 @@
 	/* ── Stories for you (beta): graded readers about what you love ───── */
 	ICONS.songs = ICONS.songs || '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>'; // the My songs tile on Learn: a music note
 	ICONS.stories = '<svg viewBox="0 0 24 24"><path d="M4 5c3-1 6-1 8 1v14c-2-2-5-2-8-1z"/><path d="M20 5c-3-1-6-1-8 1v14c2-2 5-2 8-1z"/></svg>';
-	var ST_FMT = { story: ['📖', 'Story'], explainer: ['💡', 'Explainer'], series: ['📚', 'Series'] };
+	var ST_FMT = { story: ['📖', 'قصة'], explainer: ['💡', 'شرح'], series: ['📚', 'مسلسل'] };
 	function stCat(c) { return c ? (c.emoji ? c.emoji + ' ' : '') + c.name : ''; }
 	function storiesView() {
 		shell('<section class="stack"><h1>📖 قصص ليك</h1><p class="muted">قصص قصيرة وشروحات عن اللي بتحبه، مكتوبة على مستواك: تقريبًا كل كلمة عارفها، وكام كلمة جديدة. دوس على أي كلمة عشان معناها، واسمع معاها.</p></section><section id="st" class="stack"><p class="loading">بنحمّل…</p></section>');
@@ -2100,7 +2216,7 @@
 					return '<li><button class="say sm" data-say="' + esc(t.word) + '" aria-label="Listen">🔊</button><b dir="ltr">' + esc(t.word) + '</b><span class="small muted" dir="ltr">' + esc(t.en) + '</span><span class="small" dir="rtl">' + esc(t.ar) + '</span><button class="btn ghost sm" data-stw="' + i + '">＋</button></li>';
 				}).join('') + '</ul>' : '') + '</section>' : '')
 			+ '<section class="card stack" id="stq"></section>'
-			+ '<div class="ra-btns"><button class="btn ghost sm" id="stfav">' + (r.fav ? '★ مفضلة' : '☆ ضيف للمفضلة') + '</button>' + (r.admin ? '<button class="btn ghost sm" id="sthide">' + (r.hidden ? 'Show again (admin)' : 'Hide this story (admin)') + '</button>' : '') + '</div>');
+			+ '<div class="ra-btns"><button class="btn ghost sm" id="stfav">' + (r.fav ? '★ مفضلة' : '☆ ضيف للمفضلة') + '</button>' + (r.admin ? '<button class="btn ghost sm" id="sthide">' + (r.hidden ? 'Show again (admin)' : 'اخفي القصة دي (أدمن)') + '</button>' : '') + '</div>');
 		paintScan();
 		$app.querySelector('#stback').onclick = function () { go('stories'); };
 		$app.querySelectorAll('[data-say]').forEach(function (b) { b.onclick = function () { speak(b.dataset.say); }; });
@@ -2117,27 +2233,6 @@
 		var hd = $app.querySelector('#sthide');
 		if (hd) hd.onclick = function () { hd.disabled = true; api('readers/hide', { body: { id: r.id, show: r.hidden ? 1 : 0 } }).then(function () { toast(r.hidden ? 'ظهرت تاني' : 'اتخفت: مش هتتقترح تاني'); go('stories'); }, function (e) { hd.disabled = false; toast(e.message); }); };
 		storyCheck(r);
-	}
-	/** Listen along with a recorded natural voice, paragraph by paragraph (recorded once on the server, then shared). */
-	function readVoice(btn) {
-		var paras = SCAN.paragraphs, i = 0, run = READ = { audio: new Audio() }, id = SCAN.voice;
-		btn.textContent = '■ وقّف القراية';
-		(function next() {
-			if (READ !== run) return;
-			$app.querySelectorAll('.scan-text p.reading').forEach(function (p) { p.classList.remove('reading'); });
-			if (i >= paras.length) return stopReading();
-			var el = $app.querySelector('.scan-text p[data-p="' + i + '"]'); if (el) { el.classList.add('reading'); el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-			api('readers/audio', { body: { id: id, p: i } }).then(function (x) {
-				if (READ !== run) return;
-				var a = run.audio;
-				a.src = x.url; a.playbackRate = +(($app.querySelector('#readrate') || {}).value || 0.9) / 0.9;
-				a.onended = function () { i++; next(); };
-				a.onerror = function () { fallback(); };
-				var pl = a.play(); if (pl && pl.catch) pl.catch(function () { fallback(); });
-			}, function () { fallback(); });
-		})();
-		// No recording (voice off or failed): the phone's own voice reads from here.
-		function fallback() { if (READ !== run) return; stopReading(); SCAN.voice = 0; readAll(btn); }
 	}
 	/** After reading: a quick check (tap answers), then XP and the reading streak. */
 	function storyCheck(r) {

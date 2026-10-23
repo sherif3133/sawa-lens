@@ -1,4 +1,4 @@
-/* API test of Story seasons (Stories v2) on the local WordPress Playground, as a regular student (user 8):
+/* API test of Story seasons (Stories v2) on the local WordPress Playground, as a regular student (user 2):
    Home suggests a season, choices pick the next opening, "Previously", phrase and hook, the daily pace
    (1 a day, 3 on Friday and Saturday) and the voice for the opening. Needs the readers test mu-plugin.
    Run from language-lens/tools (for puppeteer): node ../../sawa-lens/tools/seasons-test.js */
@@ -16,7 +16,7 @@ const text = (u) => fetch(B + u).then((r) => r.text());
 	const api = (path, body) => p.evaluate((path, body) => fetch(SAWA_LENS.root + path, { method: body ? 'POST' : 'GET', credentials: 'same-origin', headers: { 'X-WP-Nonce': SAWA_LENS.nonce, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then((r) => r.json()), path, body);
 	const perDay = await p.evaluate(() => 0).then(() => { const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' })).getDay(); return d === 5 || d === 6 ? 3 : 1; });
 
-	await as(8);
+	await as(2);
 	let h = await api('readers');
 	ok(h.today && /^The Interview – Chapter 1$/.test(h.today.title), 'an A2 student with no season going is offered The Interview, episode 1 (' + (h.today && h.today.title) + ')');
 	const e1 = await api('readers/' + h.today.id);
@@ -49,8 +49,8 @@ const text = (u) => fetch(B + u).then((r) => r.text());
 		ok(e3.chapter === 3 && e4.code === 'tomorrow', 'weekend: 3 episodes a day, then the 4th waits for tomorrow');
 	}
 	// A B1 student gets Night Shift.
-	await text('/?readers_level=8&lv=3');
-	await as(8);
+	await text('/?readers_level=2&lv=3');
+	await as(2);
 	h = await api('readers');
 	ok(h.series && h.series.title === 'The Interview', 'the started season stays on Home');
 	await as(1);
@@ -67,7 +67,7 @@ const text = (u) => fetch(B + u).then((r) => r.text());
 	ph.on('pageerror', (e) => errs.push(e.message));
 	const out = process.argv[2] || '.';
 	const click = async (sel) => { await ph.waitForSelector(sel, { timeout: 20000 }); await ph.$eval(sel, (b) => b.click()); await new Promise((r) => setTimeout(r, 500)); };
-	await ph.goto(B + '/app/?as=8&u=' + Date.now() + '#stories', { waitUntil: 'networkidle2' });
+	await ph.goto(B + '/app/?as=2&u=' + Date.now() + '#stories', { waitUntil: 'networkidle2' });
 	await ph.waitForSelector('#st [data-open]', { timeout: 20000 });
 	ok(/The Interview – Chapter 1/.test(await ph.$eval('#st', (b) => b.innerText)), 'phone: Stories offers The Interview first');
 	await click('#st .btn[data-open]');

@@ -58,12 +58,12 @@ async function phone(br) {
 	// Listen along with the natural voice (mocked OpenAI TTS, playback stubbed).
 	await p.tap('#readall');
 	await p.waitForFunction(() => window.__played >= 1, { timeout: 10000 }).catch(() => {});
-	ok(/Stop/.test(await p.$eval('#readall', (b) => b.textContent)) && (await p.evaluate(() => window.__played)) >= 1, 'phone: listen-along plays the recorded natural voice');
+	ok(/Pause/.test(await p.$eval("#readall", (b) => b.textContent)) && (await p.evaluate(() => window.__played)) >= 1, 'phone: listen-along plays the recorded natural voice');
 	const again = await p.api('readers/audio', { id, p: 0 });
 	ok(/sawa-lens-stories\/.+\.mp3$/.test(again.url || ''), 'phone: the recording is saved and reused (' + (again.url || again.message) + ')');
 	await p.tap('#readall'); // stop
 	await p.tap('.scan-text .sw');
-	ok(!!(await p.$('#wcard *')), 'phone: tapping a word opens the word card');
+	ok(!!(await p.$('.wpop')), 'phone: tapping a word shows its meaning in a pop-up next to it');
 	await p.tap('[data-stw="0"]');
 	await p.waitForFunction(() => document.querySelector('[data-stw="0"]').textContent === '✓', { timeout: 10000 });
 	ok(true, 'phone: ＋ adds a new word to review cards');
@@ -115,8 +115,8 @@ async function phone(br) {
 
 async function computer(br) {
 	// A student (not admin, not a personal-story tester) at B2: everyone has stories; no personal card; B1 is the closest level, then A2.
-	await text('/?readers_level=8&lv=4');
-	const p = await page(br, 'computer', 8);
+	await text('/?readers_level=2&lv=4');
+	const p = await page(br, 'computer', 2);
 	const h = await p.api('readers');
 	ok(h.today && h.personal.why === 'off', 'computer: a regular student has stories but no personal (AI) stories');
 	const n0 = await calls();
@@ -126,7 +126,7 @@ async function computer(br) {
 		seen.push(r.cat.id + ' ' + r.level);
 		await p.api('readers/done', { id: r.id, right: 1, total: 4 });
 	}
-	console.log('     user 8 (B2) got:', seen.join(' | '));
+	console.log('     user 2 (B2) got:', seen.join(' | '));
 	ok(seen.slice(0, 3).every((s) => /^football /.test(s)) && /B1$/.test(seen[0]) && seen.every((s) => / (B1|A2)$/.test(s)), 'computer: football stories first, nearest level (B1, then A2)');
 	ok(!/^football /.test(seen[3]) && (await calls()) === n0, 'computer: when football runs out, another topic (no AI call)');
 	await p.open('story-' + h.today.id);
