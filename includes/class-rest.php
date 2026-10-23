@@ -55,6 +55,7 @@ final class Sawa_Lens_Rest {
 		$r( '/settings', 'POST', array( __CLASS__, 'save_settings' ) );
 		$r( '/sync', 'POST', array( __CLASS__, 'sync' ) );
 		$r( '/explain', 'POST', array( __CLASS__, 'explain' ) );
+		$r( '/define', 'POST', array( __CLASS__, 'define' ) );
 		$r( '/translate', 'POST', array( __CLASS__, 'translate' ) );
 		$r( '/to-english', 'POST', array( __CLASS__, 'to_english' ) );
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
@@ -271,6 +272,12 @@ final class Sawa_Lens_Rest {
 				'progress'  => Sawa_Lens_Store::progress( $uid, 14 ),
 			)
 		);
+	}
+
+	/** A word missing from the extension's own dictionary: cache → free dictionary → AI (Sawa_Lens_Dict). */
+	public static function define( WP_REST_Request $r ) {
+		$res = Sawa_Lens_Dict::define( get_current_user_id(), (string) $r->get_param( 'word' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
 	}
 
 	public static function explain( WP_REST_Request $r ) {

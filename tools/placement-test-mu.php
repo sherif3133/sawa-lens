@@ -37,6 +37,7 @@ add_action(
 			}
 			return Sawa_Lens_Rest::sync( $req );
 		} );
+		$r( '/define', function ( $q ) { return array( 'cands' => Sawa_Lens_Dict::candidates( (string) $q->get_param( 'word' ) ), 'res' => Sawa_Lens_Dict::define( 1, (string) $q->get_param( 'word' ) ) ); } );
 		$r( '/meta', function ( $q ) {
 			$uid = (int) $q->get_param( 'uid' );
 			return array( 'level' => Sawa_Lens_Store::level( $uid ), 'placement' => get_user_meta( $uid, 'sawa_lens_placement', true ), 'history' => get_user_meta( $uid, 'sawa_lens_placement_history', true ), 'profile' => Sawa_Lens_Store::vocab_profile( $uid ) );

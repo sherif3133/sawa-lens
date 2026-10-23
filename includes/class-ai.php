@@ -121,6 +121,55 @@ final class Sawa_Lens_AI {
 		return $res;
 	}
 
+	/**
+	 * A word that isn't in Language Lens's own dictionary (Sawa_Lens_Dict). With $senses (English definitions from a free
+	 * dictionary): just the Arabic for each. Without: the whole entry. Returns {found, lemma, entries: [{pos, en, ar, ex}]}.
+	 */
+	public static function dict_word( $uid, $word, $senses = array() ) {
+		$limit = self::limit( $uid );
+		if ( is_wp_error( $limit ) ) {
+			return $limit;
+		}
+		if ( $senses ) {
+			$list = implode( "\n", array_map( function ( $s, $i ) { return ( $i + 1 ) . '. (' . $s['pos'] . ') ' . $s['en']; }, $senses, array_keys( $senses ) ) );
+			$out  = self::call( 'You write short Arabic dictionary meanings for Arabic-speaking learners of English. Return ONLY a JSON object: {"ar": [one Arabic meaning per numbered English sense, same order, 1–4 words each, Modern Standard Arabic]}.', "Word: {$word}\n{$list}", 600 );
+			if ( is_wp_error( $out ) ) {
+				return $out;
+			}
+			$ar = array_values( (array) ( $out['ar'] ?? array() ) );
+			foreach ( $senses as $i => $s ) {
+				$senses[ $i ]['ar'] = mb_substr( (string) ( $ar[ $i ] ?? '' ), 0, 80 );
+			}
+			return array( 'found' => true, 'lemma' => $word, 'entries' => $senses );
+		}
+		$out = self::call(
+			'You are an English dictionary for Arabic-speaking learners (A2–B2). Return ONLY a JSON object: '
+			. '{"found": false if this is not a real English word or name, "lemma": its dictionary form (e.g. "epiphanies" → "epiphany"), '
+			. '"entries": up to 3 main senses, each {"pos": noun|verb|adjective|adverb|other, "en": a simple English definition (max 15 words), "ar": the Arabic meaning (1–4 words, Modern Standard Arabic), "ex": a short simple example sentence}}.',
+			'Word: ' . $word,
+			700
+		);
+		if ( is_wp_error( $out ) ) {
+			return $out;
+		}
+		$entries = array();
+		foreach ( array_slice( (array) ( $out['entries'] ?? array() ), 0, 3 ) as $e ) {
+			if ( is_array( $e ) && ! empty( $e['en'] ) ) {
+				$entries[] = array( 'pos' => sanitize_key( (string) ( $e['pos'] ?? '' ) ), 'en' => mb_substr( (string) $e['en'], 0, 160 ), 'ar' => mb_substr( (string) ( $e['ar'] ?? '' ), 0, 80 ), 'ex' => mb_substr( (string) ( $e['ex'] ?? '' ), 0, 160 ) );
+			}
+		}
+		return array( 'found' => ! empty( $out['found'] ) && $entries, 'lemma' => strtolower( preg_replace( '/[^A-Za-z\' -]/', '', (string) ( $out['lemma'] ?? $word ) ) ) ?: $word, 'entries' => $entries );
+	}
+
+	/** Shared cache for Sawa_Lens_Dict: one entry per word for every student. */
+	public static function dict_cached( $word ) {
+		return self::cached( hash( 'sha256', 'dict|v1|' . $word ) );
+	}
+
+	public static function dict_store( $word, $res ) {
+		self::store( hash( 'sha256', 'dict|v1|' . $word ), $res );
+	}
+
 	/** Translates a sentence (used when saving a sentence without a word focus). */
 	public static function translate( $uid, $sentence ) {
 		$sentence = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $sentence ) ) ), 0, 800 );

@@ -296,6 +296,7 @@ final class Sawa_Lens_Tiers {
 			'#^/sawa-lens/v1/(sync|curious|image$|app/review|app/library$|app/library/(word|sentence|save)$|app/image$)#' => 'review',
 			'#^/sawa-lens/v1/(explain|translate|to-english|sound|lyric|song-lines|image/ai|app/library/(translate|explain)|app/image/ai)#' => 'lens_ai',
 			'#^/sawa-lens/v1/app/(readaloud|speak)#' => 'lens_meanings', // Read a text: listen to it
+			'#^/sawa-lens/v1/define#' => 'lens_meanings', // a word missing from the extension's dictionary
 			'#^/sawa-lens/v1/app/scan#' => 'learn', // Scan a page (photo → text)
 			'#^/sawa-lens/v1/proof#' => 'lens_proof',
 			'#^/sawa-lens/v1/app/(write|history|writing)#' => 'writing',
