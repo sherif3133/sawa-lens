@@ -124,6 +124,7 @@
 	function go(view, arg) {
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
 		stopClip(); stopReading();
+		$app.style.paddingBottom = ''; // the review bar keeps room for itself only while reviewing
 		if (B.appMode && S.gate) view = 'today';
 		if (planLocked(view) && !S.navStarted && has('review')) view = 'review'; // a free account opens on Review, not on a locked Home
 		if (planLocked(view)) {
@@ -1758,11 +1759,13 @@
 	function cardBack(c) {
 		if (c.type === 'word') {
 			var ms = meanings(c.lemma);
-			return (ms.length ? '<ul class="rv-m">' + ms.slice(0, 4).map(function (m) {
-				return '<li><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span>' + meaningHtml(m) + (m.ex ? '<p class="small muted" dir="ltr">“' + esc(m.ex) + '”</p>' : '') + '</li>';
-			}).join('') + '</ul>' : '<div data-ai-word="' + esc(c.lemma) + '"><button class="link">اشرح بالـ AI</button></div>')
-				+ '<div class="pics" data-pics="' + esc(c.lemma) + '" data-sent="' + esc(c.text || '') + '"></div>' + (c._clip ? '' : momentHtml(c))
-				+ '<p class="small"><a href="https://youglish.com/pronounce/' + encodeURIComponent(c.lemma) + '/english" target="_blank" rel="noopener">اسمع “' + esc(c.lemma) + '” في فيديوهات تانية ↗</a></p>';
+			var li = function (m) { return '<li><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span>' + meaningHtml(m) + (m.ex ? '<p class="small muted" dir="ltr">“' + esc(m.ex) + '”</p>' : '') + '</li>'; };
+			// One phone screen per card: two meanings show; more meanings, pictures and other videos are one tap away
+			return (ms.length ? '<ul class="rv-m">' + ms.slice(0, 2).map(li).join('') + '</ul>' : '<div data-ai-word="' + esc(c.lemma) + '"><button class="link">اشرح بالـ AI</button></div>')
+				+ (c._clip ? '' : momentHtml(c))
+				+ '<details class="rv-more"><summary>المزيد</summary>' + (ms.length > 2 ? '<ul class="rv-m">' + ms.slice(2, 4).map(li).join('') + '</ul>' : '')
+				+ '<div class="pics" data-pics="' + esc(c.lemma) + '" data-sent="' + esc(c.text || '') + '"></div>'
+				+ '<p class="small"><a href="https://youglish.com/pronounce/' + encodeURIComponent(c.lemma) + '/english" target="_blank" rel="noopener">اسمع “' + esc(c.lemma) + '” في فيديوهات تانية ↗</a></p></details>';
 		}
 		if (c.type === 'mistake') {
 			var open = unlockedSkill(c.skill);
@@ -1791,9 +1794,10 @@
 		if (!c.videoId) return c.url ? '<p class="small muted">من: <a href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(c.title || 'source') + '</a></p>' : '';
 		var t = clipTimes(c);
 		return '<div class="moment" data-vid="' + esc(c.videoId) + '" data-st="' + t[0] + '" data-en="' + t[1] + '"><div class="clip-box"></div>'
-			+ '<div class="ra-btns clip-bar"><button class="btn ghost sm" data-clip="play">▶ شغّل اللحظة</button><button class="btn ghost sm" data-clip="loop" aria-pressed="false">🔁 كرّرها عشان تقلّدها</button><button class="btn ghost sm" data-clip="slow" aria-pressed="false">🐢 أبطأ</button></div>'
+			+ '<div class="ra-btns clip-bar"><button class="btn ghost sm" data-clip="play">▶ شغّل اللحظة</button>'
+			+ '<details class="clip-more"><summary aria-label="More video options">⋯</summary><div class="ra-btns"><button class="btn ghost sm" data-clip="loop" aria-pressed="false">🔁 كرّرها عشان تقلّدها</button><button class="btn ghost sm" data-clip="slow" aria-pressed="false">🐢 أبطأ</button></div>'
 			+ '<label class="small clip-auto"><input type="checkbox" data-clip="auto"' + (clipPref('lensClipAuto', true) ? ' checked' : '') + '> شغّل اللحظة لوحدها في كل كارت</label>'
-			+ (c.title ? '<p class="small muted">' + esc(c.title.slice(0, 60)) + '</p>' : '') + '</div>';
+			+ (c.title ? '<p class="small muted">' + esc(c.title.slice(0, 60)) + '</p>' : '') + '</details></div></div>';
 	}
 	var CLIP = null;
 	function stopClip() { if (CLIP) { clearInterval(CLIP.tm); clearTimeout(CLIP.lt); try { CLIP.p.destroy(); } catch (e) { /* gone */ } CLIP = null; } }
@@ -1863,6 +1867,7 @@
 		return lemma;
 	}
 	function showCard() {
+		$app.style.paddingBottom = '';
 		if (!R.queue.length) {
 			var st = R.stats;
 			var more = Math.max(0, (st.due || 0) - 0);
@@ -1878,14 +1883,23 @@
 		var c = R.queue[0];
 		R.flipped = false;
 		c._clip = !!c.videoId; // the clip of the moment plays on the front, in the speaker's own voice
-		var tip = '';
-		try { if (!localStorage.getItem('lensRvTip')) tip = '<div class="card small rv-tip"><b>إزاي بيشتغل:</b> بص على الكارت، فكّر في الإجابة، وبعدين دوس <b>اظهر الإجابة</b>. Be honest: <b>تاني</b> = نسيت · <b>صعب</b> = بالعافية · <b>كويس</b> = كنت عارفها · <b>سهل</b> = سهلة أوي. التطبيق بيوريك كل كارت تاني قبل ما تنساه بشوية. <button class="link small" id="rvtip">فهمت</button></div>'; } catch (e) { /* storage blocked */ }
-		shell(reviewHead() + tip + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">جديد</span>' : '') + cardFront(c) + (c._clip ? momentHtml(c) : '') + '<div id="back" hidden class="stack rv-back"></div></section>'
-			+ '<section id="acts"><button class="btn block" id="flip">اظهر الإجابة</button></section>');
+		var how = 'بص على الكارت وفكّر في الإجابة، وبعدين دوس «اظهر الإجابة». خليك صريح: Again = نسيت، Hard = بالعافية، Good = كنت عارفها، Easy = سهلة أوي. كل كارت هيرجعلك قبل ما تنساه بشوية. على الكمبيوتر: المسافة تعرض الإجابة، والأرقام ١–٤ للتقييم.';
+		shell(reviewHead() + '<section class="card rv-card stack">' + (c.new ? '<span class="pill open">جديد</span>' : '') + cardFront(c) + (c._clip ? momentHtml(c) : '') + '<div id="back" hidden class="stack rv-back"></div></section>'
+			+ '<section id="acts" class="rv-acts"><div class="rv-acts-in"><button class="btn block" id="flip">اظهر الإجابة</button>' + infoTip(how) + '</div></section>');
+		placeActs();
 		bindSay();
 		if (c._clip) bindMoments($app.querySelector('.rv-card'), true);
 		$app.querySelector('#flip').onclick = flip;
-		var tb = $app.querySelector('#rvtip'); if (tb) tb.onclick = function () { try { localStorage.setItem('lensRvTip', '1'); } catch (e) { /* ignore */ } tb.closest('.rv-tip').remove(); };
+	}
+	/** The Show answer / rating bar sits fixed above the bottom tab bar (thumb reach); the page keeps room for it. */
+	function placeActs() {
+		var acts = $app.querySelector('#acts'), nav = document.getElementById('nav');
+		if (!acts) return;
+		var nb = nav ? nav.getBoundingClientRect() : null;
+		var atBottom = !!(nb && nb.height && nb.top > innerHeight / 2); // phones: tab bar at the bottom; wide screens: sidebar
+		acts.style.bottom = atBottom ? Math.round(innerHeight - nb.top) + 'px' : '0px';
+		acts.classList.toggle('above-nav', atBottom);
+		$app.style.paddingBottom = (acts.offsetHeight + (atBottom ? nb.height : 0) + 16) + 'px';
 	}
 	function flip() {
 		var c = R.queue[0], back = $app.querySelector('#back');
@@ -1893,9 +1907,11 @@
 		back.innerHTML = cardBack(c);
 		back.hidden = false;
 		var labels = ['تاني', 'صعب', 'كويس', 'سهل'];
-		$app.querySelector('#acts').innerHTML = '<div class="grades">' + labels.map(function (l, i) {
+		$app.querySelector('#acts').innerHTML = '<div class="rv-acts-in grades">' + labels.map(function (l, i) {
 			return '<button class="gb g' + (i + 1) + '" data-g="' + (i + 1) + '"><b>' + l + '</b><span>' + (c.next && c.next[i] ? (c.next[i] === 'again' ? 'now' : c.next[i]) : '') + '</span></button>';
 		}).join('') + '</div>';
+		var card = $app.querySelector('.rv-card'); if (card) card.classList.add('flipped'); // the video frame folds away; ▶ Play still replays it
+		placeActs();
 		$app.querySelectorAll('.gb').forEach(function (b) { b.onclick = function () { grade(+b.dataset.g); }; });
 		bindSay();
 		bindExplain(back);

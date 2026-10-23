@@ -490,3 +490,21 @@ main.home > #prog { order: 8; } main.home > .home-things { order: 9; } main.home
 .lvline{margin:10px 2px;font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:4px}.lvline.catchup b{color:var(--amber)}
 .itip{position:relative;display:inline-grid;place-items:center;min-width:28px;min-height:28px;padding:0;border:0;background:none;color:var(--muted);font-size:15px;line-height:1;cursor:help}
 .itip-pop{position:fixed;z-index:60;padding:8px 10px;border-radius:8px;background:var(--fg);color:var(--panel);font-size:13px;line-height:1.45;text-align:start;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none}.itip-pop[hidden]{display:none}
+
+/* Review: one card = one phone screen. Show answer / ratings in a bar above the tab bar; extras behind a tap */
+.rv-acts{position:fixed;inset-inline:0;bottom:0;z-index:15;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+.rv-acts.above-nav{padding-bottom:10px}
+.rv-acts-in{max-width:720px;margin:0 auto;display:flex;gap:8px;align-items:center}.rv-acts-in .btn{flex:1}.rv-acts-in.grades{display:grid}
+@media (min-width:1100px){.rv-acts{inset-inline-start:250px}}
+.rv-card.flipped .clip-box{display:none}
+.clip-bar{flex-wrap:wrap;justify-content:center;align-items:center}.clip-more{display:inline-block}
+.clip-more>summary{list-style:none;cursor:pointer;min-width:40px;min-height:36px;display:inline-grid;place-items:center;border:1px solid var(--line);border-radius:10px;color:var(--muted)}
+.clip-more>summary::-webkit-details-marker{display:none}.clip-more[open]{display:block;width:100%}.clip-more[open]>summary{margin:0 auto 6px}
+.rv-more{width:100%;text-align:start}.rv-more>summary{cursor:pointer;color:var(--muted);font-size:14px;padding:6px 0;text-align:center}
+@media (max-width:759px){
+  .rv-top{gap:6px}.rv-top div{padding:5px 2px}.rv-top b{font-size:16px}.rv-top span{font-size:10.5px}
+  .rv-card{min-height:0;padding:12px}.rv-card.stack{gap:8px}
+  .rv-word{font-size:28px}.rv-sent{font-size:17px;line-height:1.5}
+  .rv-card .clip-box.on{width:min(100%,calc(28vh * 16 / 9));margin-inline:auto}
+  .gb{min-height:52px;padding:8px 2px}
+}
