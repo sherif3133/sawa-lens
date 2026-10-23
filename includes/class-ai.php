@@ -1169,7 +1169,11 @@ final class Sawa_Lens_AI {
 		Sawa_Lens_Cost::set_user( $uid ); // the cost meter charges the next AI call to this student
 		$k = 'sawa_lens_ai_' . $uid . '_' . wp_date( 'Ymd' );
 		$n = (int) get_transient( $k );
-		if ( $n >= (int) self::settings()['daily_limit'] ) {
+		$max = (int) self::settings()['daily_limit'];
+		if ( class_exists( 'Sawa_Lens_Tiers' ) && 'free' === Sawa_Lens_Tiers::tier( $uid ) ) {
+			$max = min( $max, Sawa_Lens_Tiers::free_ai() ); // free accounts get fewer AI answers a day
+		}
+		if ( $n >= $max ) {
 			return new WP_Error( 'limit', 'You reached today\'s limit for AI explanations. The dictionary still works, and explanations come back tomorrow.', array( 'status' => 429 ) );
 		}
 		set_transient( $k, $n + 1, DAY_IN_SECONDS );

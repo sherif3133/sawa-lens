@@ -14,6 +14,8 @@ final class Sawa_Lens_Auth {
 
 	public static function init() {
 		add_action( 'template_redirect', array( __CLASS__, 'connect' ), 1 );
+		add_filter( 'login_errors', array( __CLASS__, 'login_errors' ) );
+		add_action( 'wp_login_failed', array( __CLASS__, 'login_failed' ) );
 	}
 
 	/** Anyone with a usable account, free or member (not declined). What they may use: Sawa_Lens_Tiers::can(). */
@@ -30,6 +32,25 @@ final class Sawa_Lens_Auth {
 			|| home_url( '/?sawa_lens=connected' ) === $uri;
 	}
 
+	/** wp-login.php says the same thing for an unknown email and a wrong password, so it doesn't reveal who has an account. */
+	public static function login_errors( $html ) {
+		global $errors;
+		if ( is_wp_error( $errors ) && array_intersect( $errors->get_error_codes(), array( 'invalid_username', 'invalid_email', 'incorrect_password' ) ) ) {
+			return '<strong>Error:</strong> The email or password is not right. <a href="' . esc_url( wp_lostpassword_url() ) . '">Forgot your password?</a>';
+		}
+		return $html;
+	}
+
+	/** A wrong password on the Sawa sign-in screen (the app, Language Lens) goes back there, not to wp-login.php. */
+	public static function login_failed() {
+		$to  = isset( $_POST['redirect_to'] ) ? wp_unslash( $_POST['redirect_to'] ) : ''; // phpcs:ignore
+		$app = class_exists( 'Sawa_Lens_App' ) ? Sawa_Lens_App::url() : '';
+		if ( $to && ( ( $app && 0 === strpos( $to, $app ) ) || false !== strpos( $to, 'sawa_lens=connect' ) ) && wp_validate_redirect( $to, false ) ) {
+			wp_safe_redirect( add_query_arg( 'login_failed', 1, $to ) );
+			exit;
+		}
+	}
+
 	public static function connect() {
 		if ( isset( $_GET['sawa_lens'] ) && 'connected' === $_GET['sawa_lens'] ) { // phpcs:ignore
 			self::connected();
@@ -44,6 +65,10 @@ final class Sawa_Lens_Auth {
 			self::page( 'This sign-in link is not valid', 'Open Language Lens in your browser and press "Sign in" again.' );
 		}
 		if ( ! is_user_logged_in() ) {
+			if ( class_exists( 'Sawa_Lens_App' ) && class_exists( 'Sawa_Tracker_Front' ) ) {
+				// The Sawa sign-in page (sign in, free account, Google); signing in comes back here to finish connecting Language Lens.
+				Sawa_Lens_App::join_page( remove_query_arg( 'login_failed', home_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ) ) ) ); // phpcs:ignore
+			}
 			auth_redirect();
 		}
 		$uid = get_current_user_id();

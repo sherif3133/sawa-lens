@@ -201,7 +201,12 @@ self.addEventListener('fetch', function () {});
 		exit;
 	}
 
-	private static function join_page() {
+	/** The Sawa sign-in / free account screen. $here: where signing in comes back to (Language Lens connect). */
+	public static function join_page( $here = '' ) {
+		nocache_headers();
+		if ( $here ) {
+			add_filter( 'sawa_tracker_front_cfg', function ( $c ) use ( $here ) { $c['here'] = $here; return $c; }, 30 );
+		}
 		$html = do_shortcode( '[sawa_tracker]' );
 		$ar   = Sawa_Lang::is_ar();
 		header( 'Content-Type: text/html; charset=utf-8' );

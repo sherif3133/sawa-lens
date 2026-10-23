@@ -22,6 +22,7 @@ final class Sawa_Lens_Tiers {
 	public static function init() {
 		add_filter( 'rest_dispatch_request', array( __CLASS__, 'gate' ), 5, 4 );
 		add_filter( 'sawa_tracker_front_cfg', array( __CLASS__, 'front_cfg' ), 10, 2 );
+		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
 		if ( is_admin() ) {
 			add_action( 'admin_init', array( __CLASS__, 'migrate' ) );
 			add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
@@ -141,7 +142,62 @@ final class Sawa_Lens_Tiers {
 		);
 	}
 
+	/* ------------------------------------------------------------------ settings */
+
+	public static function opt( $key, $def ) {
+		$m = get_option( self::OPT );
+		return is_array( $m ) && isset( $m[ $key ] ) ? $m[ $key ] : $def;
+	}
+
+	/** AI answers a day for a free account (members: Settings → Language Lens). */
+	public static function free_ai() {
+		return max( 0, (int) self::opt( 'free_ai', 30 ) );
+	}
+
+	/** The Google sign-in client ID (Google Cloud → Credentials → OAuth client, type Web). Empty = no Google button. */
+	public static function google_id() {
+		return (string) self::opt( 'google_id', '' );
+	}
+
 	/* ------------------------------------------------------------------ sign-up limits */
+
+	const CF = array( '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22', '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32' );
+
+	/**
+	 * The visitor's address for limits. The site is behind Cloudflare: its CF-Connecting-IP header is trusted only
+	 * when the request really comes from a Cloudflare address (anyone reaching the server directly could fake it).
+	 */
+	public static function client_ip() {
+		$remote = (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ); // phpcs:ignore
+		$cf     = (string) ( $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '' ); // phpcs:ignore
+		if ( $cf && filter_var( $cf, FILTER_VALIDATE_IP ) && self::from_cloudflare( $remote ) ) {
+			return $cf;
+		}
+		return $remote;
+	}
+
+	private static function from_cloudflare( $ip ) {
+		$bin = @inet_pton( $ip ); // phpcs:ignore
+		if ( false === $bin ) {
+			return false;
+		}
+		foreach ( self::CF as $range ) {
+			list( $net, $bits ) = explode( '/', $range );
+			$n = inet_pton( $net );
+			if ( strlen( $n ) !== strlen( $bin ) ) {
+				continue;
+			}
+			$bytes = intdiv( (int) $bits, 8 );
+			$rest  = (int) $bits % 8;
+			if ( substr( $bin, 0, $bytes ) !== substr( $n, 0, $bytes ) ) {
+				continue;
+			}
+			if ( ! $rest || ( ( ord( $bin[ $bytes ] ) ^ ord( $n[ $bytes ] ) ) & ( 0xFF << ( 8 - $rest ) ) & 0xFF ) === 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	const THROWAWAY = array( 'mailinator.com', 'guerrillamail.com', 'guerrillamail.net', 'sharklasers.com', '10minutemail.com', 'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'getnada.com', 'dispostable.com', 'maildrop.cc', 'throwawaymail.com', 'fakeinbox.com', 'mintemail.com', 'mohmal.com', 'emailondeck.com', 'tempail.com', 'moakt.com', 'spambox.us' );
 
@@ -150,7 +206,7 @@ final class Sawa_Lens_Tiers {
 	 * (40 an hour), no throwaway email services, and the email's domain must accept mail.
 	 * Returns '' when the sign-up may go ahead, or a message [English, Arabic]. Call count_signup() after it worked.
 	 */
-	public static function signup_check( $email, $ip ) {
+	public static function signup_check( $email, $ip, $check_domain = true ) {
 		$k = md5( $ip );
 		if ( (int) get_transient( 'sawa_su_h_' . $k ) >= 3 || (int) get_transient( 'sawa_su_d_' . $k ) >= 6 ) {
 			return array( 'Too many sign-ups from this connection. Please try again later.', 'تسجيلات كتير من نفس الاتصال. جرب تاني بعد شوية.' );
@@ -163,7 +219,7 @@ final class Sawa_Lens_Tiers {
 			return array( 'Please use your real email address.', 'اكتب إيميلك الحقيقي.' );
 		}
 		$common = array( 'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com' );
-		if ( ! in_array( $domain, $common, true ) && self::dns_works() && ! checkdnsrr( $domain, 'MX' ) && ! checkdnsrr( $domain, 'A' ) ) {
+		if ( $check_domain && ! in_array( $domain, $common, true ) && self::dns_works() && ! checkdnsrr( $domain, 'MX' ) && ! checkdnsrr( $domain, 'A' ) ) {
 			return array( 'This email address cannot get mail. Please check it.', 'الإيميل ده مش بيستقبل رسايل. راجعه تاني.' );
 		}
 		return '';
@@ -231,7 +287,77 @@ final class Sawa_Lens_Tiers {
 	public static function front_cfg( $cfg, $uid ) {
 		$cfg['plan']    = $uid ? self::info( $uid ) : null;
 		$cfg['instant'] = self::instant(); // the join form says "free account, opens at once"
+		if ( ! $uid && self::google_id() ) {
+			$cfg['google']    = self::google_id(); // "Continue with Google" on the sign-in and join screens
+			$cfg['googleUrl'] = esc_url_raw( rest_url( 'sawa-lens/v1/google' ) );
+		}
+		if ( ! $uid && isset( $_GET['login_failed'] ) ) { // phpcs:ignore -- a wrong email or password comes back here, not to wp-login.php
+			$cfg['loginFailed'] = true;
+		}
 		return $cfg;
+	}
+
+	/* ------------------------------------------------------------------ Google sign-in */
+
+	public static function routes() {
+		register_rest_route( 'sawa-lens/v1', '/google', array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'google' ), 'permission_callback' => '__return_true' ) );
+	}
+
+	/**
+	 * "Continue with Google": asks Google to check its signed ID token, then signs the student in, or makes a new
+	 * free account (same limits as the sign-up form). Admin accounts can't sign in this way.
+	 */
+	public static function google( WP_REST_Request $r ) {
+		$no = function ( $en, $ar, $code = 400 ) {
+			return new WP_Error( 'google', class_exists( 'Sawa_Lang' ) && Sawa_Lang::is_ar() ? $ar : $en, array( 'status' => $code ) );
+		};
+		$cid = self::google_id();
+		$jwt = (string) $r->get_param( 'credential' );
+		if ( ! $cid || ! preg_match( '/^[\w-]+\.[\w-]+\.[\w-]+$/', $jwt ) ) {
+			return $no( 'Google sign-in is not available.', 'الدخول بجوجل مش متاح.' );
+		}
+		$res = wp_remote_get( 'https://oauth2.googleapis.com/tokeninfo?id_token=' . rawurlencode( $jwt ), array( 'timeout' => 10 ) );
+		$t   = is_wp_error( $res ) ? null : json_decode( wp_remote_retrieve_body( $res ), true );
+		if ( ! is_array( $t ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) || ( $t['aud'] ?? '' ) !== $cid
+			|| ! in_array( $t['iss'] ?? '', array( 'accounts.google.com', 'https://accounts.google.com' ), true )
+			|| (int) ( $t['exp'] ?? 0 ) < time() || 'true' !== (string) ( $t['email_verified'] ?? '' ) || ! is_email( $t['email'] ?? '' ) ) {
+			return $no( 'Google sign-in did not work. Please try again.', 'الدخول بجوجل منفعش. جرب تاني.', 401 );
+		}
+		$email = sanitize_email( $t['email'] );
+		$uid   = (int) email_exists( $email );
+		if ( $uid && user_can( $uid, 'manage_options' ) ) {
+			return $no( 'Please sign in with your password.', 'سجّل دخول بالباسورد.', 403 );
+		}
+		if ( ! $uid ) {
+			$ip = self::client_ip();
+			$x  = self::signup_check( $email, $ip, false );
+			if ( $x ) {
+				return $no( $x[0], $x[1], 429 );
+			}
+			$name  = sanitize_text_field( (string) ( $t['name'] ?? '' ) );
+			$login = sanitize_user( strtolower( strtok( $email, '@' ) ), true );
+			$base  = $login ? $login : 'student';
+			$i     = 1;
+			while ( '' === $login || username_exists( $login ) ) {
+				$login = $base . ( ++$i );
+			}
+			$uid = wp_insert_user( array( 'user_login' => $login, 'user_email' => $email, 'user_pass' => wp_generate_password( 24 ), 'display_name' => $name ? $name : $login, 'first_name' => sanitize_text_field( (string) ( $t['given_name'] ?? '' ) ), 'role' => 'subscriber' ) );
+			if ( is_wp_error( $uid ) ) {
+				return $no( 'Could not make your account. Please try again.', 'معرفناش نعمل حسابك. جرب تاني.' );
+			}
+			if ( self::instant() ) {
+				update_user_meta( $uid, self::META, 'free' );
+				update_user_meta( $uid, 'sawa_status', 'approved' );
+			} else {
+				update_user_meta( $uid, 'sawa_status', 'pending' );
+			}
+			update_user_meta( $uid, 'sawa_requested', current_time( 'mysql' ) );
+			update_user_meta( $uid, 'sawa_google', 1 );
+			self::count_signup( $ip );
+		}
+		wp_set_current_user( $uid );
+		wp_set_auth_cookie( $uid, true, is_ssl() );
+		return array( 'ok' => true );
 	}
 
 	/* ------------------------------------------------------------------ one-time switch */
@@ -288,6 +414,9 @@ final class Sawa_Lens_Tiers {
 					</tbody>
 				</table>
 				<p><label><input type="checkbox" name="instant" value="1" <?php checked( self::instant() ); ?>> New sign-ups can use their free account right away (no approval).</label></p>
+				<p><label>AI answers a day for a free account (if you tick an AI feature for Free): <input type="number" name="free_ai" min="0" style="width:80px" value="<?php echo (int) self::free_ai(); ?>"></label></p>
+				<p><label>Google sign-in: client ID <input name="google_id" style="width:420px" placeholder="1234-abc.apps.googleusercontent.com" value="<?php echo esc_attr( self::google_id() ); ?>"></label><br>
+					<span class="description">Empty = no Google button. Google Cloud → APIs &amp; Services → Credentials → Create OAuth client ID (Web). Authorised JavaScript origin: <code><?php echo esc_html( home_url() ); ?></code>.</span></p>
 				<p class="description">Locked features show 🔒 "Members only — join Sawa English" with a link to <a href="<?php echo esc_url( self::join_url() ); ?>" target="_blank"><?php echo esc_html( self::join_url() ); ?></a>. Admins can always use everything.</p>
 				<?php submit_button( 'Save' ); ?>
 			</form>
@@ -305,7 +434,9 @@ final class Sawa_Lens_Tiers {
 			array(
 				'free'    => array_values( array_intersect( $all, array_map( 'sanitize_key', (array) wp_unslash( $_POST['free'] ?? array() ) ) ) ),
 				'member'  => array_values( array_intersect( $all, array_map( 'sanitize_key', (array) wp_unslash( $_POST['member'] ?? array() ) ) ) ),
-				'instant' => ! empty( $_POST['instant'] ),
+				'instant'   => ! empty( $_POST['instant'] ),
+				'free_ai'   => max( 0, (int) ( $_POST['free_ai'] ?? 30 ) ),
+				'google_id' => preg_match( '/^[\w.-]+\.apps\.googleusercontent\.com$/', trim( (string) wp_unslash( $_POST['google_id'] ?? '' ) ) ) ? trim( (string) wp_unslash( $_POST['google_id'] ) ) : '',
 			),
 			true
 		);
