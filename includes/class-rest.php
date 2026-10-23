@@ -222,6 +222,11 @@ final class Sawa_Lens_Rest {
 		if ( $saved ) {
 			Sawa_Lens_Activity::add( $uid, 'saved', min( 40, $saved ) );
 		}
+		// Saved words become review cards now (not only when Review opens), so they are waiting in the app; at most once an hour without new saves.
+		if ( $saved || ! get_transient( 'sawa_lens_rc_' . $uid ) ) {
+			Sawa_Lens_Review::sync_cards( $uid );
+			set_transient( 'sawa_lens_rc_' . $uid, 1, HOUR_IN_SECONDS );
+		}
 		// Vocabulary test result from the extension: the newest one wins, but it never replaces a full placement test.
 		$vocab = $r->get_param( 'vocab' );
 		if ( is_array( $vocab ) && isset( $vocab['estimate'], $vocab['t'] ) ) {

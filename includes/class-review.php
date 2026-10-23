@@ -431,6 +431,7 @@ final class Sawa_Lens_Review {
 			'nextPerDay' => self::LEVELS[ min( count( self::LEVELS ), $lv['level'] + 1 ) - 1 ],
 			'catchup'    => $b['catchup'],
 			'dueReviews' => $b['due'],
+			'ready'      => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM ' . self::t() . ' WHERE user_id = %d AND suspended = 0 AND due <= %s', $uid, Sawa_Lens_Store::today() ) ), // phpcs:ignore -- cards to review now, new ones too (Language Lens: "N cards ready → Review now")
 			'waiting'    => $waiting,
 			'learnPerDay' => $full ? 0 : $per_day + 5,
 			'full'       => $full,
