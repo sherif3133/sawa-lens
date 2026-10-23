@@ -12,7 +12,32 @@ final class Sawa_Lens_AI {
 
 	const OPT = 'sawa_lens_settings';
 
+	/** Keys can live in wp-config.php instead of the database: define( 'SAWA_LENS_CLAUDE_KEY', '…' ) etc. A defined constant wins. */
+	const KEY_CONSTANTS = array(
+		'api_key'    => 'SAWA_LENS_CLAUDE_KEY',
+		'stt_key'    => 'SAWA_LENS_OPENAI_KEY',
+		'gemini_key' => 'SAWA_LENS_GEMINI_KEY',
+	);
+
+	/** True when this key comes from wp-config.php. */
+	public static function key_in_config( $field ) {
+		$c = self::KEY_CONSTANTS[ $field ] ?? '';
+		return $c && defined( $c ) && '' !== (string) constant( $c );
+	}
+
+	/** Settings with keys from wp-config.php filled in. Everything that calls an AI provider reads this. */
 	public static function settings() {
+		$s = self::stored();
+		foreach ( self::KEY_CONSTANTS as $field => $c ) {
+			if ( self::key_in_config( $field ) ) {
+				$s[ $field ] = (string) constant( $c );
+			}
+		}
+		return $s;
+	}
+
+	/** Settings exactly as saved in the database (the admin page saves these, so config keys never get copied into the database). */
+	public static function stored() {
 		return wp_parse_args(
 			(array) get_option( self::OPT, array() ),
 			array(

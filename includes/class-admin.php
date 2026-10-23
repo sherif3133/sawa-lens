@@ -24,7 +24,7 @@ final class Sawa_Lens_Admin {
 		if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'sawa_lens_save' ) ) {
 			wp_die( 'Not allowed.' );
 		}
-		$s   = Sawa_Lens_AI::settings();
+		$s   = Sawa_Lens_AI::stored();
 		$key = isset( $_POST['api_key'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['api_key'] ) ) ) : '';
 		if ( '' !== $key && false === strpos( $key, '•' ) ) {
 			$s['api_key'] = $key;
@@ -45,6 +45,12 @@ final class Sawa_Lens_Admin {
 		}
 		if ( ! empty( $_POST['remove_gemini'] ) ) {
 			$s['gemini_key'] = '';
+		}
+		// A key set in wp-config.php wins: drop the old database copy so it lives in one place only
+		foreach ( array_keys( Sawa_Lens_AI::KEY_CONSTANTS ) as $field ) {
+			if ( Sawa_Lens_AI::key_in_config( $field ) ) {
+				$s[ $field ] = '';
+			}
 		}
 		$s['songs_beta']   = isset( $_POST['songs_beta'] ) ? sanitize_textarea_field( wp_unslash( $_POST['songs_beta'] ) ) : ( $s['songs_beta'] ?? '' );
 		$s['songs_budget'] = isset( $_POST['songs_budget'] ) ? max( 0, (float) $_POST['songs_budget'] ) : ( $s['songs_budget'] ?? 10 );
@@ -140,9 +146,13 @@ final class Sawa_Lens_Admin {
 					<tr>
 						<th><label for="api_key">Claude API key</label></th>
 						<td>
+<?php if ( Sawa_Lens_AI::key_in_config( 'api_key' ) ) : ?>
+								<p><b>Set in wp-config.php</b> (<code>SAWA_LENS_CLAUDE_KEY</code>). To change it, edit wp-config.php.</p>
+							<?php else : ?>
 							<input type="password" id="api_key" name="api_key" class="regular-text" value="<?php echo esc_attr( $masked ); ?>" autocomplete="off" placeholder="sk-ant-…">
 							<?php if ( $s['api_key'] ) : ?>
 								<label style="margin-inline-start:12px"><input type="checkbox" name="remove_key" value="1"> Remove key</label>
+							<?php endif; ?>
 							<?php endif; ?>
 							<p class="description">Create one at console.anthropic.com → API keys. It stays on this server; the extension never sees it. Without a key the dictionary still works, only the "in this sentence" explanations are off.</p>
 						</td>
@@ -150,9 +160,13 @@ final class Sawa_Lens_Admin {
 					<tr>
 						<th><label for="stt_key">Speech-to-text key (OpenAI)</label></th>
 						<td>
+<?php if ( Sawa_Lens_AI::key_in_config( 'stt_key' ) ) : ?>
+								<p><b>Set in wp-config.php</b> (<code>SAWA_LENS_OPENAI_KEY</code>). To change it, edit wp-config.php.</p>
+							<?php else : ?>
 							<input type="password" id="stt_key" name="stt_key" class="regular-text" value="<?php echo esc_attr( $mstt ); ?>" autocomplete="off" placeholder="sk-…">
 							<?php if ( $s['stt_key'] ) : ?>
 								<label style="margin-inline-start:12px"><input type="checkbox" name="remove_stt" value="1"> Remove key</label>
+							<?php endif; ?>
 							<?php endif; ?>
 							<p class="description">Turns on "write it as text" for voice messages in the tracker chat (and feedback on voice messages). Claude can't listen to audio, so this one step uses OpenAI's transcription (gpt-4o-mini-transcribe, about $0.003 per minute). Create a key at platform.openai.com → API keys. Each voice message is transcribed once, then saved.</p>
 						</td>
@@ -169,9 +183,13 @@ final class Sawa_Lens_Admin {
 					<tr>
 						<th><label for="gemini_key">🎵 My songs (beta): Google Gemini key</label></th>
 						<td>
+<?php if ( Sawa_Lens_AI::key_in_config( 'gemini_key' ) ) : ?>
+								<p><b>Set in wp-config.php</b> (<code>SAWA_LENS_GEMINI_KEY</code>). To change it, edit wp-config.php.</p>
+							<?php else : ?>
 							<input type="password" id="gemini_key" name="gemini_key" class="regular-text" value="<?php echo esc_attr( $mgk ); ?>" autocomplete="off" placeholder="AIza…">
 							<?php if ( $gk ) : ?>
 								<label style="margin-inline-start:12px"><input type="checkbox" name="remove_gemini" value="1"> Remove key</label>
+							<?php endif; ?>
 							<?php endif; ?>
 							<p class="description">Turns on "My songs": Claude writes a short song from a student's new words and Google's Lyria (lyria-3.5) sings it. Create a key at aistudio.google.com → Get API key (billing must be on for Lyria). It stays on this server.</p>
 						</td>
