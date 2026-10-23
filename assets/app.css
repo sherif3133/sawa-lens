@@ -514,4 +514,17 @@ main.home > #prog { order: 8; } main.home > .home-things { order: 9; } main.home
   .rv-word{font-size:28px}.rv-sent{font-size:17px;line-height:1.5}
   .rv-card .clip-box.on{width:min(100%,calc(28vh * 16 / 9));margin-inline:auto}
   .gb{min-height:52px;padding:8px 2px}
+  /* Answer shown: the stats, level line and card labels fold away so the meanings fit above the ratings (iPhone SE 375×667) */
+  main:has(.rv-card.flipped) .rv-top,main:has(.rv-card.flipped) .lvline,.rv-card.flipped>.pill,.rv-card.flipped .rv-kind{display:none}
+  .rv-card.flipped .rv-word{font-size:24px}
+}
+/* Short phones (iPhone SE/8, small Androids): fold away more so a card with a video clip still fits */
+@media (max-width:759px) and (max-height:740px){
+  main:has(.rv-card .moment) .rv-top,main:has(.rv-card .moment) .lvline,.rv-card>.pill{display:none}
+  .rv-card .clip-box.on{width:min(100%,calc(20vh * 16 / 9))}
+  .rv-card.flipped>.ra-btns,.rv-card:has(.moment)>.ra-btns{display:none}
+  html[lang=ar] .rv-card.flipped .rv-m li+li p.small[dir=ltr]{display:none}
+  .rv-ctx{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .rv-card.flipped .rv-ctx{-webkit-line-clamp:2}
+  .rv-card.flipped .rv-m{gap:6px}.rv-card.flipped .rv-m li+li .small.muted{display:none}.rv-card.flipped .rv-back{padding-top:8px}
 }
