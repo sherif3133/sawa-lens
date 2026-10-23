@@ -23,7 +23,7 @@
 		}
 		return fetch(B.root + path, init).then(function (r) {
 			return r.json().catch(function () { return {}; }).then(function (j) {
-				if (!r.ok) throw new Error(j && j.message ? j.message : 'حصلت مشكلة. جرّب تاني.');
+				if (!r.ok) throw new Error(j && j.code === 'locked' && S.ar && j.data && j.data.message_ar ? j.data.message_ar : j && j.message ? j.message : 'حصلت مشكلة. جرّب تاني.');
 				return j;
 			});
 		});
@@ -62,6 +62,21 @@
 		dev: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10.5l2 2 4-4"/></svg>' // Feedback & Dev: a speech bubble with a tick
 	};
 
+	/* ── Free and Member plans (Sawa Lens 0.25.0+; Settings → Free vs Member) ─────
+	 * A free account uses only its features (default: Review) and skips the stages for them; the rest shows 🔒 Members only. */
+	var PLAN = B.plan && B.plan.features ? B.plan : null;
+	var TAB_FEATURE = { review: 'review', library: 'review', read: 'lens_meanings', scan: 'lens_ai', write: 'writing', skills: 'learn', skill: 'learn', practice: 'learn', watch: 'learn', songs: 'stories', stories: 'stories', story: 'stories', chat: 'community', community: 'game' };
+	var FEATURE_NAME = { review: 'المراجعة', lens_meanings: 'معاني الكلمات', lens_ai: 'الشرح بالذكاء الاصطناعي وتصوير الصفحات', writing: 'اكتب واتكلم', learn: 'شجرة المهارات والدروس', stories: 'القصص والأغاني', tracker: 'تراكر المذاكرة', game: 'لعبة طريق الحرير', community: 'الشات والقبائل' };
+	function has(f) { return !PLAN || PLAN.features.indexOf(f) >= 0; }
+	function trkLocked() { return !!PLAN && !['tracker', 'game', 'community'].some(has); } // the tracker shows nothing but a lock: leave it out
+	function planLocked(tab) { var f = TAB_FEATURE[tab]; return f && !has(f) ? f : ''; }
+	function membersCard(f) {
+		var mine = PLAN ? PLAN.features.map(function (x) { return FEATURE_NAME[x]; }).filter(Boolean) : [];
+		return '<section class="card stack lock-card"><p class="lock-ic" aria-hidden="true">🔒</p><h2>للأعضاء بس</h2>'
+			+ '<p><b>' + esc(FEATURE_NAME[f] || 'دي') + '</b>: للأعضاء في سوا انجليش بس.' + (mine.length ? ' حسابك المجاني فيه: ' + esc(mine.join(', ')) + '.' : '') + '</p>'
+			+ '<div class="lock-acts"><a class="btn" href="' + esc(PLAN ? PLAN.join : '#') + '" target="_blank" rel="noopener">ادخل سوا انجليش</a>' + (has('review') ? '<button class="btn ghost" data-go="review">روح للمراجعة</button>' : '') + '</div></section>';
+	}
+
 	var APP_TABS = [['today', 'الرئيسية'], ['learn', 'اتعلم'], ['chat', 'الشات'], ['community', 'العب']]; // Play: the Silk Road game and your clan
 	function tabOf(v) {
 		if (['today', 'chat', 'community'].indexOf(v) >= 0) return v;
@@ -72,7 +87,7 @@
 		var cur = tabOf(S.view);
 		nav.innerHTML = APP_TABS.map(function (t) {
 			var badge = t[0] === 'learn' && S.due ? S.due : t[0] === 'chat' && S.unread ? S.unread : 0;
-			return '<button data-nav="' + t[0] + '"' + (cur === t[0] ? ' aria-current="page"' : '') + '>' + ICONS[t[0]] + t[1] + (badge ? '<i class="badge">' + badge + '</i>' : '') + '</button>';
+			return '<button data-nav="' + t[0] + '"' + (cur === t[0] ? ' aria-current="page"' : '') + '>' + ICONS[t[0]] + t[1] + (planLocked(t[0]) ? ' <span class="nav-lock" aria-label="Members only">🔒</span>' : badge ? '<i class="badge">' + badge + '</i>' : '') + '</button>';
 		}).join('');
 		nav.querySelectorAll('[data-nav]').forEach(function (b) { b.onclick = function () { go(b.dataset.nav); }; });
 	}
@@ -91,7 +106,7 @@
 			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><div class="top-r"><button class="link small" data-nav-start>مراحلك</button>' + langSwitch() + '</div></header><main class="stack">' + inner + '</main>';
 			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
 			paintNav();
-			showTrk(['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
+			showTrk(planLocked(S.view) || trkLocked() ? '' : ['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
 			if (trk) trk.classList.toggle('at-top', S.view === 'today');
 			if (trk && S.view === 'today') { var mn = $app.querySelector('main'); mn.insertBefore(trk, mn.firstChild); }
 			window.scrollTo(0, 0);
@@ -110,6 +125,13 @@
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
 		stopClip(); stopReading();
 		if (B.appMode && S.gate) view = 'today';
+		if (planLocked(view)) {
+			// Not in this student's plan: say so, with the way to join (the server refuses it too).
+			S.view = view;
+			shell(membersCard(planLocked(view)));
+			$app.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+			return;
+		}
 		if (['today', 'learn', 'chat', 'community', 'me', 'dev'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) {
 			// A button elsewhere (Today's new thing, a quest) can point at a tool that isn't open yet: say why instead of a silent jump.
 			var opensAt = stageFor(view === 'skill' || view === 'practice' ? 'skills' : view);
@@ -632,6 +654,8 @@
 	/** What a step's button says (one clear action, not "Open Interests"). */
 	var GO_LABEL = { scan: 'صوّر صفحة', interests: 'اعمل الكويز (دقيقتين)', review: 'راجع دلوقتي', write: 'اكتب', skills: 'افتح شجرة المهارات' };
 	function unlocked(tab) {
+		if (planLocked(tab)) return false;
+		if (PLAN && PLAN.tier === 'free' && TAB_FEATURE[tab] && ['songs', 'stories', 'story'].indexOf(tab) < 0) return true; // free: its features are open from the start, no stages
 		if (tab === 'songs') return !!B.songs; // My songs: beta testers only
 		if (tab === 'stories' || tab === 'story') return !!B.readers; // Stories for you: beta testers only
 		if (!S.J) return true;
@@ -683,7 +707,8 @@
 		// Home is one page grid (app.css "Home grid"): the tracker's blocks (welcome, stats, new thing, leaderboard, character)
 		// sit next to these. On phones, Today / Progress / Community show one group at a time.
 		var seg = S.homeSeg || 'today';
-		shell('<div class="seg home-seg" role="tablist" aria-label="Home">' + [['today', 'النهارده'], ['progress', 'تقدّمك'], ['community', 'المجتمع']].map(function (t) {
+		var freeBar = trkLocked() ? '<section class="card free-bar" data-g="today"><p>🔒 <b>حساب مجاني:</b> المراجعة بس. التراكر ولعبة طريق الحرير والشات وباقي الأدوات للأعضاء.</p><a class="btn sm" href="' + esc(PLAN.join) + '" target="_blank" rel="noopener">ادخل سوا انجليش</a></section>' : '';
+		shell(freeBar + '<div class="seg home-seg" role="tablist" aria-label="Home">' + [['today', 'النهارده'], ['progress', 'تقدّمك'], ['community', 'المجتمع']].map(function (t) {
 			return '<button role="tab" data-hseg="' + t[0] + '" aria-selected="' + (seg === t[0]) + '" aria-pressed="' + (seg === t[0]) + '">' + t[1] + '</button>';
 		}).join('') + '</div>'
 			+ '<section class="card stack" id="plan" data-g="today"><p class="loading">بنعمل خطتك…</p></section>'
@@ -749,8 +774,9 @@
 		tools = tools.filter(function (x) { return unlocked(x[0]); }).concat(tools.filter(function (x) { return !unlocked(x[0]); })); // what you can use now comes first
 		shell('<section class="stack"><div class="row-between"><h1>اتعلم</h1></div></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
-			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b>' + (S.ar && !L ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + (open ? x[2] : '🔒 بيفتح في المرحلة ' + x[3]) + '</span></button>';
-		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">أدوات جديدة بتفتح وإنت ماشي. <button class="link small" data-start>شوف مراحلك</button></p>' : ''));
+			var paid = planLocked(x[0]);
+			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open || paid ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b>' + (S.ar && !L ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + (open ? x[2] : paid ? '🔒 للأعضاء بس' : '🔒 بيفتح في المرحلة ' + x[3]) + '</span></button>';
+		}).join('') + '</div>' + (S.stage < 5 && !(PLAN && PLAN.tier === 'free') ? '<p class="small muted center-text">أدوات جديدة بتفتح وإنت ماشي. <button class="link small" data-start>شوف مراحلك</button></p>' : ''));
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
 	}

@@ -92,7 +92,7 @@ final class Sawa_Lens_Rest {
 			return new WP_Error( 'signed_out', 'Please sign in again from Language Lens.', array( 'status' => 401 ) );
 		}
 		if ( ! Sawa_Lens_Auth::allowed( $uid ) ) {
-			return new WP_Error( 'not_member', 'Language Lens is for approved Sawa English members.', array( 'status' => 403 ) );
+			return new WP_Error( 'not_member', 'Your Sawa English account is not active.', array( 'status' => 403 ) );
 		}
 		wp_set_current_user( $uid );
 		return true;
@@ -118,6 +118,7 @@ final class Sawa_Lens_Rest {
 				'app'      => Sawa_Lens_App::url(),
 				'progress' => Sawa_Lens_Store::progress( $uid, 14 ),
 				'admin'    => user_can( $uid, 'manage_options' ),
+				'plan'     => Sawa_Lens_Tiers::info( $uid ), // free or member, and which features are locked (0.25.0+)
 				'explainLang' => Sawa_Lens_AI::explain_lang( $uid ), // "Explanations: English / العربية"
 			)
 		);
@@ -234,6 +235,7 @@ final class Sawa_Lens_Rest {
 				'level'     => Sawa_Lens_Store::level( $uid ),
 				'cards'     => Sawa_Lens_Review::capacity( $uid ), // card level: how many new Learning words today
 				'explainLang' => Sawa_Lens_AI::explain_lang( $uid ),
+				'plan'        => Sawa_Lens_Tiers::info( $uid ), // free or member: the extension locks what isn't in the plan
 				'words'     => array_map(
 					function ( $w ) {
 						return array(

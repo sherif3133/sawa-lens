@@ -64,14 +64,14 @@ final class Sawa_Lens_App {
 		}
 		$app_mode = '2' === (string) get_query_var( 'sawa_lens_app' ) && class_exists( 'Sawa_Tracker_Front' );
 		if ( $app_mode && ( ! is_user_logged_in() || ! Sawa_Lens_Auth::allowed( get_current_user_id() ) ) ) {
-			self::join_page(); // guests and people waiting for approval get the tracker's own sign-in / join screens
+			self::join_page(); // guests and declined accounts get the tracker's own sign-in / join screens
 		}
 		if ( ! is_user_logged_in() ) {
 			auth_redirect();
 		}
 		$uid = get_current_user_id();
 		if ( ! Sawa_Lens_Auth::allowed( $uid ) ) {
-			Sawa_Lens_Auth::page( 'Language Lens is for Sawa English members', 'Your account is not approved in the Sawa English tracker yet. Once Sherif approves your request, come back to this page.' );
+			Sawa_Lens_Auth::page( 'Your account is not active', 'Your Sawa English account is not open. If you think this is a mistake, write to Sherif in the Sawa English community on Skool.' );
 		}
 		if ( ! self::is_open_for( $uid ) ) {
 			self::waiting_page();
@@ -95,6 +95,7 @@ final class Sawa_Lens_App {
 			'appMode' => $app_mode,
 			'progress' => esc_url_raw( rest_url( self::NS . '/web/progress' ) ),
 			'explainLang' => Sawa_Lens_AI::explain_lang( $u->ID ), // same setting as in Language Lens
+			'plan'    => Sawa_Lens_Tiers::info( $u->ID ), // free or member; locked parts show 🔒 Members only
 		);
 		$trk = $app_mode ? do_shortcode( '[sawa_tracker embedded="1" view="today"]' ) : '';
 		$v = SAWA_LENS_VER;

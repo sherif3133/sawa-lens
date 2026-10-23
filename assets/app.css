@@ -55,6 +55,15 @@ button { cursor: pointer; }
 .stack > * + * { margin-top: 12px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--fg); background: var(--fg); color: #fff; border-radius: 999px; padding: 11px 20px; font-weight: 600; min-height: 46px; }
 .btn.ghost { background: transparent; color: var(--fg); }
+/* Free plan: 🔒 Members only */
+.lock-card { text-align: center; align-items: center; }
+.lock-card .lock-ic { font-size: 40px; line-height: 1; margin: 4px 0 0; }
+.lock-card h2 { margin: 0; }
+.lock-acts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.nav-lock { font-size: 11px; }
+.free-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.free-bar p { margin: 0; flex: 1 1 260px; }
+main.home > .free-bar { order: 0; grid-column: 1 / -1; }
 .btn.block { width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; }
 .link { border: 0; background: none; padding: 0; font-weight: 600; text-decoration: underline; color: var(--fg); }

@@ -1,0 +1,422 @@
+<?php
+/**
+ * Free and Member (paid) accounts, shared by every Sawa app.
+ *
+ * - Anyone can sign up and use their account at once as "free". Sherif ticks "Member (paid)" in wp-admin → Users.
+ * - Settings → Free vs Member: a checkbox per feature per plan. Default: free = Review only.
+ * - Every REST call of Language Lens, the app and the tracker is checked here (rest_dispatch_request, after sign-in),
+ *   so a locked feature is locked on the server, not only hidden in the app.
+ * - User meta sawa_tier = free | member. No meta + an approved account = member (everyone approved before 0.25.0,
+ *   and the review-gift accounts), so nobody loses anything.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+final class Sawa_Lens_Tiers {
+
+	const META = 'sawa_tier';
+	const OPT  = 'sawa_lens_tiers';
+
+	public static function init() {
+		add_filter( 'rest_dispatch_request', array( __CLASS__, 'gate' ), 5, 4 );
+		add_filter( 'sawa_tracker_front_cfg', array( __CLASS__, 'front_cfg' ), 10, 2 );
+		if ( is_admin() ) {
+			add_action( 'admin_init', array( __CLASS__, 'migrate' ) );
+			add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+			add_action( 'admin_post_sawa_lens_tiers_save', array( __CLASS__, 'save' ) );
+			add_action( 'admin_post_sawa_lens_tier', array( __CLASS__, 'toggle' ) );
+			add_filter( 'manage_users_columns', array( __CLASS__, 'column' ) );
+			add_filter( 'manage_users_custom_column', array( __CLASS__, 'cell' ), 10, 3 );
+			add_filter( 'views_users', array( __CLASS__, 'views' ) );
+			add_action( 'pre_get_users', array( __CLASS__, 'filter_users' ) );
+			add_filter( 'bulk_actions-users', array( __CLASS__, 'bulk_actions' ) );
+			add_filter( 'handle_bulk_actions-users', array( __CLASS__, 'bulk' ), 10, 3 );
+			add_action( 'admin_notices', array( __CLASS__, 'notice' ) );
+		}
+	}
+
+	/* ------------------------------------------------------------------ features */
+
+	/** key => [English, Arabic]. Add a feature here and to rules() to make it lockable. */
+	public static function features() {
+		return array(
+			'review'        => array( 'Review cards and saved words', 'مراجعة الكروت والكلمات المحفوظة' ),
+			'lens_meanings' => array( 'Language Lens: word meanings on YouTube and websites', 'Language Lens: معاني الكلمات على يوتيوب والمواقع' ),
+			'lens_ai'       => array( 'AI explanations, translations and sounds', 'شرح وترجمة ونطق بالذكاء الاصطناعي' ),
+			'writing'       => array( 'Writing checker and proofreader', 'تصحيح الكتابة' ),
+			'learn'         => array( 'Skill tree, lessons and practice', 'شجرة المهارات والدروس والتمارين' ),
+			'stories'       => array( 'Stories, songs, radio and reels', 'القصص والأغاني والراديو والريلز' ),
+			'tracker'       => array( 'Study tracker and leaderboards', 'تراكر المذاكرة والترتيب' ),
+			'game'          => array( 'Silk Road game, raids and caravans', 'لعبة طريق الحرير والغارات والقوافل' ),
+			'community'     => array( 'Chat, clans and groups', 'الشات والقبائل والجروبات' ),
+		);
+	}
+
+	/** Which plan gets which feature (Settings → Free vs Member). */
+	public static function map() {
+		$all = array_keys( self::features() );
+		$m   = get_option( self::OPT );
+		$m   = is_array( $m ) ? $m : array();
+		return array(
+			'free'   => array_values( array_intersect( $all, isset( $m['free'] ) ? (array) $m['free'] : array( 'review' ) ) ),
+			'member' => array_values( array_intersect( $all, isset( $m['member'] ) ? (array) $m['member'] : $all ) ),
+		);
+	}
+
+	/** Sign-up opens a free account at once (no approval). Off = the old "ask to join" queue. */
+	public static function instant() {
+		$m = get_option( self::OPT );
+		return ! is_array( $m ) || ! isset( $m['instant'] ) || ! empty( $m['instant'] );
+	}
+
+	/* ------------------------------------------------------------------ accounts */
+
+	/** The account can sign in to the apps (not declined, not waiting). */
+	public static function active( $uid ) {
+		return $uid && ( user_can( $uid, 'manage_options' ) || 'approved' === get_user_meta( $uid, 'sawa_status', true ) );
+	}
+
+	/** 'member', 'free', or '' (no usable account). */
+	public static function tier( $uid ) {
+		if ( ! self::active( $uid ) ) {
+			return '';
+		}
+		if ( user_can( $uid, 'manage_options' ) ) {
+			return 'member';
+		}
+		$t = get_user_meta( $uid, self::META, true );
+		return 'free' === $t ? 'free' : 'member'; // no meta = approved before plans existed = member
+	}
+
+	public static function can( $uid, $feature ) {
+		if ( $uid && user_can( $uid, 'manage_options' ) ) {
+			return true;
+		}
+		$t = self::tier( $uid );
+		return $t && in_array( $feature, self::map()[ $t ], true );
+	}
+
+	/** The features this student can use, for the apps. */
+	public static function allowed( $uid ) {
+		$t = self::tier( $uid );
+		return $t ? ( user_can( $uid, 'manage_options' ) ? array_keys( self::features() ) : self::map()[ $t ] ) : array();
+	}
+
+	public static function set_tier( $uid, $tier ) {
+		update_user_meta( $uid, self::META, 'member' === $tier ? 'member' : 'free' );
+		do_action( 'sawa_tier_changed', (int) $uid, $tier );
+	}
+
+	/** Where "Join Sawa English" goes: the website's join page, else Skool. */
+	public static function join_url() {
+		if ( class_exists( 'Sawa_Site' ) ) {
+			$u = Sawa_Site::url( 'sawa-join' );
+			return $u ? $u : Sawa_Site::s( 'join_url' );
+		}
+		return 'https://www.skool.com/sawa-english-7655';
+	}
+
+	/** What every app gets about the student's plan (Language Lens /me, the app, the tracker). */
+	public static function info( $uid ) {
+		return array(
+			'tier'     => self::tier( $uid ),
+			'features' => self::allowed( $uid ),
+			'locked'   => array_values( array_diff( array_keys( self::features() ), self::allowed( $uid ) ) ),
+			'join'     => self::join_url(),
+		);
+	}
+
+	public static function locked_error( $feature ) {
+		return new WP_Error(
+			'locked',
+			'Members only — join Sawa English to use this.',
+			array(
+				'status'    => 403,
+				'feature'   => $feature,
+				'join'      => self::join_url(),
+				'message_ar' => 'للأعضاء بس — اشترك في سوا انجليش عشان تستخدم دي.',
+			)
+		);
+	}
+
+	/* ------------------------------------------------------------------ sign-up limits */
+
+	const THROWAWAY = array( 'mailinator.com', 'guerrillamail.com', 'guerrillamail.net', 'sharklasers.com', '10minutemail.com', 'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'getnada.com', 'dispostable.com', 'maildrop.cc', 'throwawaymail.com', 'fakeinbox.com', 'mintemail.com', 'mohmal.com', 'emailondeck.com', 'tempail.com', 'moakt.com', 'spambox.us' );
+
+	/**
+	 * Instant sign-up is open to everyone, so it has limits: per connection (3 an hour, 6 a day), for the whole site
+	 * (40 an hour), no throwaway email services, and the email's domain must accept mail.
+	 * Returns '' when the sign-up may go ahead, or a message [English, Arabic]. Call count_signup() after it worked.
+	 */
+	public static function signup_check( $email, $ip ) {
+		$k = md5( $ip );
+		if ( (int) get_transient( 'sawa_su_h_' . $k ) >= 3 || (int) get_transient( 'sawa_su_d_' . $k ) >= 6 ) {
+			return array( 'Too many sign-ups from this connection. Please try again later.', 'تسجيلات كتير من نفس الاتصال. جرب تاني بعد شوية.' );
+		}
+		if ( (int) get_transient( 'sawa_su_all' ) >= 40 ) {
+			return array( 'Sign-up is busy right now. Please try again in an hour.', 'التسجيل زحمة دلوقتي. جرب تاني بعد ساعة.' );
+		}
+		$domain = strtolower( substr( strrchr( $email, '@' ), 1 ) );
+		if ( in_array( $domain, self::THROWAWAY, true ) ) {
+			return array( 'Please use your real email address.', 'اكتب إيميلك الحقيقي.' );
+		}
+		$common = array( 'gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com' );
+		if ( ! in_array( $domain, $common, true ) && self::dns_works() && ! checkdnsrr( $domain, 'MX' ) && ! checkdnsrr( $domain, 'A' ) ) {
+			return array( 'This email address cannot get mail. Please check it.', 'الإيميل ده مش بيستقبل رسايل. راجعه تاني.' );
+		}
+		return '';
+	}
+
+	/** Only judge a domain when the server can look domains up at all (never block everyone over a DNS hiccup). */
+	private static function dns_works() {
+		if ( ! function_exists( 'checkdnsrr' ) ) {
+			return false;
+		}
+		$v = get_transient( 'sawa_su_dns' );
+		if ( false === $v ) {
+			$v = checkdnsrr( 'gmail.com', 'MX' ) ? 1 : 0;
+			set_transient( 'sawa_su_dns', $v, HOUR_IN_SECONDS );
+		}
+		return (bool) $v;
+	}
+
+	public static function count_signup( $ip ) {
+		$k = md5( $ip );
+		foreach ( array( array( 'sawa_su_h_' . $k, HOUR_IN_SECONDS ), array( 'sawa_su_d_' . $k, DAY_IN_SECONDS ), array( 'sawa_su_all', HOUR_IN_SECONDS ) ) as $t ) {
+			set_transient( $t[0], (int) get_transient( $t[0] ) + 1, $t[1] );
+		}
+	}
+
+	/* ------------------------------------------------------------------ the server check */
+
+	/** Route (without the namespace) → feature. null = open to every account (sign-in, settings, level test, feedback). */
+	public static function feature_for( $route ) {
+		$rules = array(
+			'#^/sawa-lens/v1/(me|settings|logout|lang|daily|web/progress|pt/|app/(prefs|interests|band|today|journey|daily)$)#' => null,
+			'#^/sawa-lens/v1/(sync|curious|image$|app/review|app/library$|app/library/(word|sentence|save)$|app/image$)#' => 'review',
+			'#^/sawa-lens/v1/(explain|translate|to-english|sound|lyric|song-lines|image/ai|app/library/(translate|explain)|app/image/ai)#' => 'lens_ai',
+			'#^/sawa-lens/v1/app/(readaloud|speak)#' => 'lens_meanings', // Read a text: listen to it
+			'#^/sawa-lens/v1/app/scan#' => 'lens_ai', // Scan a page (photo → text)
+			'#^/sawa-lens/v1/(proof|app/(write|history|writing))#' => 'writing',
+			'#^/sawa-lens/v1/(video/|lesson/|lessons/|app/(tree|skill|practice|videos?|video/))#' => 'learn',
+			'#^/sawa-lens/v1/app/(readers|songs|radio|reels|reading|adapt)#' => 'stories',
+			'#^/sawa-tracker/v1/(me|request|feedback|ideas|roadmap|lang)#' => null,
+			'#^/sawa-tracker/v1/(world|play|raids|party|coop|quest|clan/(heal|revive))#' => 'game',
+			'#^/sawa-tracker/v1/(chat|clan|members|reminder)#' => 'community',
+			'#^/sawa-tracker/v1/#' => 'tracker',
+		);
+		foreach ( $rules as $re => $f ) {
+			if ( preg_match( $re, $route ) ) {
+				return $f;
+			}
+		}
+		return null;
+	}
+
+	/** Runs after the route's own sign-in check, so the student is known (cookie or Language Lens token). */
+	public static function gate( $result, $request, $route, $handler ) {
+		if ( null !== $result || ( 0 !== strpos( $route, '/sawa-lens/' ) && 0 !== strpos( $route, '/sawa-tracker/' ) ) ) {
+			return $result;
+		}
+		$f   = self::feature_for( $route );
+		$uid = get_current_user_id();
+		if ( $f && $uid && ! self::can( $uid, $f ) ) {
+			return self::locked_error( $f );
+		}
+		return $result;
+	}
+
+	public static function front_cfg( $cfg, $uid ) {
+		$cfg['plan']    = $uid ? self::info( $uid ) : null;
+		$cfg['instant'] = self::instant(); // the join form says "free account, opens at once"
+		return $cfg;
+	}
+
+	/* ------------------------------------------------------------------ one-time switch */
+
+	/** 0.25.0: people still waiting for approval get a free account now. Review-gift requests stay for Sherif. */
+	public static function migrate() {
+		if ( get_option( 'sawa_lens_tiers_v' ) ) {
+			return;
+		}
+		update_option( 'sawa_lens_tiers_v', 1, false );
+		$ids = get_users( array( 'meta_key' => 'sawa_status', 'meta_value' => 'pending', 'fields' => 'ID', 'number' => 2000 ) ); // phpcs:ignore
+		foreach ( $ids as $id ) {
+			if ( get_user_meta( $id, '_sawa_gift', true ) ) {
+				continue;
+			}
+			update_user_meta( $id, self::META, 'free' );
+			update_user_meta( $id, 'sawa_status', 'approved' );
+		}
+	}
+
+	/* ------------------------------------------------------------------ Settings → Free vs Member */
+
+	public static function menu() {
+		add_options_page( 'Free vs Member', 'Free vs Member', 'manage_options', 'sawa-tiers', array( __CLASS__, 'page' ) );
+	}
+
+	public static function page() {
+		$map = self::map();
+		$cnt = self::counts();
+		?>
+		<div class="wrap">
+			<h1>Free vs Member</h1>
+			<p>Anyone can sign up for the Sawa App and Language Lens. A new account is <b>Free</b> and can use only what is ticked under Free.
+				To make someone a paying <b>Member</b>, tick "Member (paid)" next to their name in <a href="<?php echo esc_url( admin_url( 'users.php' ) ); ?>">Users</a>.
+				Members today: <a href="<?php echo esc_url( admin_url( 'users.php?sawa_tier=member' ) ); ?>"><?php echo (int) $cnt['member']; ?></a> ·
+				Free: <a href="<?php echo esc_url( admin_url( 'users.php?sawa_tier=free' ) ); ?>"><?php echo (int) $cnt['free']; ?></a></p>
+			<?php if ( isset( $_GET['saved'] ) ) : // phpcs:ignore ?>
+				<div class="notice notice-success"><p>Saved. Students see the change the next time they open the app.</p></div>
+			<?php endif; ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="sawa_lens_tiers_save">
+				<?php wp_nonce_field( 'sawa_lens_tiers_save' ); ?>
+				<table class="widefat striped" style="max-width:760px">
+					<thead><tr><th>Feature</th><th style="text-align:center">Free</th><th style="text-align:center">Member (paid)</th></tr></thead>
+					<tbody>
+					<?php foreach ( self::features() as $k => $l ) : ?>
+						<tr>
+							<td><?php echo esc_html( $l[0] ); ?></td>
+							<?php foreach ( array( 'free', 'member' ) as $t ) : ?>
+								<td style="text-align:center"><input type="checkbox" name="<?php echo esc_attr( $t ); ?>[]" value="<?php echo esc_attr( $k ); ?>" aria-label="<?php echo esc_attr( $l[0] . ' — ' . $t ); ?>" <?php checked( in_array( $k, $map[ $t ], true ) ); ?>></td>
+							<?php endforeach; ?>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+				<p><label><input type="checkbox" name="instant" value="1" <?php checked( self::instant() ); ?>> New sign-ups can use their free account right away (no approval).</label></p>
+				<p class="description">Locked features show 🔒 "Members only — join Sawa English" with a link to <a href="<?php echo esc_url( self::join_url() ); ?>" target="_blank"><?php echo esc_html( self::join_url() ); ?></a>. Admins can always use everything.</p>
+				<?php submit_button( 'Save' ); ?>
+			</form>
+		</div>
+		<?php
+	}
+
+	public static function save() {
+		if ( ! current_user_can( 'manage_options' ) || ! check_admin_referer( 'sawa_lens_tiers_save' ) ) {
+			wp_die( 'Not allowed.' );
+		}
+		$all = array_keys( self::features() );
+		update_option(
+			self::OPT,
+			array(
+				'free'    => array_values( array_intersect( $all, array_map( 'sanitize_key', (array) wp_unslash( $_POST['free'] ?? array() ) ) ) ),
+				'member'  => array_values( array_intersect( $all, array_map( 'sanitize_key', (array) wp_unslash( $_POST['member'] ?? array() ) ) ) ),
+				'instant' => ! empty( $_POST['instant'] ),
+			),
+			true
+		);
+		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-tiers&saved=1' ) );
+		exit;
+	}
+
+	/* ------------------------------------------------------------------ wp-admin → Users */
+
+	private static function member_query() {
+		return array(
+			'relation' => 'OR',
+			array( 'key' => self::META, 'value' => 'member' ),
+			array(
+				'relation' => 'AND',
+				array( 'key' => self::META, 'compare' => 'NOT EXISTS' ),
+				array( 'key' => 'sawa_status', 'value' => 'approved' ),
+			),
+		);
+	}
+
+	private static function counts() {
+		$n = function ( $mq ) {
+			return (int) ( new WP_User_Query( array( 'meta_query' => $mq, 'fields' => 'ID', 'number' => 1, 'count_total' => true ) ) )->get_total(); // phpcs:ignore
+		};
+		return array(
+			'member' => $n( self::member_query() ),
+			'free'   => $n( array( array( 'key' => self::META, 'value' => 'free' ), array( 'key' => 'sawa_status', 'value' => 'approved' ) ) ),
+		);
+	}
+
+	public static function column( $c ) {
+		$c['sawa_tier'] = 'Member (paid)';
+		return $c;
+	}
+
+	public static function cell( $out, $col, $uid ) {
+		if ( 'sawa_tier' !== $col ) {
+			return $out;
+		}
+		if ( user_can( $uid, 'manage_options' ) ) {
+			return '<span title="Admins can use everything">Admin</span>';
+		}
+		$t = self::tier( $uid );
+		if ( ! $t ) {
+			$s = get_user_meta( $uid, 'sawa_status', true );
+			return '<span class="description">' . ( 'denied' === $s ? 'Declined' : ( 'pending' === $s ? 'Waiting (review gift)' : '—' ) ) . '</span>';
+		}
+		$to  = 'member' === $t ? 'free' : 'member';
+		$url = wp_nonce_url( admin_url( 'admin-post.php?action=sawa_lens_tier&user=' . (int) $uid . '&to=' . $to ), 'sawa_lens_tier_' . $uid );
+		return '<a href="' . esc_url( $url ) . '" style="text-decoration:none" title="' . esc_attr( 'member' === $t ? 'Paid member. Click to make Free.' : 'Free. Click to make a paid Member.' ) . '">'
+			. ( 'member' === $t ? '<span style="color:#15803D;font-weight:600">☑ Member</span>' : '<span style="color:#8A8584">☐ Free</span>' ) . '</a>';
+	}
+
+	public static function toggle() {
+		$uid = (int) ( $_GET['user'] ?? 0 ); // phpcs:ignore
+		if ( ! current_user_can( 'edit_users' ) || ! $uid || ! check_admin_referer( 'sawa_lens_tier_' . $uid ) ) {
+			wp_die( 'Not allowed.' );
+		}
+		if ( 'approved' !== get_user_meta( $uid, 'sawa_status', true ) ) {
+			update_user_meta( $uid, 'sawa_status', 'approved' ); // ticking a declined/waiting person opens their account too
+		}
+		self::set_tier( $uid, 'member' === ( $_GET['to'] ?? '' ) ? 'member' : 'free' ); // phpcs:ignore
+		wp_safe_redirect( add_query_arg( 'sawa_tiered', 1, wp_get_referer() ? wp_get_referer() : admin_url( 'users.php' ) ) );
+		exit;
+	}
+
+	public static function views( $v ) {
+		$cnt = self::counts();
+		$cur = sanitize_key( $_GET['sawa_tier'] ?? '' ); // phpcs:ignore
+		foreach ( array( 'member' => 'Members (paid)', 'free' => 'Free' ) as $k => $l ) {
+			$v[ 'sawa_' . $k ] = '<a href="' . esc_url( admin_url( 'users.php?sawa_tier=' . $k ) ) . '"' . ( $cur === $k ? ' class="current" aria-current="page"' : '' ) . '>' . $l . ' <span class="count">(' . (int) $cnt[ $k ] . ')</span></a>';
+		}
+		return $v;
+	}
+
+	public static function filter_users( $q ) {
+		global $pagenow;
+		if ( 'users.php' !== $pagenow || ! is_admin() ) {
+			return;
+		}
+		$t = sanitize_key( $_GET['sawa_tier'] ?? '' ); // phpcs:ignore
+		if ( 'member' === $t ) {
+			$q->set( 'meta_query', self::member_query() );
+		} elseif ( 'free' === $t ) {
+			$q->set( 'meta_query', array( array( 'key' => self::META, 'value' => 'free' ) ) );
+		}
+	}
+
+	public static function bulk_actions( $a ) {
+		$a['sawa_member'] = 'Make Member (paid)';
+		$a['sawa_free']   = 'Make Free';
+		return $a;
+	}
+
+	public static function bulk( $redirect, $action, $ids ) {
+		if ( ! in_array( $action, array( 'sawa_member', 'sawa_free' ), true ) || ! current_user_can( 'edit_users' ) ) {
+			return $redirect;
+		}
+		foreach ( $ids as $id ) {
+			if ( 'approved' !== get_user_meta( $id, 'sawa_status', true ) ) {
+				update_user_meta( $id, 'sawa_status', 'approved' );
+			}
+			self::set_tier( (int) $id, 'sawa_member' === $action ? 'member' : 'free' );
+		}
+		return add_query_arg( 'sawa_tiered', count( $ids ), $redirect );
+	}
+
+	public static function notice() {
+		if ( isset( $_GET['sawa_tiered'] ) && 'users' === get_current_screen()->id ) { // phpcs:ignore
+			echo '<div class="notice notice-success is-dismissible"><p>Plan updated. It works in the app and Language Lens right away.</p></div>';
+		}
+	}
+}

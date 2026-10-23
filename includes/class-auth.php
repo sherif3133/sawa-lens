@@ -2,7 +2,7 @@
 /**
  * Sign-in for the extension (and later the phone app).
  * The extension opens https://site/?sawa_lens=connect&redirect_uri=https://<id>.chromiumapp.org/&state=…
- * The learner signs in to WordPress as usual; if they're an approved tracker member, we create a device
+ * The learner signs in to WordPress as usual; if their account is active (free or member), we create a device
  * token, keep only its SHA-256, and send the token back in the redirect's #fragment.
  */
 
@@ -16,15 +16,9 @@ final class Sawa_Lens_Auth {
 		add_action( 'template_redirect', array( __CLASS__, 'connect' ), 1 );
 	}
 
-	/** Approved members of the tracker (or anyone who can manage the site). */
+	/** Anyone with a usable account, free or member (not declined). What they may use: Sawa_Lens_Tiers::can(). */
 	public static function allowed( $uid ) {
-		if ( user_can( $uid, 'manage_options' ) ) {
-			return true;
-		}
-		if ( class_exists( 'Sawa_Tracker_Game' ) ) {
-			return Sawa_Tracker_Game::is_member( $uid );
-		}
-		return false;
+		return Sawa_Lens_Tiers::active( $uid );
 	}
 
 	private static function redirect_ok( $uri ) {
@@ -54,7 +48,7 @@ final class Sawa_Lens_Auth {
 		}
 		$uid = get_current_user_id();
 		if ( ! self::allowed( $uid ) ) {
-			self::page( 'Language Lens is for Sawa English members', 'Your account is not approved in the Sawa English tracker yet. Once Sherif approves your request, come back and sign in again.' );
+			self::page( 'Your account is not active', 'Your Sawa English account is not open. If you think this is a mistake, write to Sherif in the Sawa English community on Skool.' );
 		}
 		$token = bin2hex( random_bytes( 32 ) );
 		global $wpdb;
