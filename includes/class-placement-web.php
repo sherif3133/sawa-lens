@@ -62,14 +62,16 @@ final class Sawa_Lens_Placement_Web {
 			'previous' => is_array( $prev ) ? $prev : null,
 			'ready'    => Sawa_Lens_Placement::counts() ? true : false,
 		);
-		$v = SAWA_LENS_VER;
+		$v  = SAWA_LENS_VER;
+		$ar = Sawa_Lang::is_ar(); // the test itself is in English; the instructions follow the site language
 		header( 'Content-Type: text/html; charset=utf-8' );
 		?><!doctype html>
-<html lang="en">
+<html lang="<?php echo $ar ? 'ar' : 'en'; ?>" dir="<?php echo $ar ? 'rtl' : 'ltr'; ?>" data-lang="<?php echo $ar ? 'ar' : 'en'; ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F0F10">
+<?php echo Sawa_Lang::boot( true ); // phpcs:ignore ?>
 <title>Free English Level Test – Sawa English</title>
 <meta name="description" content="Find your English level (A1–C2) in about 25 minutes: vocabulary, grammar, reading, listening and writing. Free.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,9 +81,11 @@ final class Sawa_Lens_Placement_Web {
 <link rel="stylesheet" href="<?php echo esc_url( SAWA_LENS_URL . 'assets/placement.css?v=' . $v ); ?>">
 </head>
 <body>
-<div id="pt" class="app pt"><p class="loading">Loading…</p></div>
+<style>html[data-lang=ar] #pt p.ar{display:none}</style><?php // the Arabic page already says it in Arabic ?>
+<div class="pt-lang" style="max-width:760px;margin:0 auto;padding:12px 16px 0;display:flex;justify-content:flex-end;align-items:center"><?php echo Sawa_Lang::toggle(); // phpcs:ignore ?></div>
+<div id="pt" class="app pt"><p class="loading"><?php echo $ar ? 'بنجهز الاختبار…' : 'Loading…'; ?></p></div>
 <script>window.SAWA_PT = <?php echo wp_json_encode( $boot ); ?>;</script>
-<script src="<?php echo esc_url( SAWA_LENS_URL . 'assets/placement.js?v=' . $v ); ?>"></script>
+<script src="<?php echo esc_url( SAWA_LENS_URL . ( $ar && file_exists( SAWA_LENS_DIR . 'assets/placement-ar.js' ) ? 'assets/placement-ar.js' : 'assets/placement.js' ) . '?v=' . $v ); ?>"></script>
 </body>
 </html>
 		<?php

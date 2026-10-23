@@ -98,13 +98,15 @@ final class Sawa_Lens_App {
 		);
 		$trk = $app_mode ? do_shortcode( '[sawa_tracker embedded="1" view="today"]' ) : '';
 		$v = SAWA_LENS_VER;
+		$ar = Sawa_Lang::is_ar(); // English by default; العربية switches the whole app (text + right-to-left)
 		header( 'Content-Type: text/html; charset=utf-8' );
 		?><!doctype html>
-<html lang="en">
+<html lang="<?php echo $ar ? 'ar' : 'en'; ?>" dir="<?php echo $ar ? 'rtl' : 'ltr'; ?>" data-lang="<?php echo $ar ? 'ar' : 'en'; ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0F0F10">
+<?php echo Sawa_Lang::boot( true ); // phpcs:ignore -- switching reloads the app in the other language ?>
 <meta name="robots" content="noindex">
 <?php if ( $app_mode ) : ?>
 <link rel="manifest" href="<?php echo esc_url( home_url( '/app/manifest.json' ) ); ?>">
@@ -119,16 +121,16 @@ final class Sawa_Lens_App {
 <link rel="stylesheet" href="<?php echo esc_url( SAWA_LENS_URL . 'assets/app.css?v=' . $v ); ?>">
 </head>
 <body>
-<div id="app" class="app<?php echo $app_mode ? ' one' : ''; ?>"><p class="loading">Loading…</p></div>
+<div id="app" class="app<?php echo $app_mode ? ' one' : ''; ?>"><p class="loading"><?php echo $ar ? 'بنجهز التطبيق…' : 'Loading…'; ?></p></div>
 <?php if ( $app_mode ) : ?>
 <div id="trk" class="trk" hidden><?php echo $trk; // phpcs:ignore -- the tracker's own markup ?></div>
 <nav id="nav" class="nav"></nav>
 <?php endif; ?>
 <script>window.SAWA_LENS = <?php echo wp_json_encode( $boot ); ?>;</script>
-<script src="<?php echo esc_url( SAWA_LENS_URL . 'assets/app.js?v=' . $v ); ?>"></script>
+<script src="<?php echo esc_url( SAWA_LENS_URL . ( $ar && file_exists( SAWA_LENS_DIR . 'assets/app-ar.js' ) ? 'assets/app-ar.js' : 'assets/app.js' ) . '?v=' . $v ); ?>"></script>
 <?php if ( $app_mode ) : ?>
-<?php // The app's menus are English: use the tracker's English build when it's there. ?>
-<script src="<?php echo esc_url( SAWA_TR_URL . ( file_exists( SAWA_TR_DIR . 'assets/app-en.js' ) ? 'assets/app-en.js' : 'assets/app.js' ) . '?ver=' . SAWA_TR_VER ); ?>"></script>
+<?php // The tracker is written in Arabic (app.js); app-en.js is its English build. ?>
+<script src="<?php echo esc_url( SAWA_TR_URL . ( ! $ar && file_exists( SAWA_TR_DIR . 'assets/app-en.js' ) ? 'assets/app-en.js' : 'assets/app.js' ) . '?ver=' . SAWA_TR_VER ); ?>"></script>
 <?php endif; ?>
 </body>
 </html>
@@ -182,26 +184,32 @@ self.addEventListener('fetch', function () {});
 	/** What approved students see while the app is closed. */
 	private static function waiting_page() {
 		header( 'Content-Type: text/html; charset=utf-8' );
-		echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0F0F10"><title>Sawa App · You\'re on the list</title>'
+		$ar = Sawa_Lang::is_ar();
+		$t  = function ( $en, $a ) use ( $ar ) { return esc_html( $ar ? $a : $en ); };
+		echo '<!doctype html><html lang="' . ( $ar ? 'ar' : 'en' ) . '" dir="' . ( $ar ? 'rtl' : 'ltr' ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0F0F10"><title>Sawa App · You\'re on the list</title>'
+			. Sawa_Lang::boot( true )
 			. '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@800&family=IBM+Plex+Sans:wght@400;600&display=swap">'
 			. '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#F6F5F3;color:#2B2A29;font:17px/1.7 "IBM Plex Sans",system-ui,sans-serif}'
 			. '.box{max-width:480px;background:#fff;border:1px solid #E6E3DF;border-radius:16px;padding:36px 30px;text-align:center}'
 			. '.tick{width:64px;height:64px;border-radius:50%;background:#0F0F10;color:#fff;display:grid;place-items:center;font-size:30px;margin:0 auto 18px}'
 			. 'h1{font:800 30px/1.2 Changa,"IBM Plex Sans",sans-serif;color:#0F0F10;margin:0 0 12px}p{margin:0 0 8px}.muted{color:#8A8584;font-size:15px}a{color:#0F0F10}</style></head><body>'
-			. '<div class="box"><div class="tick" aria-hidden="true">✓</div><h1>You\'re on the list!</h1>'
-			. '<p>Please wait for Sherif to publish the Sawa App.</p>'
-			. '<p class="muted">Your account is ready. When the app opens, come back to this page and sign in.</p>'
-			. '<p class="muted" style="margin-top:18px"><a href="' . esc_url( home_url( '/' ) ) . '">Back to Sawa English</a></p></div></body></html>';
+			. '<div class="box"><p style="margin:0 0 14px">' . Sawa_Lang::toggle() . '</p><div class="tick" aria-hidden="true">✓</div><h1>' . $t( 'You\'re on the list!', 'إنت على القايمة!' ) . '</h1>'
+			. '<p>' . $t( 'Please wait for Sherif to publish the Sawa App.', 'استنى شريف ينزّل تطبيق سوا.' ) . '</p>'
+			. '<p class="muted">' . $t( 'Your account is ready. When the app opens, come back to this page and sign in.', 'حسابك جاهز. لما التطبيق يفتح، ارجع للصفحة دي وسجّل دخول.' ) . '</p>'
+			. '<p class="muted" style="margin-top:18px"><a href="' . esc_url( home_url( '/' ) ) . '">' . $t( 'Back to Sawa English', 'ارجع لسوا انجليش' ) . '</a></p></div></body></html>';
 		exit;
 	}
 
 	private static function join_page() {
 		$html = do_shortcode( '[sawa_tracker]' );
+		$ar   = Sawa_Lang::is_ar();
 		header( 'Content-Type: text/html; charset=utf-8' );
-		echo '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0F0F10"><title>Sawa English</title>'
-			. '<style>body{margin:0;background:#F6F5F3}.sawa-tracker-app{max-width:1100px;margin:0 auto;padding:16px}</style></head><body>'
+		echo '<!doctype html><html lang="' . ( $ar ? 'ar' : 'en' ) . '" dir="' . ( $ar ? 'rtl' : 'ltr' ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0F0F10"><title>Sawa English</title>'
+			. Sawa_Lang::boot( true )
+			. '<style>body{margin:0;background:#F6F5F3}.sawa-tracker-app{max-width:1100px;margin:0 auto;padding:16px}.lang-bar{max-width:1100px;margin:0 auto;padding:12px 16px 0;display:flex;justify-content:flex-end}</style></head><body>'
+			. '<div class="lang-bar">' . Sawa_Lang::toggle() . '</div>'
 			. $html // phpcs:ignore -- the tracker's own markup
-			. '<script src="' . esc_url( SAWA_TR_URL . 'assets/app.js?ver=' . SAWA_TR_VER ) . '"></script></body></html>';
+			. '<script src="' . esc_url( SAWA_TR_URL . ( ! $ar && file_exists( SAWA_TR_DIR . 'assets/app-en.js' ) ? 'assets/app-en.js' : 'assets/app.js' ) . '?ver=' . SAWA_TR_VER ) . '"></script></body></html>';
 		exit;
 	}
 

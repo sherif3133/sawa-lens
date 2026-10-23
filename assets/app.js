@@ -5,7 +5,9 @@
 	var $app = document.getElementById('app');
 	var TRACKS = [['grammar', 'Grammar'], ['tone', 'Tone & politeness'], ['pron', 'Pronunciation']];
 	var STATUS = { open: 'Open', mastered: 'Mastered', review: 'Needs work', locked: 'Locked' };
-	var S = { view: 'skills', track: 'grammar', tree: null, next: [], byId: {}, ar: B.explainLang ? B.explainLang === 'ar' : pref('lensAr', '0') === '1' }; // "Explanations: English / العربية", saved with the account
+	var L = window.SawaLang; // one language for the whole site and app (English by default, العربية on request): sawa-lens/includes/class-lang.php
+	var S = { view: 'skills', track: 'grammar', tree: null, next: [], byId: {}, ar: L ? L.get() === 'ar' : B.explainLang ? B.explainLang === 'ar' : pref('lensAr', '0') === '1' }; // the app's language is also the explanations' language
+	if (L && B.explainLang !== (S.ar ? 'ar' : 'en')) setTimeout(function () { api('prefs', { body: { explainLang: S.ar ? 'ar' : 'en' } }).catch(function () {}); }, 1500); // Language Lens follows the app
 
 	function pref(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
 	function setPref(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
@@ -85,7 +87,7 @@
 			// Home shows the tracker (your stats, streak, quests) at the top: move it out before redrawing, back in after.
 			var trk = document.getElementById('trk'), nav = document.getElementById('nav');
 			if (trk && $app.contains(trk)) document.body.insertBefore(trk, nav);
-			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><button class="link small" data-nav-start>Your stages</button></header><main class="stack">' + inner + '</main>';
+			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><div class="top-r"><button class="link small" data-nav-start>Your stages</button>' + langSwitch() + '</div></header><main class="stack">' + inner + '</main>';
 			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
 			paintNav();
 			showTrk(['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
@@ -94,7 +96,7 @@
 			window.scrollTo(0, 0);
 			return;
 		}
-		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><a class="small muted" href="' + esc(B.tracker) + '">Tracker</a></header>' +
+		$app.innerHTML = '<header class="top"><div class="brand">Language Lens <span>· Sawa English</span></div><div class="top-r"><a class="small muted" href="' + esc(B.tracker) + '">Tracker</a>' + langSwitch() + '</div></header>' +
 			'<main class="stack">' + inner + '</main>' +
 			'<nav class="nav">' + [['start', 'Start'], ['review', 'Review'], ['read', 'Read'], ['write', 'Write'], ['skills', 'Skills'], ['library', 'Library'], ['progress', 'Progress']].filter(function (v) { return unlocked(v[0]); }).map(function (v) {
 				return '<button data-nav="' + v[0] + '"' + (S.view === v[0] ? ' aria-current="page"' : '') + '>' + ICONS[v[0]] + v[1] + (v[0] === 'review' && S.due ? '<i class="badge">' + S.due + '</i>' : '') + '</button>';
@@ -204,9 +206,9 @@
 		if (!S.ar) return en || ar;
 		return short ? (ar || en) : ar + en;
 	}
-	/** "English / العربية" switch (one setting for the app and Language Lens). */
+	/** "English / العربية" switch: one setting for the website, the app (its whole text and direction) and Language Lens. */
 	function langSwitch() {
-		return '<div class="seg" style="flex:none" role="group" aria-label="Language"><button data-xl="en" aria-pressed="' + !S.ar + '">English</button><button data-xl="ar" lang="ar" aria-pressed="' + S.ar + '">العربية</button></div>';
+		return '<div class="seg sawa-lang" style="flex:none" role="group" aria-label="Language"><button data-xl="en" data-l="en" aria-pressed="' + !S.ar + '">English</button><button data-xl="ar" data-l="ar" lang="ar" aria-pressed="' + S.ar + '">العربية</button></div>';
 	}
 	$app.addEventListener('click', function (e) {
 		var b = e.target.closest('[data-xl]');
@@ -214,16 +216,16 @@
 		S.ar = b.dataset.xl === 'ar';
 		setPref('lensAr', S.ar ? '1' : '0');
 		api('prefs', { body: { explainLang: S.ar ? 'ar' : 'en' } }).catch(function () {});
+		if (L) return; // SawaLang saves it and reloads the app in the other language
 		go(S.view);
 	});
 	function bindAr(root) {
 		root.querySelectorAll('[data-toggle-ar]').forEach(function (b) {
 			b.onclick = function () {
-				S.ar = !S.ar;
-				setPref('lensAr', S.ar ? '1' : '0');
-				api('prefs', { body: { explainLang: S.ar ? 'ar' : 'en' } }).catch(function () {}); // Language Lens follows it too
-				root.querySelectorAll('[data-ar]').forEach(function (e) { e.hidden = !S.ar; });
-				root.querySelectorAll('[data-toggle-ar]').forEach(function (x) { x.textContent = S.ar ? 'Hide Arabic' : 'عربي – show in Arabic'; });
+				// Shows or hides the Arabic lines on this screen only; the app's language is the switch at the top.
+				var show = root.querySelector('[data-ar][hidden]') !== null;
+				root.querySelectorAll('[data-ar]').forEach(function (e) { e.hidden = !show; });
+				root.querySelectorAll('[data-toggle-ar]').forEach(function (x) { x.textContent = show ? 'Hide Arabic' : 'عربي – show in Arabic'; });
 			};
 		});
 	}
@@ -650,14 +652,14 @@
 		var cur = S.stage;
 		var card = function (st) {
 			var state = st.n < cur ? 'done' : st.n === cur ? 'now' : 'locked';
-			var head = '<div class="g-head"><span class="g-n">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : st.n) + '</span><div><b>' + esc(st.title) + '</b>' + (S.ar ? '<span class="ar small">' + esc(st.ar) + '</span>' : '') + '</div></div>';
+			var head = '<div class="g-head"><span class="g-n">' + (state === 'done' ? '✓' : state === 'locked' ? '🔒' : st.n) + '</span><div><b>' + esc(st.title) + '</b>' + (S.ar && !L ? '<span class="ar small">' + esc(st.ar) + '</span>' : '') + '</div></div>';
 			if (state === 'locked') return '<li class="g-stage locked">' + head + '<p class="small muted">Opens after stage ' + (st.n - 1) + '.</p></li>';
 			if (state === 'done') return '<li class="g-stage done">' + head + '</li>';
 			return '<li class="g-stage now">' + head + '<p>' + esc(st.intro) + '</p>'
 				+ (st.steps.length ? '<ul class="g-steps">' + st.steps.map(function (x) {
 					var ok = x.done(j), lk = x.link ? x.link(j) : null;
 					return '<li class="' + (ok ? 'ok' : '') + '"><span class="g-check">' + (ok ? '✓' : '') + '</span><div><b>' + esc(x.t) + '</b>' + (x.optional ? ' <span class="pill">optional</span>' : '') + (x.count && !ok ? ' <span class="pill">' + x.count(j) + '</span>' : '')
-						+ (S.ar ? '<p class="ar small muted">' + esc(x.ar) + '</p>' : '') + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">' + (x.btn || GO_LABEL[x.go] || 'Open') + '</button>' : '') + (lk ? '<a class="btn ' + (x.go ? 'ghost ' : '') + 'sm" href="' + esc(lk[1]) + '"' + (lk[1].charAt(0) === '/' ? '' : ' target="_blank" rel="noopener"') + '>' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
+						+ (S.ar && !L ? '<p class="ar small muted">' + esc(x.ar) + '</p>' : '') + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">' + (x.btn || GO_LABEL[x.go] || 'Open') + '</button>' : '') + (lk ? '<a class="btn ' + (x.go ? 'ghost ' : '') + 'sm" href="' + esc(lk[1]) + '"' + (lk[1].charAt(0) === '/' ? '' : ' target="_blank" rel="noopener"') + '>' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
 				}).join('') + '</ul>' : '')
 				+ (st.tips ? '<ul class="g-tips">' + st.tips.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '')
 				+ '</li>';
@@ -739,14 +741,14 @@
 			['read', 'Read a text', 'Paste any English text → tap words, listen to it', 1, 'اقرأ نص'],
 			['scan', 'Scan a page', 'Photo or screenshot of a page → tap words for meanings', 1, 'صوّر صفحة'],
 			['interests', 'Find content you\'ll love', 'What you enjoy in Arabic → English creators, music and books', 1, 'محتوى إنجليزي هيعجبك'],
-			['write', 'Write & speak', 'Write or talk; get every correction', 3, 'اكتب واتكلم واتصحّح'],
+			['write', 'Write & speak', 'Write or talk, and get every correction', 3, 'اكتب واتكلم واتصحّح'],
 			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3, 'شجرة المهارات']
 		].concat(B.songs ? [['songs', 'My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1, 'أغاني من كلماتك']] : [])
 			.concat(B.readers ? [['stories', 'Stories for you', 'Short stories about what you love, at your level', 1, 'قصص على مستواك']] : []);
 		tools = tools.filter(function (x) { return unlocked(x[0]); }).concat(tools.filter(function (x) { return !unlocked(x[0]); })); // what you can use now comes first
-		shell('<section class="stack"><div class="row-between"><h1>Learn</h1>' + langSwitch() + '</div></section><div class="hub">' + tools.map(function (x) {
+		shell('<section class="stack"><div class="row-between"><h1>Learn</h1></div></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
-			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b>' + (S.ar ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
+			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b>' + (S.ar && !L ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
 		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
@@ -956,7 +958,7 @@
 		// Your stages is not a tile: it is one tap away at the top of every screen and under today's plan.
 		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library', 'مكتبتي'], ['progress', 'Writing progress', 'Are your mistakes going down?', 'progress', 'تقدّمك في الكتابة'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills', 'اختبار المستوى'], ['dev', 'Feedback & Dev', 'What\'s coming · post ideas and bugs, vote', 'dev', 'اقترح وصوّت']].filter(function (x) { return x[0] === 'placement' || (x[0] === 'dev' ? !!trkCfg().boardJs : unlocked(x[0])); });
 		return '<h2>Your things</h2><div class="hub">' + tiles.map(function (x) {
-			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b>' + (S.ar ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + esc(x[2]) + '</span></button>';
+			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b>' + (S.ar && !L ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + esc(x[2]) + '</span></button>';
 		}).join('') + '</div>'
 			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>';
 	}

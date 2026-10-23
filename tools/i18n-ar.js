@@ -1,0 +1,112 @@
+/* Arabic build of the app for students who switch to العربية (the app is written in English).
+   node tools/i18n-ar.js extract  → tools/i18n/en-strings.json (English UI text found in assets/app.js and assets/placement.js)
+   node tools/i18n-ar.js build    → assets/app-ar.js and assets/placement-ar.js (every English text found in tools/i18n/ar.json replaced)
+   Text is found inside JS string literals: whole literals that read like a sentence or a label, and the text
+   between HTML tags inside literals ('<b>Save</b>' → "Save"). Anything not in ar.json stays English. */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const ROOT = path.join(__dirname, '..');
+const DIR = path.join(__dirname, 'i18n');
+
+/** All string literals in JS source: [{start, end, quote, value}] (start/end include the quotes). Same scanner as sawa-tracker/tools/i18n.js. */
+function scanJs(src) {
+	const out = [];
+	let i = 0, prev = '';
+	while (i < src.length) {
+		const c = src[i], n = src[i + 1];
+		if (c === '/' && n === '/') { i = src.indexOf('\n', i); if (i < 0) break; continue; }
+		if (c === '/' && n === '*') { i = src.indexOf('*/', i + 2) + 2; continue; }
+		if (c === "'" || c === '"' || c === '`') {
+			const q = c, s = i;
+			i++;
+			while (i < src.length && src[i] !== q) { if (src[i] === '\\') i++; i++; }
+			out.push({ start: s, end: i + 1, quote: q, value: src.slice(s + 1, i) });
+			i++; prev = 'x';
+			continue;
+		}
+		if (c === '/' && /[(,=:[!&|?{};+\-*%<>~^]$|^$|return$|typeof$/.test(prev)) {
+			i++;
+			let cls = false;
+			while (i < src.length) {
+				if (src[i] === '\\') { i += 2; continue; }
+				if (src[i] === '[') cls = true; else if (src[i] === ']') cls = false; else if (src[i] === '/' && !cls) break;
+				i++;
+			}
+			i++;
+			while (/[a-z]/i.test(src[i] || '')) i++;
+			prev = 'x';
+			continue;
+		}
+		if (!/\s/.test(c)) prev = /[\w$]/.test(c) ? (/[\w$]/.test(prev.slice(-1)) ? prev + c : c) : c;
+		i++;
+	}
+	return out;
+}
+
+/** Does this piece of text look like something a student reads? */
+function isText(t) {
+	const s = t.trim();
+	if (!/[A-Za-z]{2}/.test(s)) return false;
+	if (/^(https?:|\/|#|\.|data-|aria-|[a-z-]+=)/.test(s)) return false; // urls, selectors, attributes
+	if (/[{};]|=>|\(\)|\$\{|\\u/.test(s)) return false; // code / css
+	if (/^[a-z0-9_.:-]+$/.test(s)) return false; // keys, class names, event names
+	if (/^[A-Z0-9_]+$/.test(s) && s.length > 1) return false; // CONSTANTS
+	if (/^[a-z]+(\s[a-z-]+)+$/.test(s) && !/\b(the|a|to|you|your|and|of|in|is|it|for|on|with|this|that|no|not|now|more|all)\b/.test(s)) return false; // "btn small muted"
+	return true;
+}
+
+/** Text segments of a literal: [{a, b, text}] offsets inside the literal value. */
+function segments(v) {
+	const out = [];
+	if (!/[<>]/.test(v)) { if (isText(v)) { const l = v.length - v.replace(/^\s+/, '').length, r = v.length - v.replace(/\s+$/, '').length; out.push({ a: l, b: v.length - r }); } return out; }
+	const re = /(^|>)([^<>]+)(?=<|$)/g;
+	let m;
+	while ((m = re.exec(v))) {
+		const a = m.index + m[1].length, txt = m[2];
+		if (!isText(txt)) continue;
+		// keep leading/trailing spaces outside the key
+		const l = txt.length - txt.replace(/^\s+/, '').length, r = txt.length - txt.replace(/\s+$/, '').length;
+		out.push({ a: a + l, b: a + txt.length - r });
+	}
+	return out;
+}
+
+/** Keys in ar.json are the plain text: no backslash before quotes. */
+function key(raw) { return raw.replace(/\\(['"])/g, '$1'); }
+
+const cmd = process.argv[2];
+const FILES = ['app', 'placement'];
+if (cmd === 'extract') {
+	const seen = new Map();
+	for (const f of FILES) for (const t of scanJs(fs.readFileSync(path.join(ROOT, 'assets/' + f + '.js'), 'utf8'))) for (const g of segments(t.value)) { const k = key(t.value.slice(g.a, g.b)); seen.set(k, (seen.get(k) || 0) + 1); }
+	fs.mkdirSync(DIR, { recursive: true });
+	fs.writeFileSync(path.join(DIR, 'en-strings.json'), JSON.stringify([...seen.keys()], null, 1));
+	console.log('strings', seen.size);
+} else if (cmd === 'build') {
+	const ar = {}; // tools/i18n/ar-*.json, merged
+	fs.readdirSync(DIR).filter((f) => /^ar.*\.json$/.test(f)).forEach((f) => Object.assign(ar, JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8'))));
+	for (const f of FILES) {
+	const src = fs.readFileSync(path.join(ROOT, 'assets/' + f + '.js'), 'utf8'), toks = scanJs(src);
+	let out = '', last = 0, hit = 0, miss = 0;
+	for (const t of toks) {
+		const segs = segments(t.value);
+		if (!segs.length) continue;
+		let v = '', p = 0, changed = false;
+		for (const g of segs) {
+			const k = t.value.slice(g.a, g.b), tr = ar[key(k)];
+			v += t.value.slice(p, g.a);
+			if (tr == null || tr === '') { miss++; v += k; } else { hit++; changed = true; v += t.quote === "'" ? tr.replace(/\\?'/g, "\\'") : t.quote === '"' ? tr.replace(/\\?"/g, '\\"') : tr; }
+			p = g.b;
+		}
+		if (!changed) continue;
+		v += t.value.slice(p);
+		out += src.slice(last, t.start) + t.quote + v + t.quote;
+		last = t.end;
+	}
+	out += src.slice(last);
+	out = '/* GENERATED by tools/i18n-ar.js build from ' + f + '.js: the Arabic (RTL) version. Do not edit. */\n' + out;
+	fs.writeFileSync(path.join(ROOT, 'assets/' + f + '-ar.js'), out);
+	console.log(f + '-ar.js: replaced', hit, 'left in English', miss);
+	}
+}
