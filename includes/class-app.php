@@ -130,6 +130,7 @@ final class Sawa_Lens_App {
 <script>window.SAWA_LENS = <?php echo wp_json_encode( $boot ); ?>;</script>
 <script src="<?php echo esc_url( SAWA_LENS_URL . ( $ar && file_exists( SAWA_LENS_DIR . 'assets/app-ar.js' ) ? 'assets/app-ar.js' : 'assets/app.js' ) . '?v=' . $v ); ?>"></script>
 <?php if ( $app_mode ) : ?>
+<script src="<?php echo esc_url( SAWA_LENS_URL . 'assets/install.js?v=' . $v ); ?>"></script>
 <?php // The tracker is written in Arabic (app.js); app-en.js is its English build. ?>
 <script src="<?php echo esc_url( SAWA_TR_URL . ( ! $ar && file_exists( SAWA_TR_DIR . 'assets/app-en.js' ) ? 'assets/app-en.js' : 'assets/app.js' ) . '?ver=' . SAWA_TR_VER ); ?>"></script>
 <?php endif; ?>
