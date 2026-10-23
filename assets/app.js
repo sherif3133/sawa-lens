@@ -2000,6 +2000,7 @@
 			box.innerHTML = (h.streak ? '<p><span class="pill mastered">🔥 ' + h.streak + '-day reading streak</span>' + (h.readToday ? ' <span class="pill">✓ Read today</span>' : '') + '</p>' : '')
 				+ (!h.quiz ? '<div class="card stack"><p><b>💛 Tell us what you love first</b></p><p class="small muted">Take the 2-minute interest quiz (football, rap, business, gaming…) and your stories will be about it. Until then, you get stories on popular topics.</p><button class="btn sm" data-in>Take the quiz</button></div>' : '')
 				+ (sr ? '<div class="card stack"><div class="row-between"><h3>📚 ' + esc(sr.title) + '</h3><span class="pill">Chapter ' + sr.next + ' of ' + sr.of + '</span></div>'
+					+ (sr.hook ? '<p class="st-hook">' + esc(sr.hook) + '</p>' : '')
 					+ (sr.tomorrow ? '<p class="small muted">Chapter ' + sr.next + ' opens tomorrow. Come back to see what happens next!</p>' : '<button class="btn" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>') + '</div>' : '')
 				+ (t ? '<div class="card stack"><div class="row-between"><h3>Today\'s pick</h3><span class="pill">' + ST_FMT[t.format][0] + ' ' + (t.format === 'series' ? 'A series' : ST_FMT[t.format][1]) + ' · ' + t.level + ' · ' + t.minutes + ' min</span></div><p><b>' + esc(t.title) + '</b></p>' + (t.teaser ? '<p class="small muted">' + esc(t.teaser) + '</p>' : '') + '<p class="small">' + esc(stCat(t.cat)) + '</p>'
 					+ '<div class="ra-btns"><button class="btn" data-open="' + t.id + '">Read it</button>' + (h.cats.some(function (c) { return c.id === t.cat.id; }) ? '<button class="btn ghost sm" data-skip="' + esc(t.cat.id) + '">👎 Not this topic</button>' : '') + '</div></div>'
@@ -2041,7 +2042,9 @@
 		shell('<section class="stack"><button class="link small" id="stback">← Stories</button>'
 			+ '<div class="in-tags"><span class="pill">' + esc(stCat(r.cat)) + '</span><span class="pill">' + f[0] + ' ' + (r.format === 'series' ? 'Chapter ' + r.chapter + ' of ' + r.of : f[1]) + '</span><span class="pill">' + r.level + ' · ' + r.minutes + ' min</span>' + (r.format !== 'explainer' ? '<span class="pill">Fiction</span>' : '') + (r.mine ? '<span class="pill open">✨ Made for you</span>' : '') + (r.hidden ? '<span class="pill review">Hidden</span>' : '') + '</div>'
 			+ '<h1>' + esc(r.title) + '</h1>' + (r.teaser ? '<p class="muted">' + esc(r.teaser) + '</p>' : '') + '</section>'
+			+ (r.previously ? '<section class="card st-prev"><small>Previously</small><p dir="ltr">' + esc(r.previously) + '</p></section>' : '') // seasons: back in 20 seconds after a missed day
 			+ '<section id="scan" class="stack"></section>'
+			+ (r.phrase && r.phrase.en ? '<section class="card st-phrase"><small>💬 A phrase you can steal</small><p dir="ltr"><b>' + esc(r.phrase.en) + '</b> <button class="say sm" data-say="' + esc(r.phrase.en) + '" aria-label="Listen">🔊</button></p>' + (r.phrase.ar && S.ar ? '<p class="small" dir="rtl">' + esc(r.phrase.ar) + '</p>' : '') + '<p class="small muted">Say it out loud twice. Use it this week.</p></section>' : '')
 			+ (r.targets.length || r.used.length ? '<section class="card stack adapted">' + (r.used.length ? '<p class="small"><b>Your words in this story:</b> ' + r.used.map(function (w) { return '<span class="pill" dir="ltr">' + esc(w) + '</span>'; }).join(' ') + '</p>' : '')
 				+ (r.targets.length ? '<p class="small muted">New words (underlined): your +1. Tap ＋ to add one to your review cards.</p><ul class="tg-list">' + r.targets.map(function (t, i) {
 					return '<li><button class="say sm" data-say="' + esc(t.word) + '" aria-label="Listen">🔊</button><b dir="ltr">' + esc(t.word) + '</b><span class="small muted" dir="ltr">' + esc(t.en) + '</span><span class="small" dir="rtl">' + esc(t.ar) + '</span><button class="btn ghost sm" data-stw="' + i + '">＋</button></li>';
@@ -2091,9 +2094,10 @@
 		var box = $app.querySelector('#stq'); if (!box) return;
 		var qs = r.questions || [];
 		if (r.done) {
-			box.innerHTML = '<p><b>✓ You read this one</b>' + (qs.length ? ' · quick check ' + r.score + '/' + qs.length : '') + '</p><div class="ra-btns">' + (qs.length ? '<button class="btn ghost sm" id="stagain">Do the quick check again</button>' : '') + '<button class="btn sm" id="stmore">Another story</button></div>';
+			box.innerHTML = '<p><b>✓ You read this one</b>' + (qs.length ? ' · quick check ' + r.score + '/' + qs.length : '') + '</p><div id="stchoice"></div><div class="ra-btns">' + (qs.length ? '<button class="btn ghost sm" id="stagain">Do the quick check again</button>' : '') + '<button class="btn sm" id="stmore">Another story</button></div>';
 			var ag = box.querySelector('#stagain'); if (ag) ag.onclick = function () { r.done = false; storyCheck(r); };
 			box.querySelector('#stmore').onclick = function () { go('stories'); };
+			storyChoice(r);
 			return;
 		}
 		box.innerHTML = '<h3>Finished reading?</h3><p class="small muted">' + (qs.length ? qs.length + ' quick questions to check you got it · ' : '') + '+10 XP' + (qs.length ? ', +5 more for getting them right' : '') + '</p><button class="btn" id="stdone">✓ I finished reading</button>';
@@ -2103,7 +2107,7 @@
 			var right = 0, answered = 0;
 			box.innerHTML = '<h3>Quick check</h3>' + qs.map(function (q, i) {
 				return '<div class="stack st-q" data-q="' + i + '"><p dir="ltr"><b>' + (i + 1) + '. ' + esc(q.q) + '</b></p>' + (q.ar && S.ar ? '<p class="ar small muted">' + esc(q.ar) + '</p>' : '') + '<div class="opts">' + q.options.map(function (o, k) { return '<button class="opt" dir="ltr" data-k="' + k + '">' + esc(o) + '</button>'; }).join('') + '</div></div>';
-			}).join('');
+			}).join('') + (r.reflect ? '<div class="st-reflect"><small>💭 What would you do?</small><p dir="ltr"><b>' + esc(r.reflect) + '</b></p><p class="small muted">No wrong answer. Think it, say it out loud, or write it in the chat.</p></div>' : '');
 			box.querySelectorAll('.st-q').forEach(function (qe) {
 				var q = qs[+qe.dataset.q];
 				qe.querySelectorAll('.opt').forEach(function (b) {
@@ -2127,19 +2131,40 @@
 			r.done = true; r.score = Math.max(r.score || 0, right);
 			if (!box || !box.isConnected) return;
 			box.insertAdjacentHTML('beforeend', '<div class="banner good st-end"><b>' + (total ? right + ' of ' + total + ' right' + (right === total ? ' — great reading! 🎉' : '') : 'Well done! 🎉') + '</b>' + (x.xp ? ' · +' + x.xp + ' XP' : '') + (x.streak ? ' · 🔥 ' + x.streak + '-day reading streak' : '') + '</div>'
-				+ (x.nextChapter ? '<p class="small muted">Chapter ' + x.nextChapter + ' opens tomorrow.</p>' : '') + '<button class="btn sm" id="stmore">Another story</button>');
+				+ '<div id="stchoice"></div>'
+				+ (x.nextChapter ? '<div class="st-next"><small>' + (x.today ? 'Next' : 'Tomorrow') + ': Chapter ' + x.nextChapter + '</small>' + (x.hook ? '<p class="st-hook">' + esc(x.hook) + '</p>' : '') + (x.today ? '<button class="btn sm" id="stnext">Read chapter ' + x.nextChapter + ' now</button>' : '') + '</div>' : '')
+				+ '<button class="btn ' + (x.today ? 'ghost ' : '') + 'sm" id="stmore">Another story</button>');
 			box.querySelector('#stmore').onclick = function () { go('stories'); };
+			var nx = box.querySelector('#stnext'); if (nx) nx.onclick = function () { storyNext({ series: r.series }); };
+			storyChoice(r);
 		}, function (e) { toast(e.message); });
+	}
+	/** Seasons: what should the hero do? The choice changes how the next chapter opens (saved with the account). */
+	function storyChoice(r) {
+		var box = $app.querySelector('#stchoice'), c = r.choice; if (!box || !c || !c.options || !c.options.length) return;
+		var paint = function () {
+			box.innerHTML = '<div class="st-choice"><small>🔀 Your choice</small><p dir="ltr"><b>' + esc(c.q) + '</b></p><div class="opts">' + c.options.map(function (o) {
+				return '<button class="opt' + (c.chosen === o.key ? ' right' : '') + '" dir="ltr" data-ck="' + esc(o.key) + '"' + (c.chosen ? ' disabled' : '') + '>' + esc(o.label) + '</button>';
+			}).join('') + '</div>' + (c.chosen ? '<p class="small muted">Saved. The next chapter starts from your choice.</p>' : '<p class="small muted">The next chapter starts from what you choose.</p>') + '</div>';
+			box.querySelectorAll('[data-ck]').forEach(function (b) {
+				b.onclick = function () {
+					box.querySelectorAll('[data-ck]').forEach(function (x) { x.disabled = true; });
+					api('readers/choice', { body: { id: r.id, key: b.dataset.ck } }).then(function (x) { c.chosen = x.key; paint(); }, function (e) { toast(e.message); paint(); });
+				};
+			});
+		};
+		paint();
 	}
 	/** Home: today's story (or the next chapter of a series), with the reading streak. */
 	function paintStoryCard() {
 		var box = $app.querySelector('#story'); if (!box || !B.readers) return;
 		api('readers').then(function (h) {
 			if (S.view !== 'today' || !box.isConnected) return;
-			var sr = h.series && !h.series.tomorrow ? h.series : null, t = h.today;
+			var sr = h.series && !h.series.tomorrow ? h.series : null, t = h.today, wait = h.series && h.series.tomorrow ? h.series : null;
 			box.hidden = false;
-			box.innerHTML = '<div class="row-between"><h3>📖 ' + (sr ? 'Your series continues' : h.readToday ? 'You read today ✓' : 'Today\'s story') + '</h3>' + (h.streak ? '<span class="pill mastered">🔥 ' + h.streak + '</span>' : '') + '</div>'
-				+ (sr ? '<p><b>' + esc(sr.title) + '</b> · chapter ' + sr.next + ' of ' + sr.of + '</p><button class="btn sm" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>'
+			box.innerHTML = '<div class="row-between"><h3>📖 ' + (sr ? 'Your series continues' : wait ? 'Tomorrow in ' + esc(wait.title) : h.readToday ? 'You read today ✓' : 'Today\'s story') + '</h3>' + (h.streak ? '<span class="pill mastered">🔥 ' + h.streak + '</span>' : '') + '</div>'
+				+ (sr ? '<p><b>' + esc(sr.title) + '</b> · chapter ' + sr.next + ' of ' + sr.of + '</p>' + (sr.hook ? '<p class="st-hook">' + esc(sr.hook) + '</p>' : '') + '<button class="btn sm" data-series="' + sr.id + '">Read chapter ' + sr.next + '</button>'
+					: wait ? '<p class="st-hook">' + esc(wait.hook || 'What happens next?') + '</p><p class="small muted">Chapter ' + wait.next + ' of ' + wait.of + ' opens tomorrow.</p><button class="btn ghost sm" data-more>More stories</button>'
 					: h.readToday ? '<p class="small muted">Want another? Pick a topic you love.</p><button class="btn ghost sm" data-more>More stories</button>'
 						: t ? '<p><b>' + esc(t.title) + '</b></p><p class="small muted">' + esc(stCat(t.cat)) + ' · ' + t.level + ' · ' + t.minutes + ' min' + (t.teaser ? ' · ' + esc(t.teaser) : '') + '</p><button class="btn sm" data-open="' + t.id + '">Read today\'s story</button>' : '<button class="btn sm" data-more>Open Stories</button>');
 			box.querySelectorAll('[data-series]').forEach(function (b) { b.onclick = function () { storyNext({ series: +b.dataset.series }); }; });

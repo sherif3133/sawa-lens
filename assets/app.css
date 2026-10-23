@@ -394,6 +394,11 @@ main:has(.in-creators) { padding-bottom: 76px; }
 .st-chips{display:flex;flex-wrap:wrap;gap:8px}.st-chips .btn{min-height:44px}
 .st-q{padding:10px 0;border-top:1px solid var(--line)}.st-q:first-of-type{border-top:0}
 .st-end{margin-top:10px}.st-mine{border-color:#6250d6;background:#F5F3FF}
+/* Story seasons: Previously, the phrase you can steal, the choice, tomorrow's hook, "what would you do?" */
+.st-prev,.st-phrase{padding:12px 14px}.st-prev small,.st-phrase small,.st-choice small,.st-next small,.st-reflect small{display:block;font:700 11px/1.4 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.st-prev p{margin:0;color:var(--ink);font-size:15px}.st-phrase{border-color:#6250d6;background:#F5F3FF}.st-phrase p{margin:4px 0}
+.st-hook{font-family:var(--display);font-weight:800;font-size:18px;line-height:1.35;color:var(--fg);margin:6px 0}
+.st-choice,.st-next,.st-reflect{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.st-choice .opt{text-align:start}
 .toast{pointer-events:none}
 
 /* phone audit 2026-10-23: finger-sized taps, and the library tabs wrap instead of hiding behind a swipe */

@@ -58,6 +58,42 @@ const text = (u) => fetch(B + u).then((r) => r.text());
 	await as(1);
 	h = await api('readers');
 	ok(h.today && /^Night Shift – Chapter 1$/.test(h.today.title), 'a B1 student with no season going is offered Night Shift (' + (h.today && h.today.title) + ')');
+	// The screens, on a phone: episode page, quick check with "what would you do?", the choice, tomorrow's hook.
+	console.log(await text('/?readers_setup=1'));
+	const ph = await br.newPage();
+	await ph.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+	await ph.evaluateOnNewDocument(() => { window.speechSynthesis = { speak() {}, cancel() {}, getVoices: () => [], onvoiceschanged: null }; HTMLMediaElement.prototype.play = () => Promise.resolve(); });
+	const errs = [];
+	ph.on('pageerror', (e) => errs.push(e.message));
+	const out = process.argv[2] || '.';
+	const click = async (sel) => { await ph.waitForSelector(sel, { timeout: 20000 }); await ph.$eval(sel, (b) => b.click()); await new Promise((r) => setTimeout(r, 500)); };
+	await ph.goto(B + '/app/?as=8&u=' + Date.now() + '#stories', { waitUntil: 'networkidle2' });
+	await ph.waitForSelector('#st [data-open]', { timeout: 20000 });
+	ok(/The Interview – Chapter 1/.test(await ph.$eval('#st', (b) => b.innerText)), 'phone: Stories offers The Interview first');
+	await click('#st .btn[data-open]');
+	await ph.waitForSelector('.scan-text p', { timeout: 20000 });
+	ok(!(await ph.$('.st-prev')) && !!(await ph.$('.st-phrase')), 'phone: episode 1 shows the phrase card and no "Previously"');
+	const ep = await ph.evaluate(() => fetch(SAWA_LENS.root + 'readers/' + location.hash.split('-')[1], { credentials: 'same-origin', headers: { 'X-WP-Nonce': SAWA_LENS.nonce } }).then((r) => r.json()));
+	await click('#stdone');
+	ok(!!(await ph.$('.st-reflect')), 'phone: the quick check ends with "What would you do?"');
+	for (let i = 0; i < ep.questions.length; i++) await ph.$eval(`.st-q[data-q="${i}"] .opt[data-k="${ep.questions[i].answer}"]`, (b) => b.click());
+	await ph.waitForSelector('.st-choice [data-ck="B"]', { timeout: 15000 });
+	ok(/surprise from Emma/.test(await ph.$eval('.st-next', (b) => b.innerText)), 'phone: after the check, tomorrow\'s hook');
+	await click('.st-choice [data-ck="B"]');
+	await ph.waitForFunction(() => /Saved/.test(document.querySelector('.st-choice').innerText), { timeout: 10000 });
+	ok(true, 'phone: the choice is saved');
+	await ph.screenshot({ path: out + '/season-1-end.png', fullPage: true });
+	if (perDay > 1) {
+		await click('#stnext');
+		await ph.waitForSelector('.st-prev', { timeout: 20000 });
+		const first = await ph.$eval('.scan-text p', (p) => p.textContent);
+		ok(/^“Could we keep Sunday, please\?”/.test(first), 'phone: episode 2 opens with the chosen opening, after a "Previously" box');
+		await ph.screenshot({ path: out + '/season-2-start.png', fullPage: true });
+	} else {
+		ok(/opens tomorrow|Tomorrow/.test(await ph.$eval('.st-next', (b) => b.innerText)), 'phone: a weekday says the next chapter opens tomorrow');
+	}
+	ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'phone: no sideways scroll');
+	ok(!errs.length, 'phone: no page errors ' + errs.join(' / '));
 	await br.close();
 	console.log(bad ? bad + ' FAILED' : 'ALL OK');
 	process.exit(bad ? 1 : 0);
