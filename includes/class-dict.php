@@ -145,4 +145,48 @@ final class Sawa_Lens_Dict {
 		Sawa_Lens_AI::dict_store( $cands[0], $res );
 		return array( 'word' => $cands[0] ) + $res;
 	}
+
+	/* ----------------------------------------------------------------- admin: test a word */
+
+	public static function admin_init() {
+		add_action( 'admin_menu', function () {
+			add_submenu_page( 'sawa-lens-quizzes', 'Test a word', 'Test a word', 'manage_options', 'sawa-lens-test-word', array( __CLASS__, 'test_page' ) );
+		}, 42 );
+	}
+
+	/** Looks a word up exactly as Language Lens's word card does (/define), and says where the answer came from. */
+	public static function test_page() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$word = isset( $_GET['word'] ) ? sanitize_text_field( wp_unslash( $_GET['word'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		?>
+		<div class="wrap">
+			<h1>Test a word</h1>
+			<p>Looks a word up the way the Language Lens word card does: shared cache → free dictionary (Wiktionary) → AI. A word that isn't cached yet costs one small AI call (for the Arabic), charged to you in AI cost.</p>
+			<form method="get"><input type="hidden" name="page" value="sawa-lens-test-word"><?php wp_nonce_field( 'sawa_lens_test_word', '_wpnonce', false ); ?>
+				<input name="word" value="<?php echo esc_attr( $word ); ?>" placeholder="epiphanies" class="regular-text"> <button class="button button-primary">Look up</button></form>
+			<?php
+			if ( '' !== $word && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'sawa_lens_test_word' ) ) {
+				$cands = self::candidates( $word );
+				$was   = $cands ? Sawa_Lens_AI::dict_cached( $cands[0] ) : null;
+				$t     = microtime( true );
+				$res   = self::define( get_current_user_id(), $word );
+				$ms    = (int) round( ( microtime( true ) - $t ) * 1000 );
+				if ( is_wp_error( $res ) ) {
+					echo '<p><b>Error:</b> ' . esc_html( $res->get_error_message() ) . '</p>';
+				} else {
+					$ar = count( array_filter( $res['entries'], function ( $e ) { return ! empty( $e['ar'] ); } ) );
+					echo '<p><b>' . esc_html( $res['word'] ) . '</b> → ' . esc_html( $res['lemma'] ) . ' · source: <b>' . esc_html( $res['src'] ) . '</b> · ' . ( $was ? '<b>from the cache</b>' : 'new lookup (now cached)' ) . ' · ' . (int) count( $res['entries'] ) . ' meanings, ' . (int) $ar . ' with Arabic · ' . (int) $ms . ' ms</p>';
+					echo '<ol>';
+					foreach ( $res['entries'] as $e ) {
+						echo '<li><i>' . esc_html( $e['pos'] ?? '' ) . '</i> ' . esc_html( $e['en'] ?? '' ) . ' — <span dir="rtl">' . esc_html( $e['ar'] ?? '(no Arabic)' ) . '</span></li>';
+					}
+					echo '</ol>';
+				}
+			}
+			?>
+		</div>
+		<?php
+	}
 }
