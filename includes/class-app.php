@@ -47,6 +47,10 @@ final class Sawa_Lens_App {
 		if ( in_array( (string) get_query_var( 'sawa_lens_app' ), array( '4', '5' ), true ) ) {
 			self::pwa_file( (string) get_query_var( 'sawa_lens_app' ) );
 		}
+		// /lens/ is the public Language Lens guide (sawa-site); it is not personal, so it may be cached.
+		if ( '1' === (string) get_query_var( 'sawa_lens_app' ) && class_exists( 'Sawa_Site_Lens' ) ) {
+			Sawa_Site_Lens::render();
+		}
 		nocache_headers();
 		// Personal pages: never from a page cache (LiteSpeed and others).
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
