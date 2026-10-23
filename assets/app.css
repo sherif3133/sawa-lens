@@ -337,13 +337,11 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
   .nav button { flex: none; max-width: none; display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px; font-size: 15px; text-align: left; }
   .nav button[aria-current="page"] { background: var(--soft, rgba(0, 0, 0, .06)); }
   .nav .badge { position: static; margin-left: auto; }
-  .app { max-width: 1240px; padding: 0 32px 40px 242px; }
+  .app { max-width: none; padding: 0 40px 40px 250px; }
+  .app > header.top, .app > main { max-width: 1000px; margin-inline: auto; }
+  .app:has(> main.home) > header.top, .app > main.home { max-width: 1440px; }
   .hub { grid-template-columns: repeat(4, 1fr); }
   .toast { bottom: 24px; }
-  main.stack:has(> #trk.at-top) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 460px); column-gap: 24px; align-items: start; }
-  main.stack:has(> #trk.at-top) > * { grid-column: 1; margin-top: 0; }
-  main.stack:has(> #trk.at-top) > * + * { margin-top: 12px; }
-  main.stack:has(> #trk.at-top) > #trk { grid-column: 2; grid-row: 1 / span 30; justify-self: stretch; width: 100%; max-width: none; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; margin-top: 0; }
 }
 @media (min-width: 1100px) { .trk { max-width: none; } .trk:not(.at-top) { max-width: 1240px; margin: 0 auto; padding: 8px 32px 40px 242px; } }
 
@@ -413,3 +411,57 @@ main:has(.in-creators) { padding-bottom: 76px; }
 
 /* the round Beta button sits bottom-right above the nav: leave room so it never covers the last lines */
 body:has(.sawa-beta) .app, body:has(.sawa-beta) .app.one, body:has(.sawa-beta) .trk { padding-bottom: calc(148px + env(safe-area-inset-bottom)); }
+
+/* ── Home grid ──────────────────────────────────────
+   Home is one grid: the app's blocks and the tracker's blocks (named part="t-…" in sawa-tracker app.js) side by side.
+   The tracker's host and root are display:contents, so its blocks become items of this grid and can be ordered with ours.
+   Order: who you are → today's plan → today's content → progress → community. Phones show one group at a time. */
+main.home { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+main.home > * { margin: 0; min-width: 0; }
+main.home > #trk, main.home .sawa-tracker-app, main.home .sawa-tracker-app::part(home-root), main.home .sawa-tracker-app::part(home-layer) { display: contents; }
+main.home .sawa-tracker-app::part(t-bar), main.home .sawa-tracker-app::part(t-hello), main.home .sawa-tracker-app::part(t-new), main.home .sawa-tracker-app::part(t-quest), main.home .sawa-tracker-app::part(t-stats), main.home .sawa-tracker-app::part(t-board), main.home .sawa-tracker-app::part(t-hero) { margin: 0; min-width: 0; }
+main.home .sawa-tracker-app::part(t-new), main.home .sawa-tracker-app::part(t-quest), main.home .sawa-tracker-app::part(t-stats), main.home .sawa-tracker-app::part(t-board), main.home .sawa-tracker-app::part(t-hero) { container: app / inline-size; }
+main.home .sawa-tracker-app::part(t-hello) { order: 1; } main.home .sawa-tracker-app::part(t-bar) { order: 2; } main.home .sawa-tracker-app::part(t-stats) { order: 3; }
+main.home > #plan { order: 4; } main.home .sawa-tracker-app::part(t-new) { order: 5; } main.home .sawa-tracker-app::part(t-quest) { order: 6; } main.home > .home-today { order: 7; }
+main.home > #prog { order: 8; } main.home > .home-things { order: 9; } main.home .sawa-tracker-app::part(t-board) { order: 10; } main.home .sawa-tracker-app::part(t-hero) { order: 11; } main.home > .home-more { order: 12; }
+.home-today { display: grid; gap: 12px; }
+.home-today:not(:has(> :not([hidden]))) { display: none; }
+.home-more { text-align: center; }
+.home-seg { order: 0; display: none; }
+
+/* Phones: Today / Progress / Community, one group at a time, today's plan first. */
+@media (max-width: 759px) {
+  .home-seg { display: flex; position: sticky; top: 0; z-index: 5; box-shadow: 0 0 0 6px var(--bg); }
+  .home-seg button { flex: 1; min-height: 44px; }
+  main.home .sawa-tracker-app::part(t-ring) { display: none; }
+  main.home .sawa-tracker-app::part(t-stats) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  main.home .sawa-tracker-app::part(t-bar) { flex-wrap: nowrap; gap: 6px; }
+  main.home[data-seg="today"] > [data-g]:not([data-g="today"]), main.home[data-seg="progress"] > [data-g]:not([data-g="progress"]), main.home[data-seg="community"] > [data-g]:not([data-g="community"]) { display: none; }
+  main.home[data-seg="today"] .sawa-tracker-app::part(t-stats), main.home[data-seg="today"] .sawa-tracker-app::part(t-board), main.home[data-seg="today"] .sawa-tracker-app::part(t-hero),
+  main.home[data-seg="progress"] .sawa-tracker-app::part(t-hello), main.home[data-seg="progress"] .sawa-tracker-app::part(t-bar), main.home[data-seg="progress"] .sawa-tracker-app::part(t-new), main.home[data-seg="progress"] .sawa-tracker-app::part(t-quest), main.home[data-seg="progress"] .sawa-tracker-app::part(t-board), main.home[data-seg="progress"] .sawa-tracker-app::part(t-hero),
+  main.home[data-seg="community"] .sawa-tracker-app::part(t-hello), main.home[data-seg="community"] .sawa-tracker-app::part(t-bar), main.home[data-seg="community"] .sawa-tracker-app::part(t-new), main.home[data-seg="community"] .sawa-tracker-app::part(t-quest), main.home[data-seg="community"] .sawa-tracker-app::part(t-stats) { display: none; }
+}
+@media (min-width: 760px) { main.home > .home-more { display: none; } }
+
+/* Computers: a 12-column page. Row 1 you and your stats, then the plan with today's things beside it, then progress, then community. */
+@media (min-width: 1100px) {
+  main.home { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; grid-auto-flow: row dense; }
+  main.home > * { grid-column: 1 / -1; }
+  main.home .sawa-tracker-app::part(t-hello) { grid-column: span 7; align-self: center; }
+  main.home .sawa-tracker-app::part(t-bar) { grid-column: span 5; align-self: center; justify-content: flex-end; flex-wrap: nowrap; }
+  main.home .sawa-tracker-app::part(t-stats) { grid-column: 1 / -1; }
+  main.home > #plan { grid-column: 1 / span 7; grid-row: span 3; }
+  main.home .sawa-tracker-app::part(t-new), main.home .sawa-tracker-app::part(t-quest) { grid-column: 8 / -1; }
+  main.home > .home-today { grid-column: 8 / -1; gap: 20px; }
+  main.home > #prog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  main.home > #prog > * { margin: 0; }
+  main.home .sawa-tracker-app::part(t-hello) { justify-content: flex-start; gap: 40px; }
+  main.home > .home-things { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
+  main.home > .home-things > * { margin: 0; }
+  main.home > .home-things > h2 { grid-column: 1 / -1; }
+  main.home > .home-things > .hub { display: contents; }
+  main.home > .home-things > .card { grid-column: span 2; align-self: stretch; }
+  main.home > #prog > h2, main.home > #prog > .ch-tiles, main.home > #prog > p { grid-column: 1 / -1; }
+  main.home .sawa-tracker-app::part(t-board) { grid-column: 1 / span 6; }
+  main.home .sawa-tracker-app::part(t-hero) { grid-column: 7 / -1; }
+}

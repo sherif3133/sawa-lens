@@ -677,7 +677,27 @@
 	/** Today: a short plan with the next step highlighted, then today's stats and quest from the tracker. */
 	function today() {
 		if (S.gate) { shell('<section class="stack"><h1>Welcome 👋</h1><p class="muted">One quick step first (below). Then everything opens.</p></section>'); return; }
-		shell('<section class="card stack" id="plan"><p class="loading">Making your plan…</p></section><section class="card stack" id="story" hidden></section><section class="card stack" id="ilove" hidden></section><section class="card" id="expo" hidden></section><section class="stack" id="prog"></section>' + meTiles());
+		// Home is one page grid (app.css "Home grid"): the tracker's blocks (welcome, stats, new thing, leaderboard, character)
+		// sit next to these. On phones, Today / Progress / Community show one group at a time.
+		var seg = S.homeSeg || 'today';
+		shell('<div class="seg home-seg" role="tablist" aria-label="Home">' + [['today', 'Today'], ['progress', 'Progress'], ['community', 'Community']].map(function (t) {
+			return '<button role="tab" data-hseg="' + t[0] + '" aria-selected="' + (seg === t[0]) + '" aria-pressed="' + (seg === t[0]) + '">' + t[1] + '</button>';
+		}).join('') + '</div>'
+			+ '<section class="card stack" id="plan" data-g="today"><p class="loading">Making your plan…</p></section>'
+			+ '<div class="home-today" data-g="today"><section class="card stack" id="story" hidden></section><section class="card stack" id="ilove" hidden></section><section class="card" id="expo" hidden></section></div>'
+			+ '<section class="stack" id="prog" data-g="progress"></section>'
+			+ '<div class="home-things stack" data-g="progress">' + meTiles() + '</div>'
+			+ '<p class="home-more small muted" data-g="community">Clans, the weekly boss and the caravan are in <button class="link small" data-go-play>Play</button>.</p>');
+		var hm = $app.querySelector('main');
+		hm.classList.add('home'); hm.dataset.seg = seg;
+		$app.querySelectorAll('[data-hseg]').forEach(function (b) {
+			b.onclick = function () {
+				S.homeSeg = hm.dataset.seg = b.dataset.hseg;
+				$app.querySelectorAll('[data-hseg]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
+				window.scrollTo(0, 0);
+			};
+		});
+		$app.querySelector('[data-go-play]').onclick = function () { go('community'); };
 		paintExposure();
 		paintStoryCard();
 		paintInterestCard();
