@@ -161,11 +161,17 @@
 		C1: ['متقدم', 'تقدر تستخدم الانجليزي بمرونة في حياتك الاجتماعية والدراسة والشغل.'],
 		C2: ['متمكن', 'تقدر تفهم تقريبًا كل حاجة وتعبّر عن نفسك بدقة.']
 	};
+	function fill(t, v) { return t.replace(/%([a-z])/g, function (m, k) { return v[k] || ''; }); }
 	function result(r) {
 		var L = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], pos = Math.min(100, Math.max(0, r.score));
 		var sk = r.skills || {}, names = { vocabulary: 'الكلمات', grammar: 'القواعد', reading: 'القراية', listening: 'السمع', writing: 'الكتابة' };
 		page('<section class="stack center-text pt-res"><p class="pt-kicker">مستواك في الانجليزي</p><div class="pt-level">' + esc(r.level) + '</div><h2>' + esc(DESC[r.level][0]) + '</h2><p class="muted">' + esc(DESC[r.level][1]) + '</p>'
-			+ '<p class="pt-score"><b>' + r.score + '</b>/100</p></section>'
+			+ '<p class="pt-score"><b>' + r.score + '</b>/100</p>'
+			+ (r.borderline ? '<p class="card small">' + esc(fill('إنت بالظبط بين %a و %b. حطيناك في %a علشان الكورس يبقى ثابت معاك، وتقدر تطلع قريب.', { a: r.borderline.split('-')[0], b: r.borderline.split('-')[1] })) + '</p>' : '')
+			+ (r.note === 'kept' ? '<p class="card small">' + esc(fill('الاختبار ده طلّع %t. نتايج الاختبارات بتختلف شوية، فمستواك فاضل %l. كمّل!', { t: r.tested, l: r.level })) + '</p>' : '')
+			+ (r.note === 'up_next' ? '<p class="card small">' + esc(fill('الاختبار ده طلّع %t، فوق الحد بشوية. مستواك فاضل %l دلوقتي، ونتيجة كمان زي دي هتطلّعك.', { t: r.tested, l: r.level })) + '</p>' : '')
+			+ (r.note === 'down' ? '<p class="card small">' + esc(fill('اختبارين ورا بعض طلعوا أقل، فمستواك دلوقتي %l.', { l: r.level })) + '</p>' : '')
+			+ '</section>'
 			+ '<div class="pt-scale"><div class="pt-track">' + L.map(function (l) { return '<span class="' + (l === r.level ? 'on' : '') + '">' + l + '</span>'; }).join('') + '</div><i style="left:' + pos + '%"></i></div>'
 			+ '<section class="card stack"><h3>مهاراتك</h3>' + Object.keys(names).filter(function (k) { return sk[k]; }).map(function (k) {
 				var s = sk[k];
@@ -176,7 +182,7 @@
 			}).join('') + '</section>'
 			+ (r.quick ? '<div class="card stack"><b>ده كان الاختبار السريع.</b><p class="small muted">ده تقدير من الكلمات والقواعد. الاختبار الكامل بيضيف القراية والسمع والكتابة عشان مستواك بالظبط.</p><button class="btn ghost" id="full">اعمل الاختبار الكامل</button></div>' : '')
 			+ (r.beta ? '<p class="small muted">تجريبي: الاختبار لسه بيتظبط بإجابات حقيقية، فنتيجتك ممكن تتحرك شوية (±' + Math.max(3, r.margin) + ' درجات). بيبقى أدق كل ما طلبة أكتر يعملوه.</p>' : '')
-			+ (B.member ? '<p class="card">مستواك اتحفظ في حسابك: Language Lens دلوقتي بيلوّن الكلمات لمستوى ' + esc(r.level) + '، وخطتك بتستخدمه.</p><a class="btn block" href="' + esc(B.app) + '">ارجع للتطبيق</a>'
+			+ (B.member ? '<p class="card">' + (r.saved === false ? 'نتيجة الاختبار الكامل فاضلة في حسابك. الاختبار السريع مش بيغيّرها.' : 'مستواك اتحفظ في حسابك: خطتك بتستخدمه، و Language Lens بقى يستخدم نتيجة الكلمات بتاعتك في «إنت عارف حوالي N% من الكلمات».') + '</p><a class="btn block" href="' + esc(B.app) + '">ارجع للتطبيق</a>'
 				: '<section class="card stack center-text"><h3>جاهز تحسّن مستواك؟</h3><p class="muted">سوا انجليش: خطة يومية، كروت مراجعة، فيديوهات بأسئلة، تصحيح لكتابتك وكلامك، ومجتمع بيذاكر مع بعض.</p><a class="btn block" href="' + esc(B.join) + '">ادخل سوا انجليش</a></section>')
 			+ '<button class="link small center-text" id="again">اعمل الاختبار تاني</button>');
 		$pt.querySelector('#again').onclick = function () { store(null); B.previous = r; intro(); };

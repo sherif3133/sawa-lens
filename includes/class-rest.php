@@ -183,7 +183,7 @@ final class Sawa_Lens_Rest {
 	public static function save_settings( WP_REST_Request $r ) {
 		$level = (int) $r->get_param( 'level' );
 		if ( $level >= 1 && $level <= 6 ) {
-			update_user_meta( get_current_user_id(), 'sawa_lens_level', $level );
+			Sawa_Lens_Store::set_level( get_current_user_id(), $level );
 		}
 		// "Explanations: English / العربية", shared with /app.
 		$expl = (string) $r->get_param( 'explainLang' );
@@ -204,7 +204,10 @@ final class Sawa_Lens_Rest {
 		$pushS = (array) $r->get_param( 'sentences' );
 		$level = (int) $r->get_param( 'level' );
 		if ( $level >= 1 && $level <= 6 ) {
-			update_user_meta( $uid, 'sawa_lens_level', $level );
+			// levelT (Lens 0.9+): when the learner picked it; a level taken from a test carries the test's time, so the test's profile stays.
+			$now = (int) round( microtime( true ) * 1000 );
+			$lt  = (int) $r->get_param( 'levelT' );
+			Sawa_Lens_Store::set_level( $uid, $level, $lt > 0 ? min( $now, $lt ) : $now );
 		}
 		// "Explanations" changed on this device (sent only then; otherwise the account's value comes back).
 		$expl = (string) $r->get_param( 'explainLang' );
@@ -218,19 +221,22 @@ final class Sawa_Lens_Rest {
 		if ( $saved ) {
 			Sawa_Lens_Activity::add( $uid, 'saved', min( 40, $saved ) );
 		}
-		// Vocabulary test result: the newest one wins.
+		// Vocabulary test result from the extension: the newest one wins, but it never replaces a full placement test.
 		$vocab = $r->get_param( 'vocab' );
-		$saved = get_user_meta( $uid, 'sawa_lens_vocab', true );
-		if ( is_array( $vocab ) && isset( $vocab['estimate'], $vocab['t'] ) && ( ! is_array( $saved ) || (int) $vocab['t'] > (int) ( $saved['t'] ?? 0 ) ) ) {
-			$saved = array(
-				'date'        => sanitize_text_field( (string) ( $vocab['date'] ?? '' ) ),
-				'estimate'    => max( 0, min( 6000, (int) $vocab['estimate'] ) ),
-				'bands'       => array_map( 'floatval', array_slice( (array) ( $vocab['bands'] ?? array() ), 0, 6 ) ),
-				'falseAlarms' => (float) ( $vocab['falseAlarms'] ?? 0 ),
-				't'           => (int) $vocab['t'],
+		if ( is_array( $vocab ) && isset( $vocab['estimate'], $vocab['t'] ) ) {
+			Sawa_Lens_Store::put_vocab(
+				$uid,
+				array(
+					'date'        => sanitize_text_field( (string) ( $vocab['date'] ?? '' ) ),
+					'estimate'    => max( 0, min( 6000, (int) $vocab['estimate'] ) ),
+					'bands'       => array_map( 'floatval', array_slice( (array) ( $vocab['bands'] ?? array() ), 0, 6 ) ),
+					'falseAlarms' => (float) ( $vocab['falseAlarms'] ?? 0 ),
+					't'           => (int) $vocab['t'],
+					'src'         => 'lens',
+				)
 			);
-			update_user_meta( $uid, 'sawa_lens_vocab', $saved );
 		}
+		$saved = get_user_meta( $uid, 'sawa_lens_vocab', true );
 		$words     = Sawa_Lens_Store::words_since( $uid, $since );
 		$sentences = Sawa_Lens_Store::sentences_since( $uid, $since );
 		$cursor    = $since;
@@ -260,6 +266,8 @@ final class Sawa_Lens_Rest {
 				),
 				'sentences' => $sentences,
 				'vocab'     => is_array( $saved ) ? $saved : null,
+				'vocabProfile' => Sawa_Lens_Store::vocab_profile( $uid ), // Lens 0.9+: "You know about N% of the words" comes from this
+				'mature'    => Sawa_Lens_Review::mature( $uid ), // words whose review card is at 21+ days count as known
 				'progress'  => Sawa_Lens_Store::progress( $uid, 14 ),
 			)
 		);

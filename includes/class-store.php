@@ -156,6 +156,73 @@ final class Sawa_Lens_Store {
 		return $l >= 1 && $l <= 6 ? $l : 0;
 	}
 
+	/** Share of each 1,000-word band a learner of this level usually knows, before any test (education/placement-test-spec.md, Part 3). */
+	const LEVEL_PROFILES = array(
+		1 => array( 0.85, 0.35, 0.15, 0.05, 0.02, 0.01 ),
+		2 => array( 0.95, 0.6, 0.3, 0.12, 0.05, 0.02 ),
+		3 => array( 0.98, 0.85, 0.55, 0.3, 0.15, 0.07 ),
+		4 => array( 0.99, 0.95, 0.8, 0.55, 0.35, 0.2 ),
+		5 => array( 0.99, 0.97, 0.9, 0.75, 0.55, 0.4 ),
+		6 => array( 1, 0.99, 0.95, 0.88, 0.75, 0.6 ),
+	);
+
+	/** Which vocabulary results may replace which: a full placement test beats the quick check and the extension's test. */
+	public static function vocab_rank( $v ) {
+		$src = is_array( $v ) ? (string) ( $v['src'] ?? 'lens' ) : '';
+		return 'placement' === $src ? 2 : ( $src ? 1 : 0 );
+	}
+
+	/** Six band shares (top 1k … 6k), each 0–1 and never rising with rank; missing bands fall off from the last one. */
+	public static function smooth_bands( $bands ) {
+		$out  = array();
+		$prev = 1.0;
+		foreach ( array_slice( array_values( (array) $bands ), 0, 6 ) as $p ) {
+			$prev  = min( $prev, max( 0, min( 1, (float) $p ) ) );
+			$out[] = round( $prev, 3 );
+		}
+		while ( $out && count( $out ) < 6 ) {
+			$out[] = round( end( $out ) * 0.6, 3 );
+		}
+		return $out;
+	}
+
+	/**
+	 * The learner's vocabulary profile, used by Language Lens for "You know about N% of the words":
+	 * { date, bands: [p1…p6], size, source: 'test' | 'level', level }. pN = share of the Nth 1,000 most frequent words they know.
+	 * From their newest vocabulary test, unless they picked a level by hand after it; otherwise the usual profile of their level.
+	 */
+	public static function vocab_profile( $uid ) {
+		$v     = get_user_meta( $uid, 'sawa_lens_vocab', true );
+		$lv    = self::level( $uid );
+		$lv_t  = (int) get_user_meta( $uid, 'sawa_lens_level_t', true );
+		$bands = is_array( $v ) ? self::smooth_bands( $v['bands'] ?? array() ) : array();
+		if ( $bands && array_sum( $bands ) > 0 && (int) ( $v['t'] ?? 0 ) >= $lv_t ) {
+			$p = array( 'date' => (string) ( $v['date'] ?? '' ), 'bands' => $bands, 'source' => 'test', 'test' => (string) ( $v['src'] ?? 'lens' ) );
+		} else {
+			$p = array( 'date' => '', 'bands' => self::LEVEL_PROFILES[ $lv ?: 2 ], 'source' => 'level' );
+		}
+		$p['size']  = (int) round( array_sum( $p['bands'] ) * 1000 / 50 ) * 50;
+		$p['level'] = $lv ?: 2;
+		$p['t']     = max( (int) ( $v['t'] ?? 0 ), $lv_t );
+		return $p;
+	}
+
+	/** Saves a vocabulary test result unless a better kind of result is already there (a quick check never replaces a full test). */
+	public static function put_vocab( $uid, $v ) {
+		$saved = get_user_meta( $uid, 'sawa_lens_vocab', true );
+		if ( is_array( $saved ) && ( self::vocab_rank( $v ) < self::vocab_rank( $saved ) || ( self::vocab_rank( $v ) === self::vocab_rank( $saved ) && (int) $v['t'] <= (int) ( $saved['t'] ?? 0 ) ) ) ) {
+			return false;
+		}
+		update_user_meta( $uid, 'sawa_lens_vocab', $v );
+		return true;
+	}
+
+	/** The learner's level; $t (ms) says when, so a level picked by hand after a test wins over the test's profile. */
+	public static function set_level( $uid, $level, $t = 0 ) {
+		update_user_meta( $uid, 'sawa_lens_level', (int) $level );
+		update_user_meta( $uid, 'sawa_lens_level_t', $t ?: (int) round( microtime( true ) * 1000 ) );
+	}
+
 	/* ------------------------------------------------------------------ words */
 
 	/**

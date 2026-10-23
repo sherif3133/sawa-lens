@@ -84,7 +84,7 @@ final class Sawa_Lens_Placement_Admin {
 		echo '</tbody></table><p class="description">Each click makes 12 grammar questions, 3 reading texts and 6 listening sentences for that level (about 1 minute, a few cents). A good bank has at least 2 clicks per level. Read the new items below and switch off any you don\'t like.</p>';
 
 		$share = Sawa_Lens_Placement::calibrated_share();
-		echo '<h2>Calibration</h2><p>' . (int) round( $share * 100 ) . '% of items have 30+ answers. Results show a "beta" note until 60% do. Recalibrating sets each item\'s difficulty from how real students did.</p><p>' . $form( 'recalibrate', 'Recalibrate from real answers', '', 'button button-primary' ) . '</p>'; // phpcs:ignore
+		echo '<h2>Calibration</h2><p>' . (int) round( $share * 100 ) . '% of items have 30+ answers. Results show a "beta" note until 60% do. Recalibrating sets each item\'s difficulty from how real students did. It also runs by itself once a week.</p><p>' . $form( 'recalibrate', 'Recalibrate from real answers', '', 'button button-primary' ) . '</p>'; // phpcs:ignore
 
 		$type = isset( $_GET['type'] ) && isset( $types[ $_GET['type'] ] ) ? sanitize_key( $_GET['type'] ) : 'mc'; // phpcs:ignore
 		echo '<h2>Items</h2><p>';
@@ -93,8 +93,17 @@ final class Sawa_Lens_Placement_Admin {
 		}
 		echo '</p><table class="widefat striped"><thead><tr><th>Level</th><th>Item</th><th>Difficulty</th><th>Answers</th><th>Right</th><th></th></tr></thead><tbody>';
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM ' . Sawa_Lens_Store::t( 'pt_items' ) . ' WHERE type = %s ORDER BY level, id', $type ), ARRAY_A ); // phpcs:ignore
+		// Live answer counts (the stored n only changes when the items are recalibrated).
+		$live = array();
+		foreach ( (array) $wpdb->get_results( 'SELECT item_id, COUNT(*) n, AVG(score) p FROM ' . Sawa_Lens_Store::t( 'pt_responses' ) . ' GROUP BY item_id', ARRAY_A ) as $l ) { // phpcs:ignore
+			$live[ (int) $l['item_id'] ] = $l;
+		}
 		foreach ( (array) $rows as $r ) {
 			$b    = json_decode( $r['body'], true );
+			if ( isset( $live[ (int) $r['id'] ] ) ) {
+				$r['n']     = (int) $live[ (int) $r['id'] ]['n'];
+				$r['score'] = (float) $live[ (int) $r['id'] ]['p'];
+			}
 			$text = 'mc' === $type ? $b['q'] . ' → ' . implode( ' / ', array_map( function ( $o, $i ) use ( $b ) { return $i === (int) $b['answer'] ? '<b>' . esc_html( $o ) . '</b>' : esc_html( $o ); }, $b['options'], array_keys( $b['options'] ) ) ) : esc_html( ( $b['title'] ? $b['title'] . ': ' : '' ) . $b['text'] );
 			echo '<tr style="' . ( $r['active'] ? '' : 'opacity:.45' ) . '"><td>' . esc_html( Sawa_Lens_Placement::LEVELS[ (int) $r['level'] ] ) . '</td><td style="max-width:640px">' . ( 'mc' === $type ? esc_html( $b['q'] ) . '<br><small>' . implode( ' / ', array_map( function ( $o, $i ) use ( $b ) { return $i === (int) $b['answer'] ? '<b>' . esc_html( $o ) . '</b>' : esc_html( $o ); }, $b['options'], array_keys( $b['options'] ) ) ) . ( ! empty( $b['point'] ) ? ' · <i>' . esc_html( $b['point'] ) . '</i>' : '' ) . '</small>' : esc_html( ( $b['title'] ? $b['title'] . ': ' : '' ) . $b['text'] ) ) . '</td>' // phpcs:ignore
 				. '<td>' . esc_html( number_format( (float) $r['b'], 2 ) ) . '</td><td>' . (int) $r['n'] . '</td><td>' . ( $r['n'] ? (int) round( 100 * (float) $r['score'] ) . '%' : '–' ) . '</td>'
@@ -104,11 +113,11 @@ final class Sawa_Lens_Placement_Admin {
 		echo '</tbody></table>';
 
 		$res = $wpdb->get_results( 'SELECT user_id, result, finished_at FROM ' . Sawa_Lens_Store::t( 'pt_sessions' ) . ' WHERE finished_at IS NOT NULL ORDER BY id DESC LIMIT 30', ARRAY_A ); // phpcs:ignore
-		echo '<h2>Recent results</h2>' . ( $res ? '<table class="widefat striped" style="max-width:820px"><thead><tr><th>Who</th><th>When</th><th>Level</th><th>Score</th><th>Vocabulary</th></tr></thead><tbody>' : '<p><em>No finished tests yet.</em></p>' );
+		echo '<h2>Recent results</h2>' . ( $res ? '<table class="widefat striped" style="max-width:820px"><thead><tr><th>Who</th><th>When</th><th>Level</th><th>Score</th><th>Vocabulary</th><th>Note</th></tr></thead><tbody>' : '<p><em>No finished tests yet.</em></p>' );
 		foreach ( (array) $res as $r ) {
 			$x = json_decode( $r['result'], true );
 			$u = $r['user_id'] ? get_userdata( (int) $r['user_id'] ) : null;
-			echo '<tr><td>' . esc_html( $u ? $u->display_name : 'Visitor' ) . '</td><td>' . esc_html( mysql2date( 'j M, H:i', $r['finished_at'] ) ) . '</td><td><b>' . esc_html( $x['level'] ?? '' ) . '</b></td><td>' . (int) ( $x['score'] ?? 0 ) . '</td><td>' . (int) ( $x['vocab'] ?? 0 ) . '</td></tr>';
+			echo '<tr><td>' . esc_html( $u ? $u->display_name : 'Visitor' ) . '</td><td>' . esc_html( mysql2date( 'j M, H:i', $r['finished_at'] ) ) . '</td><td><b>' . esc_html( $x['level'] ?? '' ) . '</b></td><td>' . (int) ( $x['score'] ?? 0 ) . '</td><td>' . (int) ( $x['vocab'] ?? 0 ) . '</td><td>' . esc_html( trim( ( ! empty( $x['borderline'] ) ? 'borderline ' . $x['borderline'] . ' · ' : '' ) . ( ! empty( $x['tested'] ) && $x['tested'] !== ( $x['level'] ?? '' ) ? 'tested ' . $x['tested'] . ' · ' : '' ) . ( ! empty( $x['quick'] ) ? 'quick' : '' ), ' ·' ) ) . '</td></tr>';
 		}
 		echo $res ? '</tbody></table>' : '';
 		echo '</div>';

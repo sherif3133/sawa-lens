@@ -75,5 +75,11 @@
  "Ready to improve your level?": "جاهز تحسّن مستواك؟",
  "Sawa English: a daily plan, review cards, videos with questions, writing and speaking feedback, and a community that studies together.": "سوا انجليش: خطة يومية، كروت مراجعة، فيديوهات بأسئلة، تصحيح لكتابتك وكلامك، ومجتمع بيذاكر مع بعض.",
  "Join Sawa English": "ادخل سوا انجليش",
- "Take the test again": "اعمل الاختبار تاني"
+ "Take the test again": "اعمل الاختبار تاني",
+ "You are right between %a and %b. We place you in %a, so the course feels solid. You can move up soon.": "إنت بالظبط بين %a و %b. حطيناك في %a علشان الكورس يبقى ثابت معاك، وتقدر تطلع قريب.",
+ "This test said %t. Tests vary, so your level stays %l. Keep going!": "الاختبار ده طلّع %t. نتايج الاختبارات بتختلف شوية، فمستواك فاضل %l. كمّل!",
+ "This test said %t, just above the line. Your level stays %l for now: one more result like this moves it up.": "الاختبار ده طلّع %t، فوق الحد بشوية. مستواك فاضل %l دلوقتي، ونتيجة كمان زي دي هتطلّعك.",
+ "Two tests in a row came out lower, so your level is now %l.": "اختبارين ورا بعض طلعوا أقل، فمستواك دلوقتي %l.",
+ "Your level was saved to your account: your plan uses it, and Language Lens now uses your vocabulary result for “You know about N% of the words”.": "مستواك اتحفظ في حسابك: خطتك بتستخدمه، و Language Lens بقى يستخدم نتيجة الكلمات بتاعتك في «إنت عارف حوالي N% من الكلمات».",
+ "Your full test result stays on your account. A quick check does not replace it.": "نتيجة الاختبار الكامل فاضلة في حسابك. الاختبار السريع مش بيغيّرها."
 }

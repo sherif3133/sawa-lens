@@ -404,6 +404,13 @@ final class Sawa_Lens_Review {
 		return array( 'due' => $due, 'limit' => $limit, 'catchup' => $due > $limit );
 	}
 
+	/** Words whose review card has reached 21+ days: Language Lens counts them as known (at most 3,000). */
+	public static function mature( $uid ) {
+		global $wpdb;
+		$rows = $wpdb->get_col( $wpdb->prepare( 'SELECT ckey FROM ' . Sawa_Lens_Store::t( 'cards' ) . " WHERE user_id = %d AND suspended = 0 AND ivl >= 21 AND ckey LIKE 'w:%%' LIMIT 3000", $uid ) ); // phpcs:ignore
+		return array_map( function ( $k ) { return substr( $k, 2 ); }, (array) $rows );
+	}
+
 	/**
 	 * What the learner can take on: new cards a day, catch-up mode, and how many new Learning words the extension
 	 * should allow today (the level's new cards, plus a little room, and none while the waiting line is long).

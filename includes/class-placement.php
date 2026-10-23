@@ -27,6 +27,12 @@ final class Sawa_Lens_Placement {
 	const GRAMMAR_N = 14;
 	const READING_N = 2;
 	const LISTEN_N  = 5;
+	const PRIOR_SD  = 1.5;  // θ prior: mean 0, SD 1.5 (education/placement-test-spec.md 2d)
+	const VOCAB_W   = 4;    // the vocabulary result counts once, as much as 4 grammar questions
+	const CUTS      = array( -2, -1, 0, 1, 2 ); // where A2, B1, B2, C1, C2 start
+	const BORDER    = 0.25; // θ this close to a cut: borderline, placed in the lower level
+	const UP_SE     = 0.4;  // a level goes up on one test only when θ is this far above the cut
+	const EXPOSURE_DAYS = 90; // a learner never sees an item again within this many days
 
 	public static function install( $c ) {
 		dbDelta(
@@ -108,14 +114,60 @@ final class Sawa_Lens_Placement {
 
 	/** θ → CEFR level 1–6 (cut points halfway between level difficulties). */
 	public static function cefr( $th ) {
-		$cuts = array( -2, -1, 0, 1, 2 );
-		$lv   = 1;
-		foreach ( $cuts as $c ) {
+		$lv = 1;
+		foreach ( self::CUTS as $c ) {
 			if ( $th >= $c ) {
 				$lv++;
 			}
 		}
 		return $lv;
+	}
+
+	/** θ → placed level and borderline: within 0.25 of a cut, the lower level ("A2-B1"). */
+	public static function place( $th ) {
+		foreach ( self::CUTS as $i => $c ) {
+			if ( abs( $th - $c ) < self::BORDER ) {
+				return array( 'level' => $i + 1, 'borderline' => self::LEVELS[ $i + 1 ] . '-' . self::LEVELS[ $i + 2 ] );
+			}
+		}
+		return array( 'level' => self::cefr( $th ), 'borderline' => '' );
+	}
+
+	/**
+	 * The level to keep after a test. Levels go up, never down on one test:
+	 * up when θ is clearly above the new level's cut (UP_SE) or the last test was above too; down only after two lower tests in a row.
+	 * $prev = the last counted result {levelNum (kept), raw (tested)} (or null), $raw = this test's level, $th = its θ. Returns [level, note].
+	 */
+	public static function decide( $prev, $raw, $th ) {
+		if ( ! is_array( $prev ) || empty( $prev['levelNum'] ) ) {
+			return array( $raw, '' );
+		}
+		$p_lv  = (int) $prev['levelNum'];
+		$p_raw = (int) ( $prev['raw'] ?? $prev['levelNum'] );
+		if ( $raw > $p_lv ) {
+			if ( $th - self::CUTS[ $raw - 2 ] > self::UP_SE ) {
+				return array( $raw, 'up' );
+			}
+			return $p_raw > $p_lv ? array( min( $raw, $p_raw ), 'up' ) : array( $p_lv, 'up_next' );
+		}
+		if ( $raw < $p_lv ) {
+			return $p_raw < $p_lv ? array( max( $raw, $p_raw ), 'down' ) : array( $p_lv, 'kept' );
+		}
+		return array( $p_lv, '' );
+	}
+
+	/** All scored answers for θ: grammar, reading, listening, and the vocabulary result once, as its own skill. */
+	public static function responses( $s ) {
+		$all = array();
+		foreach ( array( 'grammar', 'reading', 'listening' ) as $k ) {
+			foreach ( (array) ( $s['skills'][ $k ] ?? array() ) as $r ) {
+				$all[] = $r;
+			}
+		}
+		if ( isset( $s['vocabTheta'] ) ) {
+			$all[] = array( (float) $s['vocabTheta'], 0.5, self::VOCAB_W );
+		}
+		return $all;
 	}
 
 	/** θ → 0–100 score on the same bands as EF SET (A1 1–30, A2 31–40, B1 41–50, B2 51–60, C1 61–70, C2 71–100). */
@@ -145,16 +197,31 @@ final class Sawa_Lens_Placement {
 	}
 
 	/** The next unused active item of a type, closest in difficulty to θ (a little random among the closest). */
-	private static function pick( $type, $theta, $used ) {
+	private static function pick( $type, $theta, $used, $seen = array() ) {
 		global $wpdb;
-		$not  = $used ? ' AND id NOT IN (' . implode( ',', array_map( 'intval', $used ) ) . ')' : '';
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, type, level, b, body FROM ' . self::t( 'pt_items' ) . " WHERE type = %s AND active = 1 $not ORDER BY ABS(b - %f) LIMIT 3", $type, $theta ), ARRAY_A ); // phpcs:ignore
+		$rows = array();
+		// Items seen in the last 90 days are skipped first; if that leaves nothing of this type, only this test's items are.
+		foreach ( $seen ? array( array_merge( $used, $seen ), $used ) : array( $used ) as $skip ) {
+			$not  = $skip ? ' AND id NOT IN (' . implode( ',', array_map( 'intval', $skip ) ) . ')' : '';
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, type, level, b, body FROM ' . self::t( 'pt_items' ) . " WHERE type = %s AND active = 1 $not ORDER BY ABS(b - %f) LIMIT 5", $type, $theta ), ARRAY_A ); // phpcs:ignore
+			if ( $rows ) {
+				break;
+			}
+		}
 		if ( ! $rows ) {
 			return null;
 		}
 		$r         = $rows[ array_rand( $rows ) ];
 		$r['body'] = json_decode( $r['body'], true );
 		return $r;
+	}
+
+	/** Items this learner (or, for visitors, this connection) answered in the last 90 days. */
+	public static function seen_items( $uid, $ip ) {
+		global $wpdb;
+		$since = gmdate( 'Y-m-d H:i:s', time() - self::EXPOSURE_DAYS * DAY_IN_SECONDS );
+		$who   = $uid ? $wpdb->prepare( 's.user_id = %d', $uid ) : $wpdb->prepare( 's.user_id = 0 AND s.ip_hash = %s', $ip );
+		return array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( 'SELECT DISTINCT r.item_id FROM ' . self::t( 'pt_responses' ) . ' r JOIN ' . self::t( 'pt_sessions' ) . " s ON s.id = r.session_id WHERE $who AND r.created_at > %s", $since ) ) ); // phpcs:ignore
 	}
 
 	/** C-test: first sentence whole, then the second half of every second word is removed (max 20 gaps). */
@@ -225,6 +292,7 @@ final class Sawa_Lens_Placement {
 			'skills'  => array(),
 			'theta'   => 0,
 			'quick'   => (bool) $quick,
+			'seen'    => self::seen_items( $uid, $ip ),
 		);
 		$key = wp_generate_password( 32, false );
 		$wpdb->insert( self::t( 'pt_sessions' ), array( 'skey' => $key, 'user_id' => (int) $uid, 'ip_hash' => $ip, 'state' => wp_json_encode( $state ), 'started_at' => current_time( 'mysql' ) ) ); // phpcs:ignore
@@ -278,7 +346,7 @@ final class Sawa_Lens_Placement {
 	}
 
 	private static function next_item( &$s, $type ) {
-		$it = self::pick( $type, $s['theta'], $s['used'] );
+		$it = self::pick( $type, $s['theta'], $s['used'], (array) ( $s['seen'] ?? array() ) );
 		if ( ! $it ) {
 			return false;
 		}
@@ -412,7 +480,9 @@ final class Sawa_Lens_Placement {
 				$s['section'] = 'reading';
 				if ( ! self::next_item( $s, 'ctest' ) ) {
 					$s['section'] = 'listening';
-					self::next_item( $s, 'dictation' );
+					if ( ! self::next_item( $s, 'dictation' ) ) {
+						$s['section'] = 'writing'; // no reading or listening items: straight to writing
+					}
 				}
 			}
 		} elseif ( 'reading' === $sec ) {
@@ -462,16 +532,10 @@ final class Sawa_Lens_Placement {
 		return self::step( $s );
 	}
 
-	/** Adds a scored answer to a skill and updates θ (vocabulary sets the starting point). */
+	/** Adds a scored answer to a skill and updates θ (the vocabulary result counts once, inside responses()). */
 	private static function add( &$s, $skill, $b, $score, $w ) {
 		$s['skills'][ $skill ][] = array( $b, $score, $w );
-		$all = array();
-		foreach ( array( 'grammar', 'reading', 'listening' ) as $k ) {
-			foreach ( (array) ( $s['skills'][ $k ] ?? array() ) as $r ) {
-				$all[] = $r;
-			}
-		}
-		$s['theta'] = self::eap( $all, $s['vocabTheta'] ?? 0, 1.2 )['theta'];
+		$s['theta'] = self::eap( self::responses( $s ), 0, self::PRIOR_SD )['theta'];
 	}
 
 	private static function finish_vocab( &$s, $verify ) {
@@ -496,55 +560,93 @@ final class Sawa_Lens_Placement {
 		$s['theta']      = $th;
 	}
 
-	private static function finish( $row ) {
-		global $wpdb;
-		$s      = $row['state'];
-		$all    = array();
+	/** The result of a finished test from its answers only (no storage), so the same answers always give the same θ. */
+	public static function score( $s ) {
 		$skills = array();
 		foreach ( array( 'grammar', 'reading', 'listening' ) as $k ) {
 			$r = (array) ( $s['skills'][ $k ] ?? array() );
 			if ( $r ) {
-				$e              = self::eap( $r, $s['vocabTheta'] ?? 0, 1.5 );
-				$skills[ $k ]   = array( 'level' => self::LEVELS[ self::cefr( $e['theta'] ) ], 'score' => self::score100( $e['theta'] ) );
-				$all            = array_merge( $all, $r );
+				$e            = self::eap( $r, 0, self::PRIOR_SD );
+				$skills[ $k ] = array( 'level' => self::LEVELS[ self::cefr( $e['theta'] ) ], 'score' => self::score100( $e['theta'] ) );
 			}
 		}
 		$skills['vocabulary'] = array( 'level' => self::LEVELS[ self::cefr( $s['vocabTheta'] ?? -3 ) ], 'score' => self::score100( $s['vocabTheta'] ?? -3 ), 'size' => (int) ( $s['vocabSize'] ?? 0 ) );
-		// Vocabulary counts like 3 grammar questions in the overall result.
-		$all[] = array( $s['vocabTheta'] ?? 0, 0.5, 3 );
-		$e     = self::eap( $all, 0, 1.5 );
-		if ( ! empty( $s['writing'] ) ) {
-			$skills['writing'] = $s['writing'];
-		}
-		$lv     = self::cefr( $e['theta'] );
-		$result = array(
-			'level'    => self::LEVELS[ $lv ],
-			'levelNum' => $lv,
-			'score'    => self::score100( $e['theta'] ),
-			'theta'    => round( $e['theta'], 2 ),
-			'margin'   => (int) round( 10 * $e['se'] ) + ( ! empty( $s['quick'] ) ? 4 : 0 ),
-			'skills'   => $skills,
-			'vocab'    => (int) ( $s['vocabSize'] ?? 0 ),
-			'date'     => wp_date( 'j F Y' ),
-			'beta'     => self::calibrated_share() < 0.6,
-			'quick'    => ! empty( $s['quick'] ),
+		$e  = self::eap( self::responses( $s ), 0, self::PRIOR_SD );
+		$pl = self::place( $e['theta'] );
+		return array(
+			'level'      => self::LEVELS[ $pl['level'] ],
+			'levelNum'   => $pl['level'],
+			'raw'        => $pl['level'],
+			'borderline' => $pl['borderline'],
+			'score'      => self::score100( $e['theta'] ),
+			'theta'      => round( $e['theta'], 2 ),
+			'se'         => round( $e['se'], 2 ),
+			'margin'     => (int) round( 10 * $e['se'] ) + ( ! empty( $s['quick'] ) ? 4 : 0 ),
+			'skills'     => $skills,
+			'vocab'      => (int) ( $s['vocabSize'] ?? 0 ),
 		);
-		$wpdb->update( self::t( 'pt_sessions' ), array( 'state' => wp_json_encode( $s ), 'result' => wp_json_encode( $result ), 'finished_at' => current_time( 'mysql' ) ), array( 'id' => $row['id'] ) ); // phpcs:ignore
+	}
+
+	/** The vocabulary bands this test found (top 1k … 6k), scaled by the meaning check, for Language Lens's profile. */
+	public static function vocab_bands( $s ) {
+		$bank  = self::vocab_bank();
+		$bands = array();
+		foreach ( array_slice( $bank['bands'], 0, 6 ) as $bi => $b ) {
+			$bands[] = round( ( $s['bandH'][ $bi ] ?? 0 ) * ( 0.4 + 0.6 * (float) ( $s['vocabVerify'] ?? 1 ) ), 3 );
+		}
+		return Sawa_Lens_Store::smooth_bands( $bands );
+	}
+
+	private static function finish( $row ) {
+		global $wpdb;
+		$s      = $row['state'];
+		$result = self::score( $s );
+		if ( ! empty( $s['writing'] ) ) {
+			$result['skills']['writing'] = $s['writing'];
+		}
+		$result += array(
+			'tested' => $result['level'], // this test's own level; 'level' is the one kept (see decide())
+			'note'   => '',
+			'date'   => wp_date( 'j F Y' ),
+			'beta'   => self::calibrated_share() < 0.6,
+			'quick'  => ! empty( $s['quick'] ),
+			'saved'  => false,
+		);
+		$t = (int) round( microtime( true ) * 1000 );
 		if ( $row['user_id'] ) {
-			$uid = (int) $row['user_id'];
+			$uid  = (int) $row['user_id'];
 			$prev = get_user_meta( $uid, 'sawa_lens_placement', true );
+			// A quick check never replaces a full test. Between tests of the same kind, levels go up but never drop on one test.
 			if ( empty( $s['quick'] ) || ! is_array( $prev ) || ! empty( $prev['quick'] ) ) {
-				update_user_meta( $uid, 'sawa_lens_level', $lv );
+				$same              = is_array( $prev ) && ! empty( $prev['quick'] ) === ! empty( $s['quick'] );
+				list( $lv, $note ) = self::decide( $same ? $prev : null, (int) $result['raw'], (float) $result['theta'] );
+				$result['level']    = self::LEVELS[ $lv ];
+				$result['levelNum'] = $lv;
+				$result['note']     = $note;
+				$result['saved']    = true;
+				Sawa_Lens_Store::set_level( $uid, $lv, $t );
 				update_user_meta( $uid, 'sawa_lens_placement', $result );
 			}
 			Sawa_Lens_Activity::add( $uid, '', 1, 'Others', ! empty( $s['quick'] ) ? 8 : 20 );
-			$bank  = self::vocab_bank();
-			$bands = array();
-			foreach ( $bank['bands'] as $bi => $b ) {
-				$bands[] = round( ( $s['bandH'][ $bi ] ?? 0 ), 2 );
-			}
-			update_user_meta( $uid, 'sawa_lens_vocab', array( 'date' => wp_date( 'Y-m-d' ), 'estimate' => min( 6000, (int) ( $s['vocabSize'] ?? 0 ) ), 'bands' => array_slice( $bands, 0, 6 ), 'falseAlarms' => (float) ( $s['fa'] ?? 0 ), 't' => (int) round( microtime( true ) * 1000 ) ) );
+			$bands = self::vocab_bands( $s );
+			Sawa_Lens_Store::put_vocab( $uid, array( 'date' => wp_date( 'Y-m-d' ), 'estimate' => min( 6000, (int) ( $s['vocabSize'] ?? 0 ) ), 'bands' => $bands, 'falseAlarms' => (float) ( $s['fa'] ?? 0 ), 't' => $t, 'src' => ! empty( $s['quick'] ) ? 'quick' : 'placement' ) );
+			// Every test keeps its own record, so the app can show the before and after.
+			$hist   = (array) get_user_meta( $uid, 'sawa_lens_placement_history', true );
+			$hist[] = array(
+				'date'   => wp_date( 'Y-m-d' ),
+				't'      => $t,
+				'form'   => ! empty( $s['quick'] ) ? 'quick' : 'full',
+				'theta'  => $result['theta'],
+				'se'     => $result['se'],
+				'level'  => $result['tested'],
+				'placed' => $result['level'],
+				'border' => $result['borderline'],
+				'skills' => $result['skills'],
+				'vocab'  => array( 'size' => $result['vocab'], 'bands' => $bands ),
+			);
+			update_user_meta( $uid, 'sawa_lens_placement_history', array_slice( array_values( array_filter( $hist, 'is_array' ) ), -50 ) );
 		}
+		$wpdb->update( self::t( 'pt_sessions' ), array( 'state' => wp_json_encode( $s ), 'result' => wp_json_encode( $result ), 'finished_at' => current_time( 'mysql' ) ), array( 'id' => $row['id'] ) ); // phpcs:ignore
 		return array( 'done' => true, 'result' => $result );
 	}
 

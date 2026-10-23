@@ -17,6 +17,11 @@ final class Sawa_Lens_Placement_Web {
 		add_action( 'init', function () { add_rewrite_rule( '^placement/?$', 'index.php?sawa_lens_app=3', 'top' ); }, 5 );
 		add_action( 'template_redirect', array( __CLASS__, 'render' ), 5 );
 		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+		// Item difficulties follow real answers: recalibrated once a week (the admin button still works any time).
+		add_action( 'sawa_lens_pt_recalibrate', array( 'Sawa_Lens_Placement', 'recalibrate' ) );
+		if ( ! wp_next_scheduled( 'sawa_lens_pt_recalibrate' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'weekly', 'sawa_lens_pt_recalibrate' );
+		}
 	}
 
 	public static function routes() {

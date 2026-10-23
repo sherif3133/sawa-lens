@@ -160,11 +160,17 @@
 		C1: ['Advanced', 'You can use English flexibly for social, academic and work life.'],
 		C2: ['Proficient', 'You can understand almost everything and express yourself precisely.']
 	};
+	function fill(t, v) { return t.replace(/%([a-z])/g, function (m, k) { return v[k] || ''; }); }
 	function result(r) {
 		var L = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], pos = Math.min(100, Math.max(0, r.score));
 		var sk = r.skills || {}, names = { vocabulary: 'Vocabulary', grammar: 'Grammar', reading: 'Reading', listening: 'Listening', writing: 'Writing' };
 		page('<section class="stack center-text pt-res"><p class="pt-kicker">Your English level</p><div class="pt-level">' + esc(r.level) + '</div><h2>' + esc(DESC[r.level][0]) + '</h2><p class="muted">' + esc(DESC[r.level][1]) + '</p>'
-			+ '<p class="pt-score"><b>' + r.score + '</b>/100</p></section>'
+			+ '<p class="pt-score"><b>' + r.score + '</b>/100</p>'
+			+ (r.borderline ? '<p class="card small">' + esc(fill('You are right between %a and %b. We place you in %a, so the course feels solid. You can move up soon.', { a: r.borderline.split('-')[0], b: r.borderline.split('-')[1] })) + '</p>' : '')
+			+ (r.note === 'kept' ? '<p class="card small">' + esc(fill('This test said %t. Tests vary, so your level stays %l. Keep going!', { t: r.tested, l: r.level })) + '</p>' : '')
+			+ (r.note === 'up_next' ? '<p class="card small">' + esc(fill('This test said %t, just above the line. Your level stays %l for now: one more result like this moves it up.', { t: r.tested, l: r.level })) + '</p>' : '')
+			+ (r.note === 'down' ? '<p class="card small">' + esc(fill('Two tests in a row came out lower, so your level is now %l.', { l: r.level })) + '</p>' : '')
+			+ '</section>'
 			+ '<div class="pt-scale"><div class="pt-track">' + L.map(function (l) { return '<span class="' + (l === r.level ? 'on' : '') + '">' + l + '</span>'; }).join('') + '</div><i style="left:' + pos + '%"></i></div>'
 			+ '<section class="card stack"><h3>Your skills</h3>' + Object.keys(names).filter(function (k) { return sk[k]; }).map(function (k) {
 				var s = sk[k];
@@ -175,7 +181,7 @@
 			}).join('') + '</section>'
 			+ (r.quick ? '<div class="card stack"><b>This was the quick check.</b><p class="small muted">It\'s an estimate from vocabulary and grammar. The full test adds reading, listening and writing for your exact level.</p><button class="btn ghost" id="full">Take the full test</button></div>' : '')
 			+ (r.beta ? '<p class="small muted">Beta: this test is still being calibrated with real answers, so your result may move a little (±' + Math.max(3, r.margin) + ' points). It gets more accurate as more students take it.</p>' : '')
-			+ (B.member ? '<p class="card">Your level was saved to your account: Language Lens now colours words for ' + esc(r.level) + ', and your plan uses it.</p><a class="btn block" href="' + esc(B.app) + '">Back to the app</a>'
+			+ (B.member ? '<p class="card">' + (r.saved === false ? 'Your full test result stays on your account. A quick check does not replace it.' : 'Your level was saved to your account: your plan uses it, and Language Lens now uses your vocabulary result for “You know about N% of the words”.') + '</p><a class="btn block" href="' + esc(B.app) + '">Back to the app</a>'
 				: '<section class="card stack center-text"><h3>Ready to improve your level?</h3><p class="muted">Sawa English: a daily plan, review cards, videos with questions, writing and speaking feedback, and a community that studies together.</p><a class="btn block" href="' + esc(B.join) + '">Join Sawa English</a></section>')
 			+ '<button class="link small center-text" id="again">Take the test again</button>');
 		$pt.querySelector('#again').onclick = function () { store(null); B.previous = r; intro(); };
