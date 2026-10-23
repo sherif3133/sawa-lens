@@ -61,6 +61,13 @@ button { cursor: pointer; }
 .lock-card h2 { margin: 0; }
 .lock-acts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .nav-lock { font-size: 11px; }
+/* A member who left: progress frozen, with the way back */
+.frozen-card { border-color: #9cc3ea; background: #f3f8fd; }
+.frozen-card h3 { margin: 0; }
+.frozen-n { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center; }
+.frozen-n b { display: block; font: 800 24px/1.1 Changa, "IBM Plex Sans Arabic", sans-serif; }
+.frozen-n span { font-size: 13px; color: var(--muted, #8A8584); }
+.frozen-card .btn { justify-self: start; }
 .free-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .free-bar p { margin: 0; flex: 1 1 260px; }
 main.home > .free-bar { order: 0; grid-column: 1 / -1; }

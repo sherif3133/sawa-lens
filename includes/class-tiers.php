@@ -28,6 +28,7 @@ final class Sawa_Lens_Tiers {
 			add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 			add_action( 'admin_post_sawa_lens_tiers_save', array( __CLASS__, 'save' ) );
 			add_action( 'admin_post_sawa_lens_tier', array( __CLASS__, 'toggle' ) );
+			add_action( 'admin_post_sawa_lens_paste', array( __CLASS__, 'paste' ) );
 			add_filter( 'manage_users_columns', array( __CLASS__, 'column' ) );
 			add_filter( 'manage_users_custom_column', array( __CLASS__, 'cell' ), 10, 3 );
 			add_filter( 'views_users', array( __CLASS__, 'views' ) );
@@ -118,8 +119,35 @@ final class Sawa_Lens_Tiers {
 	}
 
 	public static function set_tier( $uid, $tier ) {
+		$was = self::tier( $uid );
+		if ( 'member' === $was && 'member' !== $tier ) {
+			update_user_meta( $uid, 'sawa_frozen', self::snapshot( $uid ) ); // cancelled: their progress stays visible, frozen
+		} elseif ( 'member' === $tier ) {
+			delete_user_meta( $uid, 'sawa_frozen' );
+		}
 		update_user_meta( $uid, self::META, 'member' === $tier ? 'member' : 'free' );
 		do_action( 'sawa_tier_changed', (int) $uid, $tier );
+	}
+
+	/** What a member had built when they left: shown to them, frozen, until they come back (decided 2026-10-23). Nothing is deleted. */
+	public static function snapshot( $uid ) {
+		global $wpdb;
+		$s = array( 'at' => current_time( 'Y-m-d' ), 'words' => 0, 'days' => 0, 'minutes' => 0, 'xp' => 0, 'streak' => 0 );
+		if ( class_exists( 'Sawa_Lens_Store' ) ) {
+			$p          = Sawa_Lens_Store::progress( $uid, 1 );
+			$s['words'] = (int) $p['wordsKnown'] + (int) $p['wordsLearning'];
+		}
+		if ( class_exists( 'Sawa_Tracker_Game' ) ) {
+			$days         = Sawa_Tracker_Game::table( 'days' );
+			$logs         = Sawa_Tracker_Game::table( 'logs' );
+			$s['days']    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $days WHERE user_id = %d AND minutes > 0", $uid ) ); // phpcs:ignore
+			$s['minutes'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COALESCE(SUM(minutes),0) FROM $logs WHERE user_id = %d", $uid ) ); // phpcs:ignore
+			if ( class_exists( 'Sawa_Tracker_XP' ) ) {
+				$x        = Sawa_Tracker_XP::summary( $uid );
+				$s['xp'] = (int) ( $x['total'] ?? 0 );
+			}
+		}
+		return $s;
 	}
 
 	/** Where "Join Sawa English" goes: the website's join page, else Skool. */
@@ -138,6 +166,7 @@ final class Sawa_Lens_Tiers {
 			'features' => self::allowed( $uid ),
 			'locked'   => array_values( array_diff( array_keys( self::features() ), self::allowed( $uid ) ) ),
 			'join'     => self::join_url(),
+			'frozen'   => 'free' === self::tier( $uid ) ? ( get_user_meta( $uid, 'sawa_frozen', true ) ?: null ) : null, // a member who left: their progress, frozen
 		);
 	}
 
@@ -443,6 +472,19 @@ final class Sawa_Lens_Tiers {
 				<p class="description">Locked features show 🔒 "Members only — join Sawa English" with a link to <a href="<?php echo esc_url( self::join_url() ); ?>" target="_blank"><?php echo esc_html( self::join_url() ); ?></a>. Admins can always use everything.</p>
 				<?php submit_button( 'Save' ); ?>
 			</form>
+
+			<h2 id="paste">Paste Skool members</h2>
+			<?php $res = get_transient( 'sawa_paste_' . get_current_user_id() ); ?>
+			<?php if ( $res ) : delete_transient( 'sawa_paste_' . get_current_user_id() ); ?>
+				<div class="notice notice-success"><p><?php echo esc_html( sprintf( 'Done: %d made members, %d new accounts (they got an email to set a password), %d already members, %d skipped.', $res['up'], $res['new'], $res['same'], $res['bad'] ) ); ?><?php echo $res['skipped'] ? '<br>Skipped: ' . esc_html( implode( ', ', $res['skipped'] ) ) : ''; ?></p></div>
+			<?php endif; ?>
+			<p>Paste the emails of paying Skool members, one per line (or separated by commas). Each one becomes a <b>Member (paid)</b>. An email with no account gets a new account and an email to set a password.</p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="sawa_lens_paste">
+				<?php wp_nonce_field( 'sawa_lens_paste' ); ?>
+				<textarea name="emails" rows="8" style="width:100%;max-width:560px" placeholder="sara@gmail.com&#10;omar@hotmail.com" dir="ltr"></textarea>
+				<?php submit_button( 'Make them members', 'secondary' ); ?>
+			</form>
 		</div>
 		<?php
 	}
@@ -465,6 +507,52 @@ final class Sawa_Lens_Tiers {
 			true
 		);
 		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-tiers&saved=1' ) );
+		exit;
+	}
+
+	/** Paste Skool members: each email becomes a member (a new account if needed, with the "set your password" email). */
+	public static function paste() {
+		if ( ! current_user_can( 'edit_users' ) || ! check_admin_referer( 'sawa_lens_paste' ) ) {
+			wp_die( 'Not allowed.' );
+		}
+		$list = preg_split( '/[\s,;]+/', strtolower( (string) wp_unslash( $_POST['emails'] ?? '' ) ), -1, PREG_SPLIT_NO_EMPTY );
+		$res  = array( 'up' => 0, 'new' => 0, 'same' => 0, 'bad' => 0, 'skipped' => array() );
+		foreach ( array_slice( array_unique( $list ), 0, 500 ) as $email ) {
+			$email = sanitize_email( $email );
+			$uid   = $email && is_email( $email ) ? (int) email_exists( $email ) : 0;
+			if ( ! $email || ! is_email( $email ) || ( $uid && user_can( $uid, 'manage_options' ) ) ) {
+				++$res['bad'];
+				$res['skipped'][] = $email ? $email : '(not an email)';
+				continue;
+			}
+			if ( ! $uid ) {
+				$login = sanitize_user( strtok( $email, '@' ), true );
+				$base  = $login ? $login : 'student';
+				$i     = 1;
+				while ( '' === $login || username_exists( $login ) ) {
+					$login = $base . ( ++$i );
+				}
+				$uid = wp_insert_user( array( 'user_login' => $login, 'user_email' => $email, 'user_pass' => wp_generate_password( 24 ), 'display_name' => $base, 'role' => 'subscriber' ) );
+				if ( is_wp_error( $uid ) ) {
+					++$res['bad'];
+					$res['skipped'][] = $email;
+					continue;
+				}
+				update_user_meta( $uid, 'sawa_status', 'approved' );
+				self::set_tier( $uid, 'member' );
+				wp_new_user_notification( $uid, null, 'user' ); // WordPress's "set your password" email
+				++$res['new'];
+			} elseif ( 'member' === self::tier( $uid ) && 'member' === get_user_meta( $uid, self::META, true ) ) {
+				++$res['same'];
+			} else {
+				update_user_meta( $uid, 'sawa_status', 'approved' );
+				self::set_tier( $uid, 'member' );
+				++$res['up'];
+			}
+			update_user_meta( $uid, 'sawa_member_src', 'skool-paste' );
+		}
+		set_transient( 'sawa_paste_' . get_current_user_id(), $res, 10 * MINUTE_IN_SECONDS );
+		wp_safe_redirect( admin_url( 'options-general.php?page=sawa-tiers#paste' ) );
 		exit;
 	}
 

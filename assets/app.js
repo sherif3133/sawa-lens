@@ -69,9 +69,19 @@
 	function has(f) { return !PLAN || PLAN.features.indexOf(f) >= 0; }
 	function trkLocked() { return !!PLAN && !['tracker', 'game', 'community'].some(has); } // the tracker shows nothing but a lock: leave it out
 	function planLocked(tab) { var f = TAB_FEATURE[tab]; return f && !has(f) ? f : ''; }
+	/** A member who left (decided 2026-10-23): what they built stays visible, frozen, with the way back. */
+	function frozenCard() {
+		var z = PLAN && PLAN.frozen; if (!z) return '';
+		var n = function (x) { return (+x || 0).toLocaleString('en-US'); };
+		var d = new Date(z.at + 'T12:00:00').toLocaleDateString(S.ar ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'long' });
+		return '<section class="card stack frozen-card"><h3>❄ Your progress is waiting</h3>'
+			+ '<div class="frozen-n"><div><b>' + n(z.words) + '</b><span>' + (S.ar ? 'كلمة' : 'words') + '</span></div><div><b>' + n(z.days) + '</b><span>' + (S.ar ? 'يوم مذاكرة' : 'study days') + '</span></div><div><b>' + n(z.xp) + '</b><span>XP</span></div></div>'
+			+ '<p class="small">' + (S.ar ? 'متجمّد من ' + esc(d) + '. مفيش حاجة اتمسحت: ارجع لسوا انجليش وكمّل من مكان ما وقفت. الرجوع بسعر النهارده.' : 'Frozen since ' + esc(d) + '. Nothing was deleted: come back to Sawa English and pick up where you stopped. Rejoining is at today\'s price.') + '</p>'
+			+ '<a class="btn" href="' + esc(PLAN.join) + '" target="_blank" rel="noopener">Come back to Sawa English</a></section>';
+	}
 	function membersCard(f) {
 		var mine = PLAN ? PLAN.features.map(function (x) { return FEATURE_NAME[x]; }).filter(Boolean) : [];
-		return '<section class="card stack lock-card"><p class="lock-ic" aria-hidden="true">🔒</p><h2>Members only</h2>'
+		return frozenCard() + '<section class="card stack lock-card"><p class="lock-ic" aria-hidden="true">🔒</p><h2>Members only</h2>'
 			+ '<p><b>' + esc(FEATURE_NAME[f] || 'This') + '</b>: only for Sawa English members.' + (mine.length ? ' Your free account has: ' + esc(mine.join(', ')) + '.' : '') + '</p>'
 			+ '<div class="lock-acts"><a class="btn" href="' + esc(PLAN ? PLAN.join : '#') + '" target="_blank" rel="noopener">Join Sawa English</a>' + (has('review') ? '<button class="btn ghost" data-go="review">Go to Review</button>' : '') + '</div></section>';
 	}
@@ -102,7 +112,7 @@
 			// Home shows the tracker (your stats, streak, quests) at the top: move it out before redrawing, back in after.
 			var trk = document.getElementById('trk'), nav = document.getElementById('nav');
 			if (trk && $app.contains(trk)) document.body.insertBefore(trk, nav);
-			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><div class="top-r"><button class="link small" data-nav-start>Your stages</button>' + langSwitch() + '</div></header><main class="stack">' + inner + '</main>';
+			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><div class="top-r"><button class="link small" data-nav-start>Your stages</button>' + langSwitch() + '</div></header><main class="stack">' + (['review', 'library'].indexOf(S.view) >= 0 ? frozenCard() : '') + inner + '</main>';
 			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
 			paintNav();
 			showTrk(planLocked(S.view) || trkLocked() ? '' : ['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
