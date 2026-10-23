@@ -124,6 +124,71 @@ final class Sawa_Lens_AI {
 		return $res;
 	}
 
+	/**
+	 * Caption sentences → Arabic, for the line under YouTube captions in Language Lens.
+	 * Up to 12 consecutive sentences per call (the AI reads them as one passage, so each is translated in context);
+	 * every sentence is cached on its own (shared with translate()), so a popular video costs once for everyone.
+	 * Uses its own daily counter, so watching videos never eats the student's AI explanations.
+	 */
+	public static function translate_lines( $uid, $lines ) {
+		$clean = array();
+		foreach ( array_slice( (array) $lines, 0, 12 ) as $l ) {
+			$clean[] = mb_substr( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( (string) $l ) ) ), 0, 800 );
+		}
+		$out = array_fill( 0, count( $clean ), '' );
+		$todo = array();
+		foreach ( $clean as $i => $l ) {
+			if ( '' === $l ) {
+				continue;
+			}
+			$hit = self::cached( hash( 'sha256', 'translate|v1|' . $l ) );
+			if ( $hit && isset( $hit['sentence'] ) ) {
+				$out[ $i ] = (string) $hit['sentence'];
+			} else {
+				$todo[ $i ] = $l;
+			}
+		}
+		if ( ! $todo ) {
+			return array( 'lines' => $out );
+		}
+		Sawa_Lens_Cost::set_user( $uid );
+		$k = 'sawa_lens_captr_' . $uid . '_' . wp_date( 'Ymd' );
+		$n = (int) get_transient( $k );
+		if ( $n >= 400 ) { // about 4,000 sentences: hours of video
+			return new WP_Error( 'limit', 'Caption translations are paused until tomorrow.', array( 'status' => 429 ) );
+		}
+		set_transient( $k, $n + 1, DAY_IN_SECONDS );
+		$user = "Sentences:\n";
+		foreach ( $todo as $i => $l ) {
+			$user .= $i . ': ' . $l . "\n";
+		}
+		$res = self::call(
+			'You translate English sentences from a video\'s captions into natural Modern Standard Arabic for learners. '
+			. 'The numbered sentences are consecutive: use the others for context (who "it" or "they" is, the topic). '
+			. 'Translate each one by its meaning, not word by word: phrasal verbs and idioms by what they mean. '
+			. 'Captions can be unpunctuated or end mid-thought: still translate only that sentence\'s words, naturally. '
+			. 'Return ONLY a JSON object, no markdown: {"lines":[{"i":0,"ar":"…"}, …]} with every number once.',
+			$user,
+			3000,
+			60
+		);
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		foreach ( (array) ( $res['lines'] ?? array() ) as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['i'] ) || ! isset( $todo[ (int) $row['i'] ] ) ) {
+				continue;
+			}
+			$ar = mb_substr( trim( (string) ( $row['ar'] ?? '' ) ), 0, 1200 );
+			if ( '' === $ar ) {
+				continue;
+			}
+			$out[ (int) $row['i'] ] = $ar;
+			self::store( hash( 'sha256', 'translate|v1|' . $todo[ (int) $row['i'] ] ), array( 'sentence' => $ar ) );
+		}
+		return array( 'lines' => $out );
+	}
+
 	const TO_EN = 'You translate Arabic (Modern Standard Arabic, Egyptian or any dialect, or Franco-Arabic written in Latin letters and numbers) into natural, simple English that an A2–B1 learner can read. Keep the meaning and tone (casual stays casual). Keep people\'s names, usernames and @mentions as they are; never translate a name. Keep emojis. Plain JSON, no markdown.';
 
 	/**

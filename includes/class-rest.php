@@ -60,6 +60,7 @@ final class Sawa_Lens_Rest {
 		$r( '/sound', 'POST', array( __CLASS__, 'sound' ) );
 		$r( '/lyric', 'POST', array( __CLASS__, 'lyric' ) );
 		$r( '/song-lines', 'POST', array( __CLASS__, 'song_lines' ) );
+		$r( '/lines-tr', 'POST', array( __CLASS__, 'lines_tr' ) );
 		$r( '/proof', 'POST', array( __CLASS__, 'proof' ) );
 		$r( '/logout', 'POST', array( __CLASS__, 'logout' ) );
 		$r( '/video/(?P<vid>[\w-]{11})', 'GET', array( __CLASS__, 'video' ) );
@@ -70,6 +71,17 @@ final class Sawa_Lens_Rest {
 		$r( '/daily', 'POST', array( __CLASS__, 'daily_add' ) );
 		$r( '/daily', 'GET', array( __CLASS__, 'daily' ) );
 		$r( '/image/ai', 'POST', array( __CLASS__, 'image_ai' ) );
+		// Language Lens rules as data (phrases not to underline, how captions become sentences): public, no sign-in,
+		// so testers get fixes without installing a new extension.
+		register_rest_route(
+			self::NS,
+			'/rules',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'rules' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 		// For the tracker page (normal WordPress login + nonce, not a device token).
 		register_rest_route(
 			self::NS,
@@ -293,6 +305,18 @@ final class Sawa_Lens_Rest {
 	public static function lyric( WP_REST_Request $r ) {
 		$res = Sawa_Lens_AI::lyric( get_current_user_id(), $r->get_param( 'line' ), (string) $r->get_param( 'song' ), (string) $r->get_param( 'context' ), (string) $r->get_param( 'lang' ) );
 		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** Caption sentences → Arabic ({lines: [...]}, up to 12) → {lines: [ar, ...]} in the same order. */
+	public static function lines_tr( WP_REST_Request $r ) {
+		$res = Sawa_Lens_AI::translate_lines( get_current_user_id(), (array) $r->get_param( 'lines' ) );
+		return is_wp_error( $res ) ? $res : self::out( $res );
+	}
+
+	/** assets/lens-rules.json, read by Language Lens 0.8.2+ once a day. */
+	public static function rules() {
+		$j = json_decode( (string) file_get_contents( SAWA_LENS_DIR . 'assets/lens-rules.json' ), true ); // phpcs:ignore
+		return rest_ensure_response( is_array( $j ) ? $j : array( 'v' => 0 ) );
 	}
 
 	public static function translate( WP_REST_Request $r ) {

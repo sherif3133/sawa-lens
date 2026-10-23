@@ -1,0 +1,26 @@
+{
+	"v": 1,
+	"about": "Language Lens rules as data. Served at /wp-json/sawa-lens/v1/rules; the extension (0.8.2+) reads it once a day and keeps a copy in extension/data/rules.json for offline. Edit here, push, deploy: testers get it without a new zip.",
+	"noExpr": [
+		"think about", "look at", "look for", "wait for", "ask for", "pay for", "care about", "glance at", "laugh at",
+		"reach for", "concentrate on", "focus on", "depend on", "rely on", "belong to", "add to", "disagree with",
+		"believe in", "breathe in", "walk in", "come in", "come from", "hear from", "stay in", "switch to", "work for",
+		"head for", "opt for", "try for", "lots of", "loads of", "plenty of", "most of", "all of", "some of", "one of",
+		"enough of", "get to", "point to", "mean to", "end in", "update on"
+	],
+	"exprCtx": {
+		"on the table": { "notIfBefore": ["put", "puts", "putting", "left", "leave", "leaves", "lay", "lays", "laid", "placed", "place", "places", "sat", "sit", "sits", "sitting", "lying", "stood", "standing", "dropped", "drop"] },
+		"kind of": { "notIfBefore": ["a", "the", "this", "that", "these", "those", "what", "which", "every", "any", "some", "one", "same", "different", "other", "each", "my", "your", "his", "her", "our", "their", "new"] },
+		"sort of": { "notIfBefore": ["a", "the", "this", "that", "these", "those", "what", "which", "every", "any", "some", "one", "same", "different", "other", "each", "my", "your", "his", "her", "our", "their", "new"] }
+	},
+	"sentences": {
+		"pauseMs": 700,
+		"minWords": 6,
+		"shortPauseMs": 350,
+		"midWords": 14,
+		"maxWords": 28,
+		"hardMaxWords": 36,
+		"longPunctWords": 45,
+		"noEndAfter": ["the", "a", "an", "to", "of", "and", "but", "or", "in", "on", "at", "for", "with", "about", "from", "into", "my", "your", "his", "her", "their", "our", "its", "is", "are", "was", "were", "am", "be", "been", "that", "which", "who", "if", "because", "so", "than", "very", "really", "i", "you", "we", "they", "he", "she", "it's", "i'm", "you're", "we're", "they're", "not", "don't", "can", "will", "would", "should", "could", "just", "like", "when", "where", "what", "how", "this", "these", "those", "some", "any", "more", "most", "going", "gonna", "want", "wanna"]
+	}
+}

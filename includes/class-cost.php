@@ -19,7 +19,7 @@ final class Sawa_Lens_Cost {
 	const OPT_MONTH   = 'sawa_lens_cost_month'; // array( 'Y-m', dollars ): a cheap running total for the budget check
 
 	/** Features that keep working when the budget is reached (the core word meanings and translations). */
-	const ESSENTIAL = array( 'explain', 'translate', 'to_english', 'to_english_many', 'chat_translate' );
+	const ESSENTIAL = array( 'explain', 'translate', 'translate_lines', 'to_english', 'to_english_many', 'chat_translate' );
 
 	/** Student the next AI call is for (set where the per-student limit is checked). */
 	private static $uid = 0;
