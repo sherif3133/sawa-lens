@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Sawa Lens
  * Description:       Server side of Language Lens – Sawa English: sign-in for the browser extension, sync of known words and saved sentences, AI explanations in Arabic, daily progress for the Sawa Tracker, and the Language Lens web app (skill tree, practice, writing checker) at /lens/.
- * Version:           0.25.2
+ * Version:           0.26.0
  * Requires PHP:      7.4
  * Author:            Sawa English
  * License:           GPL-2.0-or-later
@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SAWA_LENS_VER', '0.25.2' );
+define( 'SAWA_LENS_VER', '0.26.0' );
 define( 'SAWA_LENS_DB', 13 );
 define( 'SAWA_LENS_URL', plugin_dir_url( __FILE__ ) );
 define( 'SAWA_LENS_DIR', plugin_dir_path( __FILE__ ) );
@@ -41,6 +41,7 @@ require_once SAWA_LENS_DIR . 'includes/class-app.php';
 require_once SAWA_LENS_DIR . 'includes/class-interests.php';
 require_once SAWA_LENS_DIR . 'includes/class-chat.php';
 require_once SAWA_LENS_DIR . 'includes/class-rest.php';
+require_once SAWA_LENS_DIR . 'includes/class-feedback.php';
 if ( is_admin() ) {
 	require_once SAWA_LENS_DIR . 'includes/class-admin.php';
 	Sawa_Lens_Admin::init();
@@ -54,6 +55,7 @@ if ( is_admin() ) {
 Sawa_Lens_Auth::init();
 Sawa_Lens_Tiers::init();
 Sawa_Lens_Rest::init();
+Sawa_Lens_Feedback::init();
 Sawa_Lens_App::init();
 Sawa_Lens_Interests::init();
 Sawa_Lens_Chat::init();
