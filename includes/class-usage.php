@@ -146,48 +146,48 @@ final class Sawa_Lens_Usage {
 
 	/**
 	 * Each active student's last day with any activity on the site: Language Lens, the app, the Silk Road (daily marks),
-	 * a saved word, a Review, a tracker log or a chat message. Ymd strings, '' = never.
+	 * a saved word, a Review, a tracker log or a chat message. [Ymd, where it came from] per user id; missing = never.
 	 */
 	public static function last_active() {
 		global $wpdb;
 		$last = array();
-		$put  = function ( $uid, $day ) use ( &$last ) {
+		$put  = function ( $uid, $day, $from ) use ( &$last ) {
 			$uid = (int) $uid;
 			$day = (string) $day;
-			if ( $day && ( ! isset( $last[ $uid ] ) || $day > $last[ $uid ] ) ) {
-				$last[ $uid ] = $day;
+			if ( $day && ( ! isset( $last[ $uid ] ) || $day > $last[ $uid ][0] ) ) {
+				$last[ $uid ] = array( $day, $from );
 			}
 		};
-		foreach ( (array) $wpdb->get_results( "SELECT user_id, meta_value FROM $wpdb->usermeta WHERE meta_key IN ('sawa_seen_lens','sawa_seen_app','sawa_seen_game')" ) as $r ) { // phpcs:ignore
-			$put( $r->user_id, strtok( (string) $r->meta_value, ' ' ) ); // newest first
+		foreach ( (array) $wpdb->get_results( "SELECT user_id, meta_key, meta_value FROM $wpdb->usermeta WHERE meta_key IN ('sawa_seen_lens','sawa_seen_app','sawa_seen_game')" ) as $r ) { // phpcs:ignore
+			$put( $r->user_id, strtok( (string) $r->meta_value, ' ' ), substr( $r->meta_key, 10 ) ); // newest first
 		}
 		foreach ( (array) $wpdb->get_results( 'SELECT user_id, MAX(client_ts) AS ts FROM ' . Sawa_Lens_Store::t( 'words' ) . ' GROUP BY user_id' ) as $r ) { // phpcs:ignore
 			if ( (int) $r->ts > 0 ) {
-				$put( $r->user_id, wp_date( 'Ymd', (int) floor( $r->ts / 1000 ) ) );
+				$put( $r->user_id, wp_date( 'Ymd', (int) floor( $r->ts / 1000 ) ), 'word' );
 			}
 		}
 		foreach ( (array) $wpdb->get_results( 'SELECT user_id, MAX(day) AS d FROM ' . Sawa_Lens_Store::t( 'revlog' ) . ' GROUP BY user_id' ) as $r ) { // phpcs:ignore
-			$put( $r->user_id, str_replace( '-', '', (string) $r->d ) );
+			$put( $r->user_id, str_replace( '-', '', (string) $r->d ), 'review' );
 		}
 		// Sawa Tracker: study logs and chat messages (when the tracker is active).
 		if ( class_exists( 'Sawa_Tracker_Game' ) ) {
 			foreach ( (array) $wpdb->get_results( 'SELECT user_id, MAX(day) AS d FROM ' . Sawa_Tracker_Game::table( 'logs' ) . ' GROUP BY user_id' ) as $r ) { // phpcs:ignore
-				$put( $r->user_id, str_replace( '-', '', (string) $r->d ) );
+				$put( $r->user_id, str_replace( '-', '', (string) $r->d ), 'log' );
 			}
 		}
 		if ( class_exists( 'Sawa_Tracker_Social' ) ) {
 			$m = Sawa_Tracker_Social::t( 'messages' );
 			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $m ) ) === $m ) {
 				foreach ( (array) $wpdb->get_results( "SELECT user_id, MAX(created_at) AS d FROM $m WHERE deleted = 0 GROUP BY user_id" ) as $r ) { // phpcs:ignore
-					$put( $r->user_id, substr( str_replace( '-', '', (string) $r->d ), 0, 8 ) );
+					$put( $r->user_id, substr( str_replace( '-', '', (string) $r->d ), 0, 8 ), 'chat' );
 				}
 			}
 		}
 		return $last;
 	}
 
-	/** Who has gone quiet: {member: [...], free: [...]}, each {id, name, email, joined, last, days} with the quietest first. */
-	public static function quiet() {
+	/** Who has gone quiet: {member: [...], free: [...]}, each {id, name, email, joined, last, from, days} with the quietest first. $all = everyone, quiet or not. */
+	public static function quiet( $all = false ) {
 		global $wpdb;
 		$admins = array_map( 'intval', get_users( array( 'role' => 'administrator', 'fields' => 'ID' ) ) );
 		$ids    = array_diff( array_map( 'intval', $wpdb->get_col( "SELECT user_id FROM $wpdb->usermeta WHERE meta_key = 'sawa_status' AND meta_value = 'approved'" ) ), $admins ); // phpcs:ignore
@@ -201,9 +201,9 @@ final class Sawa_Lens_Usage {
 			}
 			$tier   = 'free' === Sawa_Lens_Tiers::tier( $id ) ? 'free' : 'member';
 			$joined = substr( (string) $u->user_registered, 0, 10 );
-			$ref    = isset( $last[ $id ] ) ? DateTime::createFromFormat( '!Ymd', $last[ $id ] ) : new DateTime( $joined );
+			$ref    = isset( $last[ $id ] ) ? DateTime::createFromFormat( '!Ymd', $last[ $id ][0] ) : new DateTime( $joined );
 			$days   = $ref ? (int) $ref->diff( $today )->format( '%r%a' ) : 999;
-			if ( $days <= self::QUIET_DAYS[ $tier ] ) {
+			if ( ! $all && $days <= self::QUIET_DAYS[ $tier ] ) {
 				continue; // active recently, or joined too recently to count as quiet
 			}
 			$out[ $tier ][] = array(
@@ -212,6 +212,7 @@ final class Sawa_Lens_Usage {
 				'email'  => $u->user_email,
 				'joined' => $joined,
 				'last'   => isset( $last[ $id ] ) ? $ref->format( 'Y-m-d' ) : '',
+				'from'   => isset( $last[ $id ] ) ? $last[ $id ][1] : '',
 				'days'   => $days,
 			);
 		}
@@ -226,7 +227,8 @@ final class Sawa_Lens_Usage {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$q      = self::quiet();
+		$all    = ! empty( $_GET['all'] ); // phpcs:ignore WordPress.Security.NonceVerification
+		$q      = self::quiet( $all );
 		$titles = array(
 			'member' => array( 'Paying members', 'check daily', 'more than ' . self::QUIET_DAYS['member'] . ' days with no activity' ),
 			'free'   => array( 'Free accounts', 'check weekly', 'more than ' . self::QUIET_DAYS['free'] . ' days with no activity' ),
@@ -234,20 +236,21 @@ final class Sawa_Lens_Usage {
 		?>
 		<div class="wrap">
 			<h1>Quiet members</h1>
-			<p>Students who have gone quiet, so you can send them a friendly message. Not counting admins or people who joined in the last few days. Today: <?php echo esc_html( current_time( 'Y-m-d' ) ); ?>.</p>
+			<p>Students who have gone quiet, so you can send them a friendly message. Not counting admins or people who joined in the last few days. Today: <?php echo esc_html( current_time( 'Y-m-d' ) ); ?>. <a href="<?php echo esc_url( admin_url( 'admin.php?page=' . self::QUIET_PAGE . ( $all ? '' : '&all=1' ) ) ); ?>"><?php echo $all ? 'Show only quiet people' : 'Show everyone'; ?></a></p>
 			<?php foreach ( $titles as $tier => $t ) : ?>
 				<h2><?php echo esc_html( $t[0] ); ?> (<?php echo count( $q[ $tier ] ); ?>) <small style="font-weight:normal">· <?php echo esc_html( $t[1] . ' · ' . $t[2] ); ?></small></h2>
 				<?php if ( ! $q[ $tier ] ) : ?>
-					<p>Nobody is quiet right now. 🎉</p>
+					<p><?php echo $all ? 'Nobody here.' : 'Nobody is quiet right now. 🎉'; ?></p>
 				<?php else : ?>
 					<table class="widefat striped" style="max-width:900px">
-						<thead><tr><th>Name</th><th>Email</th><th>Last active</th><th>Quiet for</th><th>Joined</th></tr></thead>
+						<thead><tr><th>Name</th><th>Email</th><th>Last active</th><th>Doing</th><th>Quiet for</th><th>Joined</th></tr></thead>
 						<tbody>
 						<?php foreach ( $q[ $tier ] as $r ) : ?>
 							<tr>
 								<td><a href="<?php echo esc_url( get_edit_user_link( $r['id'] ) ); ?>"><?php echo esc_html( $r['name'] ); ?></a></td>
 								<td><a href="mailto:<?php echo esc_attr( $r['email'] ); ?>"><?php echo esc_html( $r['email'] ); ?></a></td>
 								<td><?php echo esc_html( $r['last'] ? $r['last'] : 'never' ); ?></td>
+								<td><?php echo esc_html( $r['from'] ); ?></td>
 								<td><b><?php echo $r['days'] >= 999 ? '—' : (int) $r['days'] . ' days'; ?></b></td>
 								<td><?php echo esc_html( $r['joined'] ); ?></td>
 							</tr>
