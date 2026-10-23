@@ -85,7 +85,7 @@
 			// Home shows the tracker (your stats, streak, quests) at the top: move it out before redrawing, back in after.
 			var trk = document.getElementById('trk'), nav = document.getElementById('nav');
 			if (trk && $app.contains(trk)) document.body.insertBefore(trk, nav);
-			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><button class="link small" data-nav-start>Guide</button></header><main class="stack">' + inner + '</main>';
+			$app.innerHTML = '<header class="top"><div class="brand">Sawa English</div><button class="link small" data-nav-start>Your stages</button></header><main class="stack">' + inner + '</main>';
 			var gs = $app.querySelector('[data-nav-start]'); if (gs) gs.onclick = function () { go('start'); };
 			paintNav();
 			showTrk(['today', 'chat', 'me'].indexOf(S.view) >= 0 || (S.view === 'community' && unlocked('community')) ? S.view : '');
@@ -107,7 +107,12 @@
 		if (W && W.timer) { clearInterval(W.timer); W.timer = null; }
 		stopClip(); stopReading();
 		if (B.appMode && S.gate) view = 'today';
-		if (['today', 'learn', 'chat', 'community', 'me', 'dev'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) view = B.appMode ? 'learn' : 'start';
+		if (['today', 'learn', 'chat', 'community', 'me', 'dev'].indexOf(view) < 0 && !unlocked(view === 'skill' || view === 'practice' ? 'skills' : view)) {
+			// A button elsewhere (Today's new thing, a quest) can point at a tool that isn't open yet: say why instead of a silent jump.
+			var opensAt = stageFor(view === 'skill' || view === 'practice' ? 'skills' : view);
+			if (B.appMode && opensAt > S.stage) toast('🔒 That opens at stage ' + opensAt + '. Your next step is in Your stages.');
+			view = B.appMode ? 'learn' : 'start';
+		}
 		S.view = view;
 		// One history entry per screen, so the phone's back button / swipe goes back one screen and only leaves from Home.
 		try {
@@ -461,7 +466,7 @@
 				btn.disabled = false;
 				btn.textContent = 'Check again';
 				showResult(d);
-				if (d.xp > 0) toast('+' + d.xp + ' XP in the tracker');
+				if (d.xp > 0) toast('+' + d.xp + ' XP');
 			}, function (e) {
 				btn.disabled = false;
 				btn.textContent = 'Check my writing';
@@ -541,7 +546,7 @@
 
 	/* ── Progress ─────────────────────────────────────── */
 	function progress() {
-		shell('<section class="stack"><h1>Progress</h1><p class="muted">Are your mistakes going down? Mistakes per 100 words you write, week by week.</p></section><p class="loading">Loading…</p>');
+		shell('<section class="stack"><h1>Writing progress</h1><p class="muted">Are your mistakes going down? Mistakes per 100 words you write, week by week.</p></section><p class="loading">Loading…</p>');
 		Promise.all([api('history'), S.tree ? null : loadTree()]).then(function (res) {
 			var d = res[0], t = d.trends;
 			var mastered = S.tree.filter(function (n) { return n.status === 'mastered'; }).length;
@@ -555,7 +560,7 @@
 					'<div class="spark">' + s.rates.map(function (x) { return x === null ? '<i class="none"></i>' : '<i style="height:' + Math.max(6, x / max * 100) + '%" title="' + x + ' per 100 words"></i>'; }).join('') + '</div>' +
 					'<div class="small muted">8 weeks ago → this week' + (first !== null ? ' · ' + first + ' → ' + last + ' per 100 words' : '') + '</div></li>';
 			}).join('') + '</ul>' : '<p class="card muted">Write something in <b>Write</b> and your mistakes will be tracked here.</p>';
-			shell('<section class="stack"><h1>Progress</h1><p class="muted">Are your mistakes going down? Mistakes per 100 words you write, week by week.</p></section>' +
+			shell('<section class="stack"><h1>Writing progress</h1><p class="muted">Are your mistakes going down? Mistakes per 100 words you write, week by week.</p></section>' +
 				'<section class="card" style="display:flex;justify-content:space-around;text-align:center"><div><h2>' + mastered + '</h2><span class="small muted">skills mastered</span></div><div><h2>' + totalWords + '</h2><span class="small muted">words checked (8 weeks)</span></div></section>' +
 				'<section class="stack"><h2>Mistakes by type</h2>' + trend + '</section>' +
 				(d.writings.length ? '<section class="stack"><h2>Your writing</h2><ul class="hist">' + d.writings.map(function (w) {
@@ -594,16 +599,16 @@
 		{ n: 4, title: 'Speak', ar: 'تكلّم', tabs: ['speak'],
 			intro: 'Speaking is where it all comes together. Talk for a minute and get the text of what you said with corrections. In the Silk Road you can now pick a job (Thief, Hunter or Trader), buy gear and raid — better English unlocks better gear.',
 			steps: [
-				{ k: 'speaks', t: 'Speak once (in Write → Speak, or a voice note in the tracker chat)', ar: 'سجّل كلامك مرة', how: 'Write → 🎙 Speak → talk about the idea of the day. Or send a voice note in the tracker chat and tap "رأي في كلامي".', done: function (j) { return j.speaks >= 1; }, go: 'write' }
+				{ k: 'speaks', t: 'Speak once (in Write → Speak, or a voice note in Chat)', ar: 'سجّل كلامك مرة', how: 'Write → 🎙 Speak → talk about the idea of the day. Or send a voice note in the Chat tab and tap "رأي في كلامي".', done: function (j) { return j.speaks >= 1; }, go: 'write', btn: 'Write & speak' }
 			] },
 		{ n: 5, title: 'Everything is open', ar: 'كل الأدوات مفتوحة', tabs: ['progress'],
 			intro: 'You know the routine. Now use the extras when you need them:',
 			tips: [
-				'📷 Scan a page (Write → Scan): photo of a book page → tap words for meanings.',
-				'📈 Progress: see if each type of mistake is going down, week by week.',
+				'📷 Scan a page (Learn → Scan a page): photo of a book page → tap words for meanings.',
+				'📈 Writing progress (Home → Your things): see if each type of mistake is going down, week by week.',
 				'🔎 Focus mode (Language Lens popup): highlight one grammar point or sound in every video.',
-				'🌐 Write in Arabic in the tracker chat — it\'s translated to English for you to check before sending.',
-				'⚡ Every English message, voice note and fixed mistake earns XP in the tracker.',
+				'🌐 Write in Arabic in the Chat tab — it\'s translated to English for you to check before sending.',
+				'⚡ Every English message, voice note and fixed mistake earns XP.',
 				'⚔ Silk Road parties: play with 2–4 friends — a party chat, a 48-hour party boss and live battles on the words you are all learning.'
 			], steps: [] }
 	];
@@ -615,6 +620,14 @@
 		var seen = j.speaks ? 4 : j.writings || j.sets ? 3 : j.reviews ? 2 : 1;
 		return Math.max(seq, seen);
 	}
+	/** The stage a tool opens at (0 = no stage opens it). */
+	function stageFor(tab) {
+		if (tab === 'skill' || tab === 'practice') return 3;
+		for (var i = 0; i < STAGES.length; i++) if (STAGES[i].tabs.indexOf(tab) >= 0) return i + 1;
+		return 0;
+	}
+	/** What a step's button says (one clear action, not "Open Interests"). */
+	var GO_LABEL = { scan: 'Scan a page', interests: 'Take the 2-minute quiz', review: 'Review now', write: 'Write', skills: 'Open the skill tree' };
 	function unlocked(tab) {
 		if (tab === 'songs') return !!B.songs; // My songs: beta testers only
 		if (tab === 'stories' || tab === 'story') return !!B.readers; // Stories for you: beta testers only
@@ -644,13 +657,13 @@
 				+ (st.steps.length ? '<ul class="g-steps">' + st.steps.map(function (x) {
 					var ok = x.done(j), lk = x.link ? x.link(j) : null;
 					return '<li class="' + (ok ? 'ok' : '') + '"><span class="g-check">' + (ok ? '✓' : '') + '</span><div><b>' + esc(x.t) + '</b>' + (x.optional ? ' <span class="pill">optional</span>' : '') + (x.count && !ok ? ' <span class="pill">' + x.count(j) + '</span>' : '')
-						+ (S.ar ? '<p class="ar small muted">' + esc(x.ar) + '</p>' : '') + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">Open ' + x.go.charAt(0).toUpperCase() + x.go.slice(1) + '</button>' : '') + (lk ? '<a class="btn ghost sm" href="' + esc(lk[1]) + '" target="_blank" rel="noopener">' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
+						+ (S.ar ? '<p class="ar small muted">' + esc(x.ar) + '</p>' : '') + (ok ? '' : '<p class="small">' + esc(x.how) + '</p>' + (x.go ? '<button class="btn sm" data-go="' + x.go + '">' + (x.btn || GO_LABEL[x.go] || 'Open') + '</button>' : '') + (lk ? '<a class="btn ' + (x.go ? 'ghost ' : '') + 'sm" href="' + esc(lk[1]) + '"' + (lk[1].charAt(0) === '/' ? '' : ' target="_blank" rel="noopener"') + '>' + esc(lk[0]) + '</a>' : '')) + '</div></li>';
 				}).join('') + '</ul>' : '')
 				+ (st.tips ? '<ul class="g-tips">' + st.tips.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>' : '')
 				+ '</li>';
 		};
-		var routine = cur >= 2 ? '<section class="card stack"><h3>Your daily 15 minutes</h3><ol class="g-routine"><li><b>Review</b> your cards (5 min)</li><li><b>Watch</b> one video with Language Lens and mark new words (5–10 min)</li>' + (cur >= 3 ? '<li><b>Write or speak</b> a few sentences — in Write, or in the tracker chat</li>' : '') + '</ol><p class="small muted">Log it in the <a href="' + esc(j.tracker) + '">tracker</a> to keep your streak.</p></section>' : '';
-		shell('<section class="stack"><h1>Start here</h1><p class="muted">One step at a time. New tools appear as you finish each stage, so you never have to learn everything at once.</p>'
+		var routine = cur >= 2 ? '<section class="card stack"><h3>Your daily 15 minutes</h3><ol class="g-routine"><li><b>Review</b> your cards (5 min)</li><li><b>Watch</b> one video with Language Lens and mark new words (5–10 min)</li>' + (cur >= 3 ? '<li><b>Write or speak</b> a few sentences — in Write, or in the Chat tab</li>' : '') + '</ol><p class="small muted">Your study time counts by itself. Come back every day to keep your streak.</p></section>' : '';
+		shell('<section class="stack"><h1>Your stages</h1><p class="muted">One step at a time. New tools appear as you finish each stage, so you never have to learn everything at once.</p>'
 			+ '<div class="g-bar"><i style="width:' + Math.round((cur - 1) / 4 * 100) + '%"></i></div><p class="small muted">Stage ' + cur + ' of 5</p></section>'
 			+ routine + '<ol class="g-list">' + STAGES.map(card).join('') + '</ol>'
 			+ '<p class="small muted center-text">' + (cur < 5 ? 'Already know your way around? <button class="link small" id="all">Show me everything</button>' : '') + ' · <a href="' + esc(j.guide) + '" target="_blank" rel="noopener">Full guide (Arabic)</a></p>');
@@ -678,7 +691,7 @@
 			var box = $app.querySelector('#plan'); if (!box) return;
 			var stage = STAGES[S.stage - 1], step = stage.steps.filter(function (x) { return !x.optional && !x.done(S.J); })[0];
 			box.innerHTML = '<div class="row-between"><h3>' + (p.perfect ? 'Perfect day 🎉' : 'Your plan for today') + '</h3><span class="pill' + (p.perfect ? ' mastered' : '') + '">' + (p.perfect ? '+50 XP · +40 🪙 today' : '+5 XP & 5 🪙 each · bonus for all') + '</span></div><ol class="plan">' + p.items.map(function (x, i) {
-				return '<li class="' + (x.done ? 'ok' : i === next ? 'next' : '') + '"><span class="g-check">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + esc(x.t) + '</b><span class="small muted">' + esc(x.sub) + '</span></div>' + (!x.done ? '<button class="btn sm' + (i === next ? '' : ' ghost') + '" data-go="' + esc(x.go) + '">' + ({ review: 'Start', scan: 'Scan', chat: 'Chat', log: 'Log' }[x.go] || 'Go') + '</button>' : '') + '</li>';
+				return '<li class="' + (x.done ? 'ok' : i === next ? 'next' : '') + '"><span class="g-check">' + (x.done ? '✓' : i + 1) + '</span><div><b>' + esc(x.t) + '</b><span class="small muted">' + esc(x.sub) + '</span></div>' + (!x.done ? '<button class="btn sm' + (i === next ? '' : ' ghost') + '" data-go="' + esc(x.go) + '">' + ({ review: 'Start', scan: 'Scan', read: 'Read', write: 'Write', chat: 'Chat', log: 'Log' }[x.go] || 'Go') + '</button>' : '') + '</li>';
 			}).join('') + '</ol>'
 				+ (p.minutes ? '<p class="small muted">⏱ ' + p.minutes + ' min counted automatically today — no need to log it.</p>' : '')
 				+ (S.stage < 5 && step ? '<button class="stage-tip" data-start><span class="pill open">Stage ' + S.stage + ' of 5</span> Next: ' + esc(step.t) + ' →</button>' : '');
@@ -702,17 +715,18 @@
 	/** Learn: the learning tools, opening one by one with the stages. */
 	function learnHub() {
 		var tools = [
-			['review', 'Review', 'Your words and sentences come back before you forget them', 2],
-			['read', 'Read a text', 'Paste any English text → tap words, listen to it', 1],
-			['scan', 'Scan a page', 'Photo or screenshot of a page → tap words for meanings', 1],
-			['interests', 'Find content you\'ll love', 'What you enjoy in Arabic → English creators, music and books', 1],
-			['write', 'Write & speak', 'Write or talk; get every correction', 3],
-			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3]
-		].concat(B.songs ? [['songs', '🎵 My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1]] : [])
-			.concat(B.readers ? [['stories', '📖 Stories for you', 'Short stories about what you love, at your level', 1]] : []);
+			['review', 'Review', 'Your words and sentences come back before you forget them', 2, 'راجع كلماتك'],
+			['read', 'Read a text', 'Paste any English text → tap words, listen to it', 1, 'اقرأ نص'],
+			['scan', 'Scan a page', 'Photo or screenshot of a page → tap words for meanings', 1, 'صوّر صفحة'],
+			['interests', 'Find content you\'ll love', 'What you enjoy in Arabic → English creators, music and books', 1, 'محتوى إنجليزي هيعجبك'],
+			['write', 'Write & speak', 'Write or talk; get every correction', 3, 'اكتب واتكلم واتصحّح'],
+			['skills', 'Skill tree', 'Grammar, tone and pronunciation, step by step', 3, 'شجرة المهارات']
+		].concat(B.songs ? [['songs', 'My songs <i class="beta-tag">BETA</i>', 'A short song made from the words you are learning', 1, 'أغاني من كلماتك']] : [])
+			.concat(B.readers ? [['stories', 'Stories for you', 'Short stories about what you love, at your level', 1, 'قصص على مستواك']] : []);
+		tools = tools.filter(function (x) { return unlocked(x[0]); }).concat(tools.filter(function (x) { return !unlocked(x[0]); })); // what you can use now comes first
 		shell('<section class="stack"><div class="row-between"><h1>Learn</h1>' + langSwitch() + '</div></section><div class="hub">' + tools.map(function (x) {
 			var open = unlocked(x[0]);
-			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b><span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
+			return '<button class="hub-t' + (open ? '' : ' locked') + '" data-t="' + x[0] + '"' + (open ? '' : ' disabled') + '><span class="hub-i">' + ICONS[x[0] === 'scan' || x[0] === 'read' ? 'library' : x[0]] + '</span><b>' + x[1] + (x[0] === 'review' && S.due && open ? ' <i class="badge static">' + S.due + '</i>' : '') + '</b>' + (S.ar ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + (open ? x[2] : '🔒 Opens at stage ' + x[3]) + '</span></button>';
 		}).join('') + '</div>' + (S.stage < 5 ? '<p class="small muted center-text">New tools open as you go. <button class="link small" data-start>See your stages</button></p>' : ''));
 		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { go(b.dataset.t); }; });
 		var sg = $app.querySelector('[data-start]'); if (sg) sg.onclick = function () { go('start'); };
@@ -813,6 +827,8 @@
 			var known = h.known, gained = known[known.length - 1][1] - known[0][1];
 			var activeDays = h.reviews.slice(-28).filter(function (r) { return r[1]; }).length;
 			var met = h.met, metTot = met.reduce(function (a, r) { return a + r[1] + r[2]; }, 0);
+			// A brand-new student has nothing to chart yet: one line instead of four tiles of zeros and empty charts.
+			if (!totalCards && !activeDays && !known[known.length - 1][1] && !metTot) { box.innerHTML = '<h2>Your progress</h2><p class="card small muted">Your charts appear here after you save your first words and review them.</p>'; return; }
 			var stageBar = totalCards ? [['New', st.fresh, CH.seq[1]], ['Learning', st.learning, CH.seq[2]], ['Getting there', st.young, CH.seq[3]], ['Long-term', st.mature, CH.seq[4]]].map(function (x) { return x[1] ? '<i style="flex:' + x[1] + ';background:' + x[2] + '" data-tip="' + esc('<b>' + x[1] + '</b> ' + x[0].toLowerCase() + ' cards') + '"></i>' : ''; }).join('') : '';
 			box.innerHTML = '<h2>Your progress</h2>'
 				+ '<div class="ch-tiles"><div><b>' + nf(known[known.length - 1][1]) + '</b><span>words known' + (gained ? ' · <em>+' + nf(gained) + '</em> in 60 days' : '') + '</span></div><div><b>' + activeDays + '<small>/28</small></b><span>study days this month</span></div><div><b>' + (R.ret != null ? R.ret + '%' : '–') + '</b><span>cards remembered this week</span></div><div><b>' + nf(st.mature) + '</b><span>cards in long-term memory</span></div></div>'
@@ -917,9 +933,10 @@
 	/** Your things (library, mistakes, stages, level test, the extension), at the bottom of Home. */
 	function meTiles() {
 		var j = S.J || {};
-		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'My mistakes', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills'], ['dev', 'Feedback & Dev', 'What\'s coming · post ideas and bugs, vote', 'dev']].filter(function (x) { return x[0] === 'start' || (x[0] === 'dev' ? !!trkCfg().boardJs : unlocked(x[0])); });
+		// Your stages is not a tile: it is one tap away at the top of every screen and under today's plan.
+		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library', 'مكتبتي'], ['progress', 'Writing progress', 'Are your mistakes going down?', 'progress', 'تقدّمك في الكتابة'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills', 'اختبار المستوى'], ['dev', 'Feedback & Dev', 'What\'s coming · post ideas and bugs, vote', 'dev', 'اقترح وصوّت']].filter(function (x) { return x[0] === 'placement' || (x[0] === 'dev' ? !!trkCfg().boardJs : unlocked(x[0])); });
 		return '<h2>Your things</h2><div class="hub">' + tiles.map(function (x) {
-			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
+			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b>' + (S.ar ? '<span class="ar small hub-ar" lang="ar">' + x[4] + '</span>' : '') + '<span class="small muted">' + esc(x[2]) + '</span></button>';
 		}).join('') + '</div>'
 			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>';
 	}
@@ -941,22 +958,13 @@
 		var s = document.createElement('script'); s.src = c.boardJs; s.onload = mount; s.onerror = function () { var el = $app.querySelector('#sawa-board'); if (el) el.innerHTML = '<p class="err">Could not load. Check your connection and try again.</p>'; };
 		document.head.appendChild(s);
 	}
-	/** Me: your stuff — library, progress, the guide, the extension — then your tracker stats. */
-	function meHub() {
-		var j = S.J || {};
-		var tiles = [['library', 'My library', 'Words, phrases and sentences you saved', 'library'], ['progress', 'Progress', 'Are your mistakes going down?', 'progress'], ['start', 'Your stages', 'Stage ' + S.stage + ' of 5', 'start'], ['placement', 'Level test', j.placement ? 'Your level: ' + j.placement.level + ' · ' + j.placement.score + '/100' : 'Find your level (A1–C2)', 'skills']].filter(function (x) { return x[0] === 'start' || unlocked(x[0]); });
-		var tr = trkData() || {}, st = tr.stats || {}, xp = tr.xp || {};
-		var sum = '<section class="card me-sum"><div><b>' + (j.placement ? esc(j.placement.level) : '–') + '</b><span>' + (j.placement ? 'your level' : '<a href="/placement/">find your level</a>') + '</span></div><div><b>' + (st.streak || 0) + '🔥</b><span>day streak</span></div><div><b>' + (j.known != null ? j.known : j.learning || 0) + '</b><span>' + (j.known != null ? 'words known' : 'words saved') + '</span></div><div><b>' + (xp.total || 0) + '</b><span>XP</span></div></section>';
-		shell('<section class="stack"><h1>Me</h1></section>' + sum + '<div class="hub">' + tiles.map(function (x) {
-			return '<button class="hub-t" data-t="' + x[0] + '"><span class="hub-i">' + ICONS[x[3]] + '</span><b>' + x[1] + '</b><span class="small muted">' + esc(x[2]) + '</span></button>';
-		}).join('') + '</div>'
-			+ '<section class="card row-between"><div><b>Language Lens for Chrome</b><p class="small muted">' + (j.extension ? 'Connected ✓ — meanings on YouTube and any website.' : 'Not connected yet. Use it on a computer.') + '</p></div>' + (!j.extension && j.store ? '<a class="btn sm" href="' + esc(j.store) + '" target="_blank" rel="noopener">Install</a>' : '') + '</section>');
-		$app.querySelectorAll('[data-t]').forEach(function (b) { b.onclick = function () { if (b.dataset.t === 'placement') location.href = '/placement/'; else go(b.dataset.t); }; });
-	}
 
 	/* ── Write · Speak · Scan ─────────────────────────── */
+	/** Write ⇄ Speak switch (Scan a page is a reading tool: it lives in Learn only). No switch while Speak is still locked. */
 	function modeSeg(cur) {
-		return '<div class="seg modes" role="group">' + [['write', '✍️ Write'], ['speak', '🎙 Speak'], ['scan', '📷 Scan a page']].filter(function (m) { return unlocked(m[0]); }).map(function (m) {
+		var modes = [['write', '✍️ Write'], ['speak', '🎙 Speak']].filter(function (m) { return unlocked(m[0]); });
+		if (modes.length < 2) return '';
+		return '<div class="seg modes" role="group">' + modes.map(function (m) {
 			return '<button data-mode="' + m[0] + '" aria-pressed="' + (cur === m[0]) + '">' + m[1] + '</button>';
 		}).join('') + '</div>';
 	}
@@ -1023,7 +1031,7 @@
 					showResult(d);
 					var box = $app.querySelector('#res');
 					box.insertAdjacentHTML('afterbegin', '<p class="small muted">What I heard (grammar and words are checked, not your accent):</p>');
-					if (d.xp > 0) toast('+' + d.xp + ' XP in the tracker');
+					if (d.xp > 0) toast('+' + d.xp + ' XP');
 				}, function (e) { btn.disabled = false; rt.textContent = e.message; });
 			});
 		};
@@ -1216,7 +1224,7 @@
 	function scanView() {
 		if (SCAN && SCAN.story) SCAN = null; // a story from Stories for you isn't a scanned page
 		try { SCAN = SCAN || JSON.parse(localStorage.getItem('lensScan') || 'null'); } catch (e) { /* storage blocked */ }
-		shell(modeSeg('scan') + '<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learning, or save the sentence.</p></section>'
+		shell('<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learning, or save the sentence.</p></section>'
 			+ '<div class="scan-in" id="drop"><div class="ra-btns"><label class="btn" for="cam">📷 Take a photo</label><label class="btn" for="pick">🖼 Upload an image</label><button class="btn ghost" id="pastebtn">📋 Paste a screenshot</button></div>'
 			+ '<p class="small muted">Or press Ctrl+V (⌘V on Mac) to paste a screenshot, or drop an image here.</p></div>'
 			+ '<input id="cam" type="file" accept="image/*" capture="environment" hidden><input id="pick" type="file" accept="image/*" hidden>'
@@ -1528,7 +1536,7 @@
 	}
 	function reviewHead() {
 		var st = R.stats;
-		return '<section class="rv-top"><div><b>' + R.queue.length + '</b><span>left</span></div><div><b>' + st.today + '</b><span>reviewed today</span></div><div><b>' + st.streak + '🔥</b><span>day streak</span></div><div><b>' + (st.retention != null ? st.retention + '%' : st.mature) + '</b><span>' + (st.retention != null ? 'remembered this week' : 'long-term') + '</span></div></section>' + levelBox(st);
+		return '<section class="rv-top"><div><b>' + R.queue.length + '</b><span>left</span></div><div><b>' + st.today + '</b><span>reviewed today</span></div><div><b>' + st.streak + '🔥</b><span>review days in a row</span></div><div><b>' + (st.retention != null ? st.retention + '%' : st.mature) + '</b><span>' + (st.retention != null ? 'remembered this week' : 'long-term') + '</span></div></section>' + levelBox(st);
 	}
 	/**
 	 * Card level (progressive overload): new cards a day grow with consistency. Shows the level, what the next one

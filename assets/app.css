@@ -29,6 +29,7 @@ h2 { font-size: 20px; }
 h3 { font-size: 16px; }
 p { margin: 0; }
 a { color: var(--fg); }
+a.btn { text-decoration: none; }
 button, textarea, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
@@ -245,6 +246,7 @@ body:has(.trk[hidden]) .app.one { padding-bottom: calc(96px + env(safe-area-inse
 .hub-t { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 4px; align-content: start; min-height: 120px; }
 .hub-t b { color: var(--fg); font-size: 16px; display: flex; align-items: center; gap: 6px; }
 .hub-t.locked { opacity: .55; border-style: dashed; }
+.hub-t .hub-ar { text-align: left; color: var(--fg); font-size: 14px; margin-top: -2px; }
 .hub-i svg { width: 26px; height: 26px; fill: none; stroke: var(--fg); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .badge.static { position: static; margin: 0; }
 .plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
