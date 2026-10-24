@@ -59,7 +59,10 @@ final class Sawa_Lens_Tiers {
 	}
 
 	/** Free during the Language Lens beta (decided 2026-10-23): all of Language Lens + Review in the app. */
-	const FREE_DEFAULT = array( 'review', 'lens_meanings', 'lens_ai', 'lens_proof' );
+	/** On the shelf for everyone except admins (0.33.0): the Silk Road game stays hidden and locked until Sherif brings it back (ops/shelf.md). */
+	const SHELVED = array( 'game' );
+
+	const FREE_DEFAULT = array( 'review', 'lens_meanings', 'lens_ai', 'lens_proof', 'home', 'writing', 'learn', 'stories', 'tracker', 'community' ); // 0.33.0: free = the whole app except the Silk Road game
 
 	/**
 	 * Which plan gets which feature (Settings → Free vs Member). A feature added after the settings were saved
@@ -74,7 +77,7 @@ final class Sawa_Lens_Tiers {
 		foreach ( array( 'free' => self::FREE_DEFAULT, 'member' => $all ) as $t => $def ) {
 			$saved     = isset( $m[ $t ] ) ? (array) $m[ $t ] : $def;
 			$new       = array_intersect( array_diff( $all, $known ), $def );
-			$out[ $t ] = array_values( array_intersect( $all, array_merge( $saved, $new ) ) );
+			$out[ $t ] = array_values( array_diff( array_intersect( $all, array_merge( $saved, $new ) ), self::SHELVED ) );
 		}
 		return $out;
 	}
@@ -412,6 +415,15 @@ final class Sawa_Lens_Tiers {
 		if ( $v < 2 ) {
 			// 0.26.1: the Language Lens beta decision. Saved settings get Language Lens opened for free accounts.
 			update_option( 'sawa_lens_tiers_v', 2, false );
+			$m = get_option( self::OPT );
+			if ( is_array( $m ) && isset( $m['free'] ) ) {
+				$m['free'] = array_values( array_unique( array_merge( (array) $m['free'], self::FREE_DEFAULT ) ) );
+				update_option( self::OPT, $m, true );
+			}
+		}
+		if ( $v < 3 ) {
+			// 0.33.0: every signed-in account (free or member) gets the whole app; only the Silk Road game is shelved.
+			update_option( 'sawa_lens_tiers_v', 3, false );
 			$m = get_option( self::OPT );
 			if ( is_array( $m ) && isset( $m['free'] ) ) {
 				$m['free'] = array_values( array_unique( array_merge( (array) $m['free'], self::FREE_DEFAULT ) ) );

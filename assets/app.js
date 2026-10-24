@@ -94,7 +94,7 @@
 	function paintNav() {
 		var nav = document.getElementById('nav'); if (!nav) return;
 		var cur = tabOf(S.view);
-		nav.innerHTML = APP_TABS.map(function (t) {
+		nav.innerHTML = APP_TABS.filter(function (t) { return t[0] !== 'community' || has('game'); }).map(function (t) {
 			var badge = t[0] === 'learn' && S.due ? S.due : t[0] === 'chat' && S.unread ? S.unread : 0;
 			return '<button data-nav="' + t[0] + '"' + (cur === t[0] ? ' aria-current="page"' : '') + '>' + ICONS[t[0]] + t[1] + (planLocked(t[0]) ? ' <span class="nav-lock" aria-label="Members only">🔒</span>' : badge ? '<i class="badge">' + badge + '</i>' : '') + '</button>';
 		}).join('');
@@ -617,8 +617,7 @@
 		{ n: 1, title: 'Collect words', ar: 'اجمع كلمات', tabs: ['start', 'read', 'scan', 'interests'],
 			intro: 'Start by saving words you meet. The level check is optional: skip it and take it later.',
 			steps: [
-				{ k: 'vocabTest', optional: true, t: 'Optional, any time: take the level check (about 8 minutes)', ar: 'اختبار سريع لتحديد المستوى', how: 'It finds your level and vocabulary size, so everything fits you. You can take the full test later.', done: function (j) { return j.vocabTest; }, link: function () { return ['Start the level check', '/placement/']; } },
-				{ k: 'learning', t: 'Save 5 words you want to learn', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'On your phone: Learn → Scan a page, tap a word → "+ Learning". On a computer: Language Lens on YouTube.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
+				{ k: 'learning', t: 'Save 5 words you want to learn', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'On your phone: Learn → Scan a page, tap a word → "+ Learn". On a computer: Language Lens on YouTube.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
 				{ k: 'interests', optional: true, t: 'Find English content you\'ll love', ar: 'اكتشف محتوى إنجليزي هيعجبك', how: 'Tell us what you watch in Arabic (comedy, rap, football…) and get English creators, music and books to match. 2 minutes.', done: function (j) { return j.interests; }, go: 'interests' },
 				{ k: 'extension', optional: true, t: 'On a computer: add Language Lens to Chrome', ar: 'على الكمبيوتر: ثبّت إضافة Language Lens', how: 'Meanings on YouTube and any website. Click its icon → "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['Install Language Lens', j.store] : null; } }
 			] },
@@ -891,13 +890,13 @@
 			var met = h.met, metTot = met.reduce(function (a, r) { return a + r[1] + r[2]; }, 0);
 			// A brand-new student has nothing to chart yet: one line instead of four tiles of zeros and empty charts.
 			if (!totalCards && !activeDays && !known[known.length - 1][1] && !metTot) { box.innerHTML = '<h2>Your progress</h2><p class="card small muted">Your charts appear here after you save your first words and review them.</p>'; return; }
-			var stageBar = totalCards ? [['New', st.fresh, CH.seq[1]], ['Learning', st.learning, CH.seq[2]], ['Getting there', st.young, CH.seq[3]], ['Long-term', st.mature, CH.seq[4]]].map(function (x) { return x[1] ? '<i style="flex:' + x[1] + ';background:' + x[2] + '" data-tip="' + esc('<b>' + x[1] + '</b> ' + x[0].toLowerCase() + ' cards') + '"></i>' : ''; }).join('') : '';
+			var stageBar = totalCards ? [['New', st.fresh, CH.seq[1]], ['Learn', st.learning, CH.seq[2]], ['Getting there', st.young, CH.seq[3]], ['Long-term', st.mature, CH.seq[4]]].map(function (x) { return x[1] ? '<i style="flex:' + x[1] + ';background:' + x[2] + '" data-tip="' + esc('<b>' + x[1] + '</b> ' + x[0].toLowerCase() + ' cards') + '"></i>' : ''; }).join('') : '';
 			box.innerHTML = '<h2>Your progress</h2>'
 				+ '<div class="ch-tiles"><div><b>' + nf(known[known.length - 1][1]) + '</b><span>words known' + (gained ? ' · <em>+' + nf(gained) + '</em> in 60 days' : '') + '</span></div><div><b>' + activeDays + '<small>/28</small></b><span>study days this month</span></div><div><b>' + (R.ret != null ? R.ret + '%' : '–') + '</b><span>cards remembered this week</span></div><div><b>' + nf(st.mature) + '</b><span>cards in long-term memory</span></div></div>'
 				+ '<section class="card"><h3>Study calendar</h3><p class="small muted">Every square is a day. Keep the chain going — even 5 cards count.</p>' + heatmap(h.reviews) + '</section>'
 				+ '<section class="card"><h3>Words you know</h3>' + lineChart(known, { what: 'words known', label: 'Words known over the last 60 days' }) + '</section>'
 				+ (wk.length ? '<section class="card"><h3>How much you remember</h3><p class="small muted">Review cards you got right each week. Around 90% is the sweet spot; the dashed line (80%) unlocks the next card level.</p>' + barChart(h.weeks.map(function (w) { return [fmtDay(w[0]), w[1], w[1] == null ? 'No reviews this week' : '<b>' + w[1] + '%</b> remembered (' + w[2] + ' reviews)<br>week of ' + fmtDay(w[0])]; }), { max: 100, unit: '%', ref: 80, every: 2, label: 'Percent of review cards remembered each week' }) + '</section>' : '')
-				+ (totalCards ? '<section class="card"><h3>Your cards</h3><div class="ch-stack">' + stageBar + '</div><div class="ch-legend small">' + [['New', st.fresh, 1], ['Learning', st.learning, 2], ['Getting there', st.young, 3], ['Long-term', st.mature, 4]].map(function (x) { return '<span><i style="background:' + CH.seq[x[2]] + '"></i>' + x[0] + ' <b>' + nf(x[1]) + '</b></span>'; }).join('') + '</div>'
+				+ (totalCards ? '<section class="card"><h3>Your cards</h3><div class="ch-stack">' + stageBar + '</div><div class="ch-legend small">' + [['New', st.fresh, 1], ['Learn', st.learning, 2], ['Getting there', st.young, 3], ['Long-term', st.mature, 4]].map(function (x) { return '<span><i style="background:' + CH.seq[x[2]] + '"></i>' + x[0] + ' <b>' + nf(x[1]) + '</b></span>'; }).join('') + '</div>'
 					+ '<h3 style="margin-top:16px">Coming up</h3><p class="small muted">Reviews waiting for you in the next 14 days.</p>' + barChart(h.forecast.map(function (f, i) { return [i ? fmtDay(f[0]).split(' ')[0] : 'Today', f[1], '<b>' + f[1] + '</b> reviews<br>' + (i ? fmtDay(f[0], true) : 'today')]; }), { every: 2, label: 'Reviews due in the next 14 days' }) + '</section>' : '')
 				+ (metTot ? '<section class="card"><h3>English you met</h3><div class="ch-legend small"><span><i style="background:' + CH.blue + '"></i>📖 read</span><span><i style="background:' + CH.orange + '"></i>🎧 heard in videos</span></div>' + barChart(met.map(function (r) { return [fmtDay(r[0]).split(' ')[0], r[1], r[2], '<b>' + nf(r[1] + r[2]) + '</b> words<br>📖 ' + nf(r[1]) + ' read · 🎧 ' + nf(r[2]) + ' heard' + (r[3] ? '<br>💡 curious about ' + r[3] : '') + '<br>' + fmtDay(r[0], true)]; }), { stack: true, every: 2, label: 'Words read and heard each day, last 14 days' }) + '</section>' : '');
 			bindTips(box);
@@ -1286,7 +1285,7 @@
 	function scanView() {
 		if (SCAN && SCAN.story) SCAN = null; // a story from Stories for you isn't a scanned page
 		try { SCAN = SCAN || JSON.parse(localStorage.getItem('lensScan') || 'null'); } catch (e) { /* storage blocked */ }
-		shell('<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learning, or save the sentence.</p></section>'
+		shell('<section class="stack"><h1>Scan a page</h1><p class="muted">Take a photo of a book page, worksheet or screenshot. Tap any word for its meaning, mark it as Learn, or save the sentence.</p></section>'
 			+ '<div class="scan-in" id="drop"><div class="ra-btns"><label class="btn" for="cam">📷 Take a photo</label><label class="btn" for="pick">🖼 Upload an image</label><button class="btn ghost" id="pastebtn">📋 Paste a screenshot</button></div>'
 			+ '<p class="small muted">Or press Ctrl+V (⌘V on Mac) to paste a screenshot, or drop an image here.</p></div>'
 			+ '<input id="cam" type="file" accept="image/*" capture="environment" hidden><input id="pick" type="file" accept="image/*" hidden>'
@@ -1431,7 +1430,7 @@
 		pop.className = 'wpop'; pop.setAttribute('role', 'dialog');
 		pop.innerHTML = '<div class="row-between"><b dir="ltr">' + esc(lemma) + '</b><span><button class="say sm" data-wsay aria-label="Listen to the word">🔊</button><button class="link small" data-wx aria-label="Close">✕</button></span></div>'
 			+ (ms.length ? meaningHtml(ms[0], true) : '<p class="small muted">Not in the dictionary. Tap More for an AI explanation.</p>')
-			+ '<div class="ra-btns"><button class="btn sm" data-wl>＋ Learning</button><button class="btn ghost sm" data-wm>More</button></div>';
+			+ '<div class="ra-btns"><button class="btn sm" data-wl>＋ Learn</button><button class="btn ghost sm" data-wm>More</button></div>';
 		document.body.appendChild(pop);
 		var r = sp.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
 		var below = r.bottom + h + 8 < innerHeight - 140; // the player bar and the menu sit at the bottom
@@ -1439,7 +1438,7 @@
 		pop.style.left = (scrollX + Math.max(16, Math.min(r.left - 16, innerWidth - w - 16))) + 'px';
 		pop.querySelector('[data-wsay]').onclick = function () { speak(lemma); }; // one word: the reading pauses
 		pop.querySelector('[data-wx]').onclick = function () { pop.remove(); };
-		pop.querySelector('[data-wl]').onclick = function () { var b = this; b.disabled = true; api('library/word', { body: { lemma: lemma, status: 'learning', sentence: sentence.slice(0, 600), title: SCAN.title || '' } }).then(function () { b.textContent = '✓ Learning'; toast('Added to your review cards'); }, function (e) { b.disabled = false; toast(e.message); }); };
+		pop.querySelector('[data-wl]').onclick = function () { var b = this; b.disabled = true; api('library/word', { body: { lemma: lemma, status: 'learning', sentence: sentence.slice(0, 600), title: SCAN.title || '' } }).then(function () { b.textContent = '✓ Learn'; toast('Added to your review cards'); }, function (e) { b.disabled = false; toast(e.message); }); };
 		pop.querySelector('[data-wm]').onclick = function () { pop.remove(); pauseReading(); wordCard(word, sentence); };
 	}
 	document.addEventListener('click', function (e) { var p = document.querySelector('.wpop'); if (p && !p.contains(e.target) && !e.target.closest('.sw')) p.remove(); });
@@ -1559,7 +1558,7 @@
 			+ (ms.length ? ms.slice(0, 2).map(function (m) { return '<div><span class="pill">' + esc(m.pos) + (m.level ? ' · ' + m.level : '') + '</span>' + meaningHtml(m) + '</div>'; }).join('') : '')
 			+ '<div data-ai-word="' + esc(word) + '" data-ai-sent="' + esc(sentence) + '"><button class="link small">' + (ms.length ? 'Meaning in this sentence (AI)' : 'Explain with AI') + '</button></div>'
 			+ '<p class="small muted" dir="ltr">“' + esc(sentence) + '”</p><div class="pics" data-pics="' + esc(lemma) + '" data-sent="' + esc(sentence) + '"></div>'
-			+ '<div class="ra-btns"><button class="btn sm" id="learn">+ Learning</button><button class="btn ghost sm" id="savesent">Save sentence</button><button class="btn ghost sm" data-say="' + esc(sentence) + '">🔊 Sentence</button></div></section>';
+			+ '<div class="ra-btns"><button class="btn sm" id="learn">+ Learn</button><button class="btn ghost sm" id="savesent">Save sentence</button><button class="btn ghost sm" data-say="' + esc(sentence) + '">🔊 Sentence</button></div></section>';
 		bindSay();
 		bindPics(el);
 		var aw = el.querySelector('[data-ai-word]');
@@ -1567,7 +1566,7 @@
 			this.textContent = 'Explaining…';
 			api('library/explain', { body: { word: word, sentence: sentence } }).then(function (x) { aw.innerHTML = '<p class="rv-ar' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.meaning) + '</p>' + (x.note ? '<p class="small muted' + (x.noteLang === 'en' ? '' : ' ar') + '">' + esc(x.note) + '</p>' : '') + (x.sentence ? '<p class="small ar">' + esc(x.sentence) + '</p>' : ''); }, function (e) { aw.textContent = e.message; });
 		};
-		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learning'; b.disabled = true; toast('Added to your review cards'); }, function (e) { toast(e.message); }); };
+		el.querySelector('#learn').onclick = function () { var b = this; api('library/word', { body: { lemma: lemma, status: 'learning' } }).then(function () { b.textContent = '✓ Learn'; b.disabled = true; toast('Added to your review cards'); }, function (e) { toast(e.message); }); };
 		el.querySelector('#savesent').onclick = function () { saveEditor(sentence, sentence); };
 		el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	}
@@ -1882,7 +1881,7 @@
 			var st = R.stats;
 			var more = Math.max(0, (st.due || 0) - 0);
 			shell(reviewHead() + '<section class="card stack center-text"><h2>All done for today 🎉</h2><p class="muted">' + (R.done ? 'You reviewed ' + R.done + ' cards.' : 'No cards are due.') + (more ? ' ' + more + ' more can wait for tomorrow — no pressure.' : '') + (R.waiting ? ' ' + R.waiting + ' new cards are waiting for the next days.' : '') + '</p>'
-				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learning</b>. On your phone: Learn → Scan a page or Read a text, tap a word → "+ Learning". On a computer: Language Lens on YouTube. Your own mistakes in Write become cards too.</p>')
+				+ (st.total ? '' : '<p>Cards come from words you mark as <b>Learn</b>. On your phone: Learn → Scan a page or Read a text, tap a word → "+ Learn". On a computer: Language Lens on YouTube. Your own mistakes in Write become cards too.</p>')
 				+ (st.level && st.level.levelMax > 5 ? '<label class="small">Fewer new cards? <select id="npd">' + [5, 7, 10, 13, 16, 20, 25].filter(function (n) { return n <= st.level.levelMax; }).map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select> a day (your level allows ' + st.level.levelMax + ')</label>' : '')
 				+ '<button class="btn ghost" id="lib">Open my library</button></section>');
 			$app.querySelector('#lib').onclick = function () { go('library'); };
@@ -1975,7 +1974,7 @@
 	}
 	function paintLibrary() {
 		var d = L.data, n = libCounts(), q = L.q.toLowerCase();
-		var tabs = [['words', 'Learning words', n.words], ['phrase', 'Phrases', n.phrase], ['sentence', 'Sentences', n.sentence], ['grammar', 'Grammar', n.grammar], ['mistakes', 'My mistakes', n.mistakes]];
+		var tabs = [['words', 'Learn words', n.words], ['phrase', 'Phrases', n.phrase], ['sentence', 'Sentences', n.sentence], ['grammar', 'Grammar', n.grammar], ['mistakes', 'My mistakes', n.mistakes]];
 		var match = function (t) { return !q || String(t).toLowerCase().indexOf(q) >= 0; };
 		var rows = '';
 		if (L.tab === 'words') {
@@ -1986,7 +1985,7 @@
 					+ '<p class="small muted">' + (w.due ? 'Next review: ' + whenDue(w.due) : 'Card starts soon') + '</p></div>'
 					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(w.lemma) + '" title="Listen">🔊</button><button class="btn ghost sm" data-known="' + esc(w.lemma) + '">✓ Known</button><button class="icon" data-rmw="' + esc(w.lemma) + '" title="Remove">✕</button></div></li>';
 			}).join('');
-			rows = '<p class="small muted">' + d.known + ' known words in total' + (d.recentKnown.length ? ' · recently learned: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">No learning words' + (q ? ' match your search.' : ' yet. On your phone, tap a word in Learn → Read a text or Scan a page and choose "+ Learning". On a computer, use Language Lens.') + '</li>') + '</ul>';
+			rows = '<p class="small muted">' + d.known + ' known words in total' + (d.recentKnown.length ? ' · recently learned: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">No learning words' + (q ? ' match your search.' : ' yet. On your phone, tap a word in Learn → Read a text or Scan a page and choose "+ Learn". On a computer, use Language Lens.') + '</li>') + '</ul>';
 		} else if (L.tab === 'mistakes') {
 			var seenM = {};
 			rows = '<ul class="lib">' + (d.mistakes.filter(function (e) { var k = (e.wrong + '|' + e.fix + '|' + e.sentence).toLowerCase(); if (seenM[k]) return false; seenM[k] = 1; return match(e.sentence) || match(e.skillName); }).map(function (e) {
@@ -2223,7 +2222,7 @@
 					: '<div class="card"><p><b>You read every story we have for now! 🎉</b></p><p class="small muted">New ones are on the way. Read a favourite again below.</p></div>')
 				+ (h.cats.length ? '<h3>Or pick a topic</h3><div class="st-chips">' + h.cats.map(function (c) { return '<button class="btn ghost sm" data-cat="' + esc(c.id) + '">' + esc(stCat(c)) + '</button>'; }).join('') + '</div>' : '')
 				+ (p.why !== 'off' ? '<div class="card stack st-mine"><h3>✨ A story made just for you</h3><p class="small muted">Built around the words you are learning, about something you love. One a day.</p>'
-					+ (p.can ? '<button class="btn" data-mine>Write my story</button>' : '<p class="small">' + ({ today: 'You got today\'s personal story. Come back tomorrow!', words: 'Mark at least 3 words as Learning first (tap words while you read or watch).', budget: 'Personal stories are paused until next month.' }[p.why] || '') + '</p>') + '</div>' : '')
+					+ (p.can ? '<button class="btn" data-mine>Write my story</button>' : '<p class="small">' + ({ today: 'You got today\'s personal story. Come back tomorrow!', words: 'Mark at least 3 words as Learn first (tap words while you read or watch).', budget: 'Personal stories are paused until next month.' }[p.why] || '') + '</p>') + '</div>' : '')
 				+ (h.library.length ? '<h2>My stories</h2><div class="sg-list">' + h.library.map(function (x) {
 					return '<button class="card sg-item" data-open="' + x.id + '"><span class="sg-ic">' + ST_FMT[x.format][0] + '</span><span><b>' + esc(x.title) + '</b><span class="small muted">' + esc(stCat(x.cat)) + ' · ' + x.level + (x.mine ? ' · ✨ for you' : '') + ' · ' + (x.done ? '✓ Read' + (x.total ? ' · ' + x.score + '/' + x.total : '') : 'Not finished') + (x.fav ? ' · ★' : '') + '</span></span></button>';
 				}).join('') + '</div>' : '');

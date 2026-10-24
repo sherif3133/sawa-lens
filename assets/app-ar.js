@@ -619,7 +619,7 @@
 			intro: 'خطوتين صغيرين. كل حاجة شغالة على موبايلك.',
 			steps: [
 				{ k: 'vocabTest', t: 'اعمل اختبار المستوى السريع (حوالي ٨ دقايق)', ar: 'اختبار سريع لتحديد المستوى', how: 'بيعرف مستواك وعدد الكلمات اللي تعرفها، عشان كل حاجة تبقى على مقاسك. تقدر تعمل الاختبار الكامل بعدين.', done: function (j) { return j.vocabTest; }, link: function () { return ['ابدأ اختبار المستوى', '/placement/']; } },
-				{ k: 'learning', t: 'احفظ ٥ كلمات عايز تتعلمها', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'على الموبايل: اتعلم ← صوّر صفحة، دوس على كلمة ← "+ Learning". على الكمبيوتر: Language Lens على يوتيوب.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
+				{ k: 'learning', t: 'احفظ ٥ كلمات عايز تتعلمها', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'على الموبايل: اتعلم ← صوّر صفحة، دوس على كلمة ← "+ Learn". على الكمبيوتر: Language Lens على يوتيوب.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
 				{ k: 'interests', optional: true, t: 'لاقي محتوى انجليزي هتحبه', ar: 'اكتشف محتوى إنجليزي هيعجبك', how: 'قولنا بتتفرج على إيه بالعربي (كوميدي، راب، كورة…) وخد صنّاع محتوى ومزيكا وكتب بالانجليزي على نفس الذوق. دقيقتين.', done: function (j) { return j.interests; }, go: 'interests' },
 				{ k: 'extension', optional: true, t: 'على الكمبيوتر: ثبّت إضافة Language Lens', ar: 'على الكمبيوتر: ثبّت إضافة Language Lens', how: 'معاني الكلمات على يوتيوب وأي موقع. دوس على الأيقونة ← "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['ثبّت Language Lens', j.store] : null; } }
 			] },
@@ -1883,7 +1883,7 @@
 			var st = R.stats;
 			var more = Math.max(0, (st.due || 0) - 0);
 			shell(reviewHead() + '<section class="card stack center-text"><h2>خلصت النهارده 🎉</h2><p class="muted">' + (R.done ? 'راجعت ' + R.done + ' cards.' : 'مفيش كروت مطلوبة.') + (more ? ' ' + more + ' كمان ممكن تستنى لبكرة — من غير ضغط.' : '') + (R.waiting ? ' ' + R.waiting + ' كروت جديدة مستنية الأيام الجاية.' : '') + '</p>'
-				+ (st.total ? '' : '<p>الكروت بتيجي من الكلمات اللي بتعلّمها <b>بتتعلمها</b>. On your phone: Learn → Scan a page or Read a text, tap a word → "+ Learning". On a computer: Language Lens on YouTube. Your own mistakes in Write become cards too.</p>')
+				+ (st.total ? '' : '<p>الكروت بتيجي من الكلمات اللي بتعلّمها <b>بتتعلمها</b>. On your phone: Learn → Scan a page or Read a text, tap a word → "+ Learn". On a computer: Language Lens on YouTube. Your own mistakes in Write become cards too.</p>')
 				+ (st.level && st.level.levelMax > 5 ? '<label class="small">كروت جديدة أقل؟ <select id="npd">' + [5, 7, 10, 13, 16, 20, 25].filter(function (n) { return n <= st.level.levelMax; }).map(function (n) { return '<option' + (n === st.newPerDay ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select> في اليوم (مستواك بيسمح بـ ' + st.level.levelMax + ')</label>' : '')
 				+ '<button class="btn ghost" id="lib">افتح مكتبتي</button></section>');
 			$app.querySelector('#lib').onclick = function () { go('library'); };
@@ -1987,7 +1987,7 @@
 					+ '<p class="small muted">' + (w.due ? 'المراجعة الجاية: ' + whenDue(w.due) : 'الكارت هيبدأ قريب') + '</p></div>'
 					+ '<div class="lib-acts"><button class="icon" data-say="' + esc(w.lemma) + '" title="Listen">🔊</button><button class="btn ghost sm" data-known="' + esc(w.lemma) + '">✓ عارفها</button><button class="icon" data-rmw="' + esc(w.lemma) + '" title="Remove">✕</button></div></li>';
 			}).join('');
-			rows = '<p class="small muted">' + d.known + ' كلمة معروفة في المجمل' + (d.recentKnown.length ? ' · اتعلمتها قريب: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">مفيش كلمات بتتعلمها' + (q ? ' بتطابق البحث.' : ' لسه. على الموبايل، دوس على كلمة في اتعلم ← اقرا نص أو صوّر صفحة واختار "+ Learning". على الكمبيوتر، استخدم Language Lens.') + '</li>') + '</ul>';
+			rows = '<p class="small muted">' + d.known + ' كلمة معروفة في المجمل' + (d.recentKnown.length ? ' · اتعلمتها قريب: ' + d.recentKnown.slice(0, 12).map(esc).join(', ') : '') + '</p><ul class="lib">' + (rows || '<li class="muted">مفيش كلمات بتتعلمها' + (q ? ' بتطابق البحث.' : ' لسه. على الموبايل، دوس على كلمة في اتعلم ← اقرا نص أو صوّر صفحة واختار "+ Learn". على الكمبيوتر، استخدم Language Lens.') + '</li>') + '</ul>';
 		} else if (L.tab === 'mistakes') {
 			var seenM = {};
 			rows = '<ul class="lib">' + (d.mistakes.filter(function (e) { var k = (e.wrong + '|' + e.fix + '|' + e.sentence).toLowerCase(); if (seenM[k]) return false; seenM[k] = 1; return match(e.sentence) || match(e.skillName); }).map(function (e) {

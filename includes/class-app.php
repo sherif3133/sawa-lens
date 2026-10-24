@@ -179,7 +179,7 @@ self.addEventListener('fetch', function () {});
 	/** /app for guests and people not approved yet: the tracker's sign-in, join and waiting screens. */
 	/** The app is open to students (Settings → Language Lens). Until then only admins get in; approved students wait. */
 	public static function is_open() {
-		return (bool) get_option( 'sawa_lens_app_open', 0 );
+		return true; // 0.33.0: the app is open to every signed-in account (the "You're on the list" gate is shelved: ops/shelf.md)
 	}
 
 	public static function is_open_for( $uid ) {
