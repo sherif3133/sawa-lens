@@ -614,10 +614,10 @@
 
 	/* ── Start here: a guided path that unlocks features step by step ── */
 	var STAGES = [
-		{ n: 1, title: 'Find your level & collect words', ar: 'اعرف مستواك واجمع كلمات', tabs: ['start', 'read', 'scan', 'interests'],
-			intro: 'Two small steps. Everything works on your phone.',
+		{ n: 1, title: 'Collect words', ar: 'اجمع كلمات', tabs: ['start', 'read', 'scan', 'interests'],
+			intro: 'Start by saving words you meet. The level check is optional: skip it and take it later.',
 			steps: [
-				{ k: 'vocabTest', t: 'Take the quick level check (about 8 minutes)', ar: 'اختبار سريع لتحديد المستوى', how: 'It finds your level and vocabulary size, so everything fits you. You can take the full test later.', done: function (j) { return j.vocabTest; }, link: function () { return ['Start the level check', '/placement/']; } },
+				{ k: 'vocabTest', optional: true, t: 'Optional, any time: take the level check (about 8 minutes)', ar: 'اختبار سريع لتحديد المستوى', how: 'It finds your level and vocabulary size, so everything fits you. You can take the full test later.', done: function (j) { return j.vocabTest; }, link: function () { return ['Start the level check', '/placement/']; } },
 				{ k: 'learning', t: 'Save 5 words you want to learn', ar: 'احفظ ٥ كلمات عايز تتعلمها', how: 'On your phone: Learn → Scan a page, tap a word → "+ Learning". On a computer: Language Lens on YouTube.', done: function (j) { return j.learning + j.saved >= 5; }, count: function (j) { return Math.min(5, j.learning + j.saved) + '/5'; }, go: 'scan' },
 				{ k: 'interests', optional: true, t: 'Find English content you\'ll love', ar: 'اكتشف محتوى إنجليزي هيعجبك', how: 'Tell us what you watch in Arabic (comedy, rap, football…) and get English creators, music and books to match. 2 minutes.', done: function (j) { return j.interests; }, go: 'interests' },
 				{ k: 'extension', optional: true, t: 'On a computer: add Language Lens to Chrome', ar: 'على الكمبيوتر: ثبّت إضافة Language Lens', how: 'Meanings on YouTube and any website. Click its icon → "Sign in with Sawa English".', done: function (j) { return j.extension; }, link: function (j) { return j.store ? ['Install Language Lens', j.store] : null; } }
